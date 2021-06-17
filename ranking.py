@@ -18,7 +18,7 @@ class Ranking():
     """
 
     def __init__(self, intermediario, t1, file_completo='completo.csv', file_ranking='ranking.xlsx', directory_output_liste='export_liste_from_Q', file_zip='rank.zip'):
-        '''
+        """
         Initialize the class.
         
         Parameters:
@@ -28,7 +28,7 @@ class Ranking():
         t1 = data finale
         directory_output_liste = percorso in cui scaricare i dati delle liste
         file_zip = file in cui salvare il file di ranking e le note
-        '''
+        """
         self.intermediario = intermediario
         self.file_completo = file_completo
         self.file_ranking = file_ranking
@@ -44,9 +44,9 @@ class Ranking():
 
     def merge_completo_liste(self):
         # TODO : INSERIRE LE OPPORTUNITIES O IN SORTINO O IN SHARPE PER TUTTI
-        '''
+        """
         Aggiunge gli indici scaricati da Quantalys.it nel file completo
-        '''
+        """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         print('sto aggiungendo gli indici delle liste al file completo...')
 
@@ -193,9 +193,9 @@ class Ranking():
         df.to_excel(self.file_ranking, index=False)
 
     def discriminazione_flessibili_e_bilanciati(self):
-        '''
+        """
         Discrimina i flessibili  e i bilanciati in classi diverse a seconda della loro volatilità (maggiore o minore di 0.05), o alla loro appartenenza alle classi.
-        '''
+        """
         df = pd.read_excel(self.file_ranking, index_col=None)
         if self.intermediario == 'BPPB' or self.intermediario == 'CRV':
             print("\nsto discriminando i flessibili in base alla loro volatilità...")
@@ -207,9 +207,9 @@ class Ranking():
         df.to_excel(self.file_ranking, index=False)
 
     def rank(self):
-        '''
+        """
         Crea il file di ranking con tanti fogli quante sono le macro asset class.
-        '''
+        """
         # Creazione file ranking diviso per macro
         print('\nsto facendo la rankizzazione')
         df = pd.read_excel(self.file_ranking, index_col=None)
@@ -538,10 +538,10 @@ class Ranking():
     def rank_formatted(self):
         # TODO : applica le formattazioni con 4 cifre decimali anche a BPPB e BPL
         # TODO : applica gli ordinamenti dei fogli anche a BPPB e BPL
-        '''
+        """
         Formatta il file self.ranking per mettere in evidenza le classi blend e l'ordinamento definitivo.
         Formatta le intestazioni del file.
-        '''
+        """
         wb = load_workbook(filename='ranking.xlsx') # carica il file
         # Colora le micro blend
         print('\nsto formattando il file di ranking...')
@@ -674,9 +674,9 @@ class Ranking():
         wb.save(self.file_ranking)
 
     def zip_file(self):
-        '''
+        """
         Crea un file zip contenente il file_ranking e le note.
-        '''
+        """
         print(f'\nsto creando il file zip da inviare a {self.intermediario}...')
         rankZip = zipfile.ZipFile(self.file_zip, 'w')
         rankZip.write(self.file_ranking, compress_type=zipfile.ZIP_DEFLATED)

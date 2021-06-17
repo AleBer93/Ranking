@@ -12,7 +12,7 @@ class Completo():
     """
 
     def __init__(self, intermediario, t1, directory_output_liste_complete="C:/Users/Administrator/Desktop/Sbwkrq/Ranking/export_liste_complete_from_Q", file_completo='completo.csv', file_bloomberg='scarico_bloomberg.csv', directory_input_liste='./import_liste_into_Q/'):
-        '''
+        """
         Initialize the file.
 
         Parameters:
@@ -25,7 +25,7 @@ class Completo():
         indicatore_bs = colonna contenente l'indicatore B&S
         file_bloomberg = file in cui scaricare le date di avvio dei fondi
         directory_input_liste = percorso in cui salvare le liste
-        '''
+        """
         self.intermediario = intermediario
         self.t1 = t1
         # self.t0_3Y = (datetime.datetime.strptime(t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3))
@@ -36,23 +36,23 @@ class Completo():
         self.directory_input_liste = directory_input_liste
 
     def concatenazione_file_excel(self):
-        '''
+        """
         Concatena i file excel all'interno della directory_output_liste_complete l'uno sotto l'altro.
         Salva il risultato con il nome file_name.
 
         Parameters:
         /
-        '''
+        """
         df = pd.concat((pd.read_csv(self.directory_output_liste_complete + '/' + filename, sep = ';', decimal=',', engine='python', encoding = "utf_16_le", error_bad_lines=False, skipfooter=1) for filename in os.listdir(self.directory_output_liste_complete)), ignore_index=True)
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def correzione_micro_russe(self):
-        '''
+        """
         Corregge le righe delle microcategorie Az. Paesi Emerg. Europa e Russia & Az. Paesi Emerg. Europa ex Russia perchè vanno a capo dalla sesta colonna in poi.
         
         Parameters:
         /
-        '''
+        """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         indexes_to_drop = []
         for row in range(len(df)):
@@ -67,25 +67,25 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def change_datatype(self, **colonne):
-        '''
+        """
         Cambia il tipo di dato alle colonne selezionate del file completo.
         
         Parameters:
         colonne(dict) = dizionario di colonne a cui cambiare il dato. Key=colonna, value=tipo dato(float, int, string)
-        '''
+        """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         for key, value in colonne.items():
             df[key] = df[key].astype(value)
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def seleziona_colonne(self, *colonne):
-        '''
+        """
         Seleziona le colonne desiderate dal file_csv con separatore ";" e decimali ","
 
         Parameters:
         file_csv(str) = file da cui estrarre le colonne
         colonne(tuple) = tuple di colonne da estrarre dal file
-        '''
+        """
         if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'CRV':
             colonne = 'Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese', 'Rischio 3 anni") fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI'
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
@@ -93,7 +93,7 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def merge_files(self, file_excel, left_on='Codice ISIN', right_on='isin', merge='left'):
-        '''
+        """
         Unisce il file completo csv e un secondo file excel o csv con il tipo di merge specificato.
 
         Parameters:
@@ -101,7 +101,7 @@ class Completo():
         left_on(str) = colonna del primo df
         right_on(str) = colonna del secondo df
         merge(str) = specifica tipo di merge
-        '''
+        """
         df_1 = pd.read_csv(self.file_completo, sep=";", decimal=',',index_col=None)
         if file_excel.endswith('.xlsx'):
             df_2 = pd.read_excel(file_excel)
@@ -113,9 +113,7 @@ class Completo():
         df_merged.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def assegna_macro(self):
-        '''
-        Assegna una macrocategoria ad ogni microcategoria.
-        '''
+        """Assegna una macrocategoria ad ogni microcategoria."""
         #Aggiungi tutte le micro
         BPPB_dict = {'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ',
             'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 'Obblig. Euro a scadenza' : 'OBB_BT',
@@ -279,10 +277,10 @@ class Completo():
         # # TODO : SCARICA DA SQL LA DATA DI AVVIO E DA BLOOMBERG LE RIMANENTI. AGGIORNA QUELLE NON PRESENTI SU SQL
         # df.to_sql('persone_fisiche', con=engine, if_exists='replace', index=False, dtype={'data_questionario' : DateTime()})
 
-        '''
+        """
         Scarica la data di avvio dei fondi nel file_bloomberg utilizzando la libreria di Bloomberg.
         Aggiungi la data di avvio al file completo.
-        '''
+        """
         print("\nSto scaricando le dati di avvio dei fondi da Bloomberg...")
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df_bl = blp.bdp('/isin/' + df['Codice ISIN'], flds="fund_incept_dt") #/isin/IT0001029823
@@ -302,12 +300,12 @@ class Completo():
             df_merged = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
 
     def calcolo_best_worst(self):
-        '''
+        """
         Calcolo best e worst per le categorie a benchmark, per fondi con più di tre anni e con indicatore B&S presente.
 
         Parameters:
         intermediario(str) = intermediario per cui fare l'analisi (BPPB o BPL o CRV)
-        '''
+        """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         # print(df['fund_incept_dt'].dtypes) # da oggetto
         df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
@@ -341,7 +339,7 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def discriminazione_flessibili(self):
-        '''
+        """
         Assegna l'etichetta 'bassa_vola' se la volatilità a 3 anni è inferiore a 0.05 oppure 'media_alta_vola', ove disponibile,
         altrimenti se la volatilità a 1 anno è inferiore a 0.05 oppure 'media_alta_vola', ove disponibile,
         altrimenti se l'indicatore SRRI è inferiore a 3 oppure 'media_alta_vola', ove disponbile,
@@ -349,7 +347,7 @@ class Completo():
 
         Parameters:
         intermediario(str) = intermediario per cui fare l'analisi (BPPB o Copernico)
-        '''
+        """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         if self.intermediario == 'BPPB' or self.intermediario == 'CRV':
             df['categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['Rischio 3 anni") fine mese'].notnull()), 'Rischio 3 anni") fine mese'].apply(lambda x: 'bassa_vola' if x < 0.05 else 'media_alta_vola')
@@ -399,13 +397,13 @@ class Completo():
         df.to_csv(file_excel, sep=";", decimal=',', index=False)
 
     def creazione_liste_input(self):
-        '''
+        """
         Crea file csv, con dimensioni massime pari a ???199 elementi, da importare in Quantalys.it.
         Directory in cui vengono salvati i file : './import_liste_into_Q/'
 
         Parameters:
         /
-        '''
+        """
         df_com = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         if not os.path.exists(self.directory_input_liste):
             os.makedirs(self.directory_input_liste)

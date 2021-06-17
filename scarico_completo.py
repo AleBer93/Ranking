@@ -16,7 +16,7 @@ class ScaricoCompleto():
     """
 
     def __init__(self, username='AVicario', password='AVicario123', directory_output_liste_complete="C:\\Users\\Administrator\\Desktop\\Sbwkrq\\Ranking\\export_liste_complete_from_Q", directory_input_liste_complete='C:\\Users\\Administrator\\Desktop\\Sbwkrq\\Ranking\\import_liste_complete_into_Q\\'):
-        '''
+        """
         Initialize the file.
         Default download folder : self.directory_output_liste_complete
         Default browser : chromium
@@ -26,7 +26,7 @@ class ScaricoCompleto():
         password(str) = password dell'account
         directory_output_liste_complete = percorso in cui scaricare i dati delle liste complete
         directory_input_liste_complete = percorso in cui trovare i dati delle liste complete
-        '''
+        """
         # username='Pomante', password='Pomante22'
         self.username = username
         self.password = password
@@ -43,10 +43,10 @@ class ScaricoCompleto():
         self.driver.implicitly_wait(5)
     
     def accesso_a_quantalys(self):
-        '''
+        """
         Accede a quantalys.it con chromium. Imposta come cartella di download il percorso in self.directory_output_liste_complete
         e massimizza la finestra.
-        '''
+        """
         print('\n...connessione a Quantalys...')
         self.driver.get("http://www.quantalys.it")
         self.driver.maximize_window()

@@ -27,10 +27,10 @@ class Catalogo():
         self.intermediario = intermediario
 
     def rimuovi_testoacapo_e_spazi_da_intestazione(self):
-        '''
+        """
         Rimuove l'allinemanto testo a capo, gli spazi e il segno percentuale nelle colonne di un file excel
         e salva la modifica in un nuovo file.
-        '''
+        """
 
         filename = os.listdir(self.directory_catalogo)[0]
         print(f"sto togliendo l'opzione 'Testo a capo', gli spazi e il segno percentuale nelle colonne del file '{filename}'...")
@@ -51,10 +51,7 @@ class Catalogo():
                 print("salvato!")
     
     def rinomina_colonne(self):
-        '''
-        Rinomina le colonne del file catalogo in maniera opportuna.
-        '''
-
+        """Rinomina le colonne del file catalogo in maniera opportuna."""
         BPPB_colonne = {'isin_code' : 'isin', 'nome_del_comparto' : 'nome', 'valuta_nav' : 'valuta', 'commissione_sottoscrizione' : 'commissione'}
         BPL_colonne = {'isin' : 'isin', 'descrizione_fondo' : 'nome', 'divisa' : 'valuta', 'commissione_di_sottoscrizione_bpl_scontata_al_75' : 'commissione'}
         CRV_colonne = {'code_isin' : 'isin', 'nome' : 'nome', 'currency' : 'valuta', 'oneri' : 'commissione'}
@@ -81,12 +78,12 @@ class Catalogo():
         df.to_excel(self.file_catalogo, index=False)
 
     def rimuovi_spazi(self, *colonne):
-        '''
+        """
         Rimuovi gli spazi nelle osservazioni delle colonne di un file excel
 
         Parameters:
         colonne(tuple) : tuple di colonne del file in cui togliere gli spazi
-        '''
+        """
 
         df = pd.read_excel(self.file_catalogo)
         for colonna in colonne:
@@ -97,12 +94,12 @@ class Catalogo():
         df.to_excel(self.file_catalogo, index=False)
 
     def rimuovi_duplicati(self, *colonne):
-        '''
+        """
         Rimuovi i valori duplicati nelle colonne di un file excel
 
         Parameters:
         colonne(tuple) : tuple di colonne del file in cui rimuovere i duplicati
-        '''
+        """
         df = pd.read_excel(self.file_catalogo)
         for colonna in colonne:
             print(f"\n...sto rimuovendo i valori multipli nella colonna {colonna}")
@@ -114,13 +111,13 @@ class Catalogo():
         df.to_excel(self.file_catalogo, index=False)
 
     def tronca_valore(self, carattere, *colonne):
-        '''
+        """
         Tronca i valori delle colonne al numero di caratteri desiderato
 
         Parameters:
         carattere(int): carattere oltre il quale troncare la stringa
         colonne(tuple) : tuple di colonne da trasformare
-        '''
+        """
 
         df = pd.read_excel(self.file_catalogo)
         for colonna in colonne:
@@ -129,13 +126,13 @@ class Catalogo():
         df.to_excel(self.file_catalogo, index=False)
 
     def letter_case(self, formato, *colonne):
-        '''
+        """
         Trasforma i valori nelle colonne di un file excel nel formato desiderato
 
         Parameters:
         formato(str): formato in cui convertire la colonna di un file excel [Valori : upper - lower - title]
         colonne(tuple) : tuple di colonne da trasformare
-        '''
+        """
 
         df = pd.read_excel(self.file_catalogo)
         for colonna in colonne:
@@ -151,13 +148,13 @@ class Catalogo():
         df.to_excel(self.file_catalogo, index=False)
     
     def string_percentage_to_float(self, *colonne):
-        '''
+        """
         Trasforma i valori percentuali nelle colonne di un file excel in valori numerici decimali non percentuali,
         sostituendo la virgola con il punto.
 
         Parameters:
         colonne(tuple) : tuple di colonne da trasformare
-        '''
+        """
 
         df = pd.read_excel(self.file_catalogo)
         for colonna in colonne:
@@ -166,7 +163,7 @@ class Catalogo():
         df.to_excel(self.file_catalogo, index=False)
     
     def fix_fee(self, fee_column, commissione_massima):
-        '''
+        """
         Trasforma la colonna che contiene valori troppo grandi, derivani da un'errata formattazione del file di input.
         E.g. commissione : 4% con formato percentuale = 0.04 -> corretto
         E.g. commissione : 4% con formato personalizzato = 4 -> sbagliato, la commissione non può essere del 400%.
@@ -174,18 +171,18 @@ class Catalogo():
         Parameters:
         fee_column(str) : colonna da sistemare.
         commissione_massima(int): commissione massima ipotetica applicata in formato numerico decimale non percentuale.
-        '''
+        """
         df = pd.read_excel(self.file_catalogo)
         print(f"\nI fondi con una commissione sbagliata sono:\n{df[df[fee_column] > commissione_massima]}\n")
         df.loc[df[fee_column] > commissione_massima, fee_column] = df.loc[df[fee_column] > commissione_massima, fee_column] / 100
         df.to_excel(self.file_catalogo, index=False)
 
     def creazione_liste_complete_input(self):
-        '''
+        """
         Crea file csv, con dimensioni massime pari a 1999 elementi, da importare in Quantalys.it.
         Directory in cui vengono salvati i file : './import_liste_complete_into_Q/'.
         Crea la directory, se non esiste.
-        '''
+        """
         if not os.path.exists(self.directory_input_liste_complete):
             os.makedirs(self.directory_input_liste_complete)
         while len(os.listdir('./import_liste_complete_into_Q')) != 0:

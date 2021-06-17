@@ -23,7 +23,7 @@ class Scarico():
     # username='Pomante', password='Pomante22'
 
     def __init__(self, t1, username='AVicario', password='AVicario123', directory_output_liste="C:\\Users\\Administrator\\Desktop\\Sbwkrq\\Ranking\\export_liste_from_Q", directory_input_liste='C:\\Users\\Administrator\\Desktop\\Sbwkrq\\Ranking\\import_liste_into_Q\\'):
-        '''
+        """
         Initialize the class.
         Default download folder : self.directory_output_liste
         Default browser : chromium
@@ -34,7 +34,7 @@ class Scarico():
         t1 = data finale
         directory_output_liste = percorso in cui scaricare i dati delle liste
         directory_input_liste = percorso in cui trovare i dati delle liste
-        '''
+        """
         self.username = username
         self.password = password
         self.t1 = t1
@@ -55,19 +55,19 @@ class Scarico():
         self.driver.implicitly_wait(5)
         
     def accesso_a_quantalys(self):
-        '''
+        """
         Accede a quantalys.it con chromium. Imposta come cartella di download il percorso in self.directory_output_liste
         e massimizza la finestra.
-        '''
+        """
         print('\n...connessione a Quantalys...')
         self.driver.get("http://www.quantalys.it")
         self.driver.maximize_window()
 
     def login(self):
-        '''
+        """
         Accede all'account con username=self.username e password=self.password.
         Chiude l'alert dei cookies.
-        '''
+        """
         # Chiudi i cookies
         try:
             time.sleep(1)
@@ -92,13 +92,13 @@ class Scarico():
             self.driver.find_element_by_xpath('//*[@id="inputPassword"]').send_keys(self.password,Keys.ENTER)
     
     def rimuovi_indicatori(self, numero_iniziale, numero_finale=10):
-        '''
+        """
         Rimuovi gli indicatori presenti nel menu "indicatori calcolati" a partire dal numero iniziale fino al finale.
 
         Parameters:
         numero_iniziale(int) = 
         numero_finale(int) = 
-        '''
+        """
         for i in range(numero_iniziale, numero_finale):
             oggetto = 'imgDelete_' + str(i)
             try:
@@ -108,12 +108,12 @@ class Scarico():
                 pass
         
     def aggiungi_indicatori(self, *indicatori):
-        '''
+        """
         Aggiungi gli indicatori nel menu "indicatori calcolati"
         
         Parameters:
         indicatori(tuple) = tuple di indicatori da aggiungere.
-        '''
+        """
         # Modifica la posizione di rilascio dei due indicatori finali.
         # Se gli indicatori sono già presenti pass!
         # Prova a ridurre il tempo di esecuzione, rallenta troppo il codice
@@ -134,10 +134,10 @@ class Scarico():
                 time.sleep(2)
 
     def export(self, intermediario):
-        '''
+        """
         Carica le liste in quantalys.it, scarica gli indicatori pertinenti ed esporta un file csv.
         Rinomina il file con nomi in successione relativi alla macrocategoria.
-        '''
+        """
         # Il processo parte se la cartella di download è vuota
         while len(os.listdir('./export_liste_from_Q')) != 0:
             print(f"\nCi sono dei file presenti nella cartella di download: {glob.glob(self.directory_output_liste+'/*')}\n")
