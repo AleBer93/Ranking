@@ -114,7 +114,7 @@ class Completo():
 
     def assegna_macro(self):
         """Assegna una macrocategoria ad ogni microcategoria."""
-        #Aggiungi tutte le micro
+
         BPPB_dict = {'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ',
             'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 'Obblig. Euro a scadenza' : 'OBB_BT',
             'Obblig. Euro gov. medio termine' : 'OBB_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_MLT', 'Obblig. Euro lungo termine' : 'OBB_MLT', 
@@ -139,15 +139,15 @@ class Completo():
             'Commodities a leva' : 'OPP', 'Commodities Bear' : 'OPP', 'Commodities' : 'OPP', 'Obblig. Convertib. Euro' : 'OPP', 'Obblig. Convertib. Europa' : 'OPP', 
             'Obblig. Convertib. Dollaro US' : 'OPP', 'Obblig. Convertib. Glob.' : 'OPP', 'Az. real estate Europa' : 'OPP', 'Az. Biotech' : 'OPP', 'Az. beni di consumo' : 'OPP',
             'Az. ambiente' : 'OPP', 'Az. energia, materie prime, oro' : 'OPP', 'Az. energia. materie prime. oro' : 'OPP', 'Az. real estate Mondo' : 'OPP', 'Az. industria' : 'OPP',
-            'Az. salute   farmaceutico' : 'OPP', 'Az. salute – farmaceutico' : 'OPP', 'Az. Servizi di pubblica utilita' : 'OPP', 'Az. servizi finanziari' : 'OPP',
+            'Az. salute   farmaceutico' : 'OPP', 'Az. salute – farmaceutico' : 'OPP', 'Az. salute - farmaceutico' : 'OPP', 'Az. Servizi di pubblica utilita' : 'OPP', 'Az. servizi finanziari' : 'OPP',
             'Az. tecnologia' : 'OPP', 'Az. telecomunicazioni' : 'OPP', 'Az. Oro' : 'OPP', 'Az. Bear' : 'OPP', 'Obblig. Bear' : 'OPP', 'Valuta Long/Short' : 'OPP', 'Altri' : 'OPP',
             'Bilanc. Prud. Europa' : 'FLEX', 'Bilanc. Prud. Global Euro' : 'FLEX', 'Bilanc. Prud. Dollaro US' : 'FLEX', 'Bilanc. Prud. altre valute' : 'FLEX',
             'Bilanc. Equilib. Europa' : 'FLEX', 'Bilanc. Equil. Global Euro' : 'FLEX', 'Bilanc. Equil. Dollaro US' : 'FLEX', 'Bilanc. Equil. altre valute' : 'FLEX',
             'Bilanc. Aggress. Europa' : 'FLEX', 'Bilanc. Aggress. Global Euro' : 'FLEX', 'Bilanc. aggress. Dollaro US' : 'FLEX', 'Bilanc. Aggress. altre valute' : 'FLEX',
             'Flessibili Europa' : 'FLEX', 'Fless. Global Euro' : 'FLEX', 'Flessibili prudenti Europa' : 'FLEX', 'Flessibili Dollaro US' : 'FLEX', 'Flessibili prudenti globale' : 'FLEX',
-            'Fondi a scadenza pred. Euro' : 'FLEX', 'Perf. ass. Dividendi' : 'FLEX', 'Perf. Ass. Arbitr.Fus.-acquis. Euro' : 'FLEX', 'Perf. assoluta strategia valute' : 'FLEX',
-            'Perf. assoluta Market Neutral Euro' : 'FLEX', 'Perf. ass. Long/Short eq.' : 'FLEX', 'Perf. assoluta tassi' : 'FLEX', 'Perf. assoluta volatilita' : 'FLEX',
-            'Perf. assoluta multi-strategia' : 'FLEX', 'Perf. assoluta (GBP)' : 'FLEX', 'Perf. ass. USD' : 'FLEX', 'Fondi  a garanzia o a formula Euro' : 'FLEX',
+            'Fondi a scadenza pred. Euro' : 'FLEX', 'Fondi a scadenza pred. altre valute' : 'FLEX', 'Perf. ass. Dividendi' : 'FLEX', 'Perf. Ass. Arbitr.Fus.-acquis. Euro' : 'FLEX',
+            'Perf. assoluta strategia valute' : 'FLEX', 'Perf. assoluta Market Neutral Euro' : 'FLEX', 'Perf. ass. Long/Short eq.' : 'FLEX', 'Perf. assoluta tassi' : 'FLEX',
+            'Perf. assoluta volatilita' : 'FLEX', 'Perf. assoluta multi-strategia' : 'FLEX', 'Perf. assoluta (GBP)' : 'FLEX', 'Perf. ass. USD' : 'FLEX', 'Fondi  a garanzia o a formula Euro' : 'FLEX',
             'Az. globale' : 'FLEX', 'Az. globale small cap' : 'FLEX', 'Az. globale Growth' : 'FLEX', 'Az. globale Value' : 'FLEX',
             }
         BPL_dict = {'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. ex Europa altre valute' : 'LIQ_FOR', 'Monet. altre valute europee' : 'LIQ_FOR',
@@ -159,8 +159,8 @@ class Completo():
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 'Obblig. Dollaro US breve term.' : 'OBB_USA', 'Obblig. USD medio-lungo term.' : 'OBB_USA',
             'Obblig. USD corporate' : 'OBB_USA', 'Obblig. Doll. US all maturities' : 'OBB_USA', 'Obblig. Convertib. Dollaro US' : 'OBB_USA', "Obblig. Indicizz. all'inflaz. USD" : 'OBB_USA',
             'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB', 'Obblig. Yen' : 'OBB_GLOB', 'Obblig. altre valute' : 'OBB_GLOB',
-            'Obblig. Global Inflation Linked' : 'OBB_GLOB', 'Obblig. Convertib. Glob.' : 'OBB_GLOB', 'Obblig. Euro high yield' : 'OBB_GLOB_HY', 'Obblig. Europa High Yield' : 'OBB_GLOB_HY',
-            'Obblig. Dollaro US high yield' : 'OBB_GLOB_HY', 'Obblig. globale high yield' : 'OBB_GLOB_HY',
+            'Obblig. Global Inflation Linked' : 'OBB_GLOB', 'Obblig. Convertib. Glob.' : 'OBB_GLOB', 'Fondi a scadenza pred. altre valute' : 'OBB_GLOB', 'Obblig. Euro high yield' : 'OBB_GLOB_HY',
+            'Obblig. Europa High Yield' : 'OBB_GLOB_HY', 'Obblig. Dollaro US high yield' : 'OBB_GLOB_HY', 'Obblig. globale high yield' : 'OBB_GLOB_HY',
             'Az. Europa' : 'AZ_EUR', 'Az. Area Euro' : 'AZ_EUR', 'Az. Area Euro small cap' : 'AZ_EUR', 'Az. Area Euro Growth' : 'AZ_EUR',
             'Az. Area Euro Value' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 'Az. Europa Value' : 'AZ_EUR',
             'Az. Belgio' : 'AZ_EUR', 'Az. Francia' : 'AZ_EUR', 'Az. Francia small cap' : 'AZ_EUR', 'Az. Germania' : 'AZ_EUR', 'Az. Germania small cap' : 'AZ_EUR',
@@ -174,7 +174,7 @@ class Completo():
             'Az. globale' : 'AZ_GLOB', 'Az. globale small cap' : 'AZ_GLOB', 'Az. globale Growth' : 'AZ_GLOB', 'Az. globale Value' : 'AZ_GLOB',
             'Commodities a leva' : 'OPP', 'Commodities Bear' : 'OPP', 'Commodities' : 'OPP', 'Az. real estate Europa' : 'OPP', 'Az. Biotech' : 'OPP', 'Az. beni di consumo' : 'OPP',
             'Az. ambiente' : 'OPP', 'Az. energia, materie prime, oro' : 'OPP', 'Az. energia. materie prime. oro' : 'OPP', 'Az. real estate Mondo' : 'OPP', 'Az. industria' : 'OPP',
-            'Az. salute   farmaceutico' : 'OPP', 'Az. salute – farmaceutico' : 'OPP', 'Az. Servizi di pubblica utilita' : 'OPP', 'Az. servizi finanziari' : 'OPP', 'Az. tecnologia' : 'OPP',
+            'Az. salute   farmaceutico' : 'OPP', 'Az. salute – farmaceutico' : 'OPP', 'Az. salute - farmaceutico' : 'OPP', 'Az. Servizi di pubblica utilita' : 'OPP', 'Az. servizi finanziari' : 'OPP', 'Az. tecnologia' : 'OPP',
             'Az. telecomunicazioni' : 'OPP', 'Az. Oro' : 'OPP', 'Az. Bear' : 'OPP', 'Obblig. Bear' : 'OPP', 'Altri' : 'OPP',
             'Perf. ass. Dividendi' : 'OPP', 'Perf. Ass. Arbitr.Fus.-acquis. Euro' : 'OPP', 'Perf. assoluta strategia valute' : 'OPP',
             'Perf. assoluta Market Neutral Euro' : 'OPP', 'Perf. ass. Long/Short eq.' : 'OPP', 'Perf. assoluta tassi' : 'OPP', 'Perf. assoluta volatilita' : 'OPP',
@@ -209,9 +209,9 @@ class Completo():
             'Commodities a leva' : 'OPP', 'Commodities Bear' : 'OPP', 'Commodities' : 'OPP', 'Obblig. Convertib. Euro' : 'OPP', 'Obblig. Convertib. Europa' : 'OPP', 
             'Obblig. Convertib. Dollaro US' : 'OPP', 'Obblig. Convertib. Glob.' : 'OPP', 'Az. real estate Europa' : 'OPP', 'Az. Biotech' : 'OPP', 'Az. beni di consumo' : 'OPP',
             'Az. ambiente' : 'OPP', 'Az. energia, materie prime, oro' : 'OPP', 'Az. energia. materie prime. oro' : 'OPP', 'Az. real estate Mondo' : 'OPP', 'Az. industria' : 'OPP',
-            'Az. salute   farmaceutico' : 'OPP', 'Az. salute – farmaceutico' : 'OPP', 'Az. Servizi di pubblica utilita' : 'OPP', 'Az. servizi finanziari' : 'OPP',
+            'Az. salute   farmaceutico' : 'OPP', 'Az. salute – farmaceutico' : 'OPP', 'Az. salute - farmaceutico' : 'OPP', 'Az. Servizi di pubblica utilita' : 'OPP', 'Az. servizi finanziari' : 'OPP',
             'Az. tecnologia' : 'OPP', 'Az. telecomunicazioni' : 'OPP', 'Az. Oro' : 'OPP', 'Az. Bear' : 'OPP', 'Obblig. Bear' : 'OPP', 'Valuta Long/Short' : 'OPP', 'Altri' : 'OPP',
-            'Fondi a scadenza pred. Euro' : 'OPP', 'Perf. ass. Dividendi' : 'OPP', 'Perf. Ass. Arbitr.Fus.-acquis. Euro' : 'OPP', 'Perf. assoluta strategia valute' : 'OPP',
+            'Fondi a scadenza pred. Euro' : 'OPP', 'Fondi a scadenza pred. altre valute' : 'OPP', 'Perf. ass. Dividendi' : 'OPP', 'Perf. Ass. Arbitr.Fus.-acquis. Euro' : 'OPP', 'Perf. assoluta strategia valute' : 'OPP',
             'Perf. assoluta Market Neutral Euro' : 'OPP', 'Perf. ass. Long/Short eq.' : 'OPP', 'Perf. assoluta tassi' : 'OPP', 'Perf. assoluta volatilita' : 'OPP',
             'Perf. assoluta multi-strategia' : 'OPP', 'Perf. assoluta (GBP)' : 'OPP', 'Perf. ass. USD' : 'OPP', 'Fondi  a garanzia o a formula Euro' : 'OPP',
             'Bilanc. Prud. Europa' : 'FLEX', 'Bilanc. Prud. Global Euro' : 'FLEX', 'Bilanc. Prud. Dollaro US' : 'FLEX', 'Bilanc. Prud. altre valute' : 'FLEX',
@@ -248,7 +248,11 @@ class Completo():
             anni_detenzione = 3
             classi = classi_a_benchmark_CRV
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        df.replace({'Info 3 anni") fine mese' : 0, 'Alpha 3 anni") fine mese' : 0}, 0.0001, inplace=True) # alcuni fondi hanno un alpha e quindi un IR pari a 0 che impedisce il calcolo
+        while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
+            print("Ci sono dei fondi con alpha o information ratio uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
+            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+        # df.replace({'Info 3 anni") fine mese' : 0, 'Alpha 3 anni") fine mese' : 0}, 0.0001, inplace=True) # alcuni fondi hanno un alpha e quindi un IR pari a 0 che impedisce il calcolo
         df.loc[df['macro_categoria'].isin(classi), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
