@@ -51,29 +51,16 @@ class Catalogo():
                 print("salvato!")
     
     def rinomina_colonne(self):
-        """Rinomina le colonne del file catalogo in maniera opportuna."""
-        BPPB_colonne = {'isin_code' : 'isin', 'nome_del_comparto' : 'nome', 'valuta_nav' : 'valuta', 'commissione_sottoscrizione' : 'commissione'}
-        BPL_colonne = {'isin' : 'isin', 'descrizione_fondo' : 'nome', 'divisa' : 'valuta', 'commissione_di_sottoscrizione_bpl_scontata_al_75' : 'commissione'}
-        CRV_colonne = {'code_isin' : 'isin', 'nome' : 'nome', 'currency' : 'valuta', 'oneri' : 'commissione'}
+        """Rinomina le colonne del file catalogo con nomi standard."""
+        etichette = {'isin' : 'isin', 'nome' : 'nome', 'descrizione' :'nome', 'valuta' : 'valuta', 'divisa' : 'valuta', 'currency' : 'valuta', 'commissione' : 'commissione', 'oneri' : 'commissione', 'finestra' : 'fondo_a_finestra'}
         df = pd.read_excel(self.file_catalogo)
         print(f"\nColonne originali del file 'catalogo_fondi': {df.columns.values}")
         df.columns = [column.lower() for column in df.columns.values]
-        if self.intermediario == 'BPPB':
-            colonne = BPPB_colonne
-        elif self.intermediario == 'BPL':
-            colonne = BPL_colonne
-        elif self.intermediario == 'CRV':
-            colonne = CRV_colonne
-
-        for key, value in colonne.items():
-            try:
-                index = df.columns.get_loc(key)
-            except KeyError as e:
-                print('Non trovo la colonna : ',e)
-                time.sleep(1)
-            else:
-                df.rename(columns={df.columns[index]:value}, inplace=True)
-
+        for col in df.columns:
+            for key, value in etichette.items():
+                if col.__contains__(key):
+                    index = df.columns.get_loc(col)
+                    df.rename(columns={df.columns[index]:value}, inplace=True)
         print(f"Colonne aggiornate: {df.columns.values}")
         df.to_excel(self.file_catalogo, index=False)
 
@@ -206,12 +193,12 @@ if __name__ == '__main__':
     _ = Catalogo(intermediario='BPL')
     _.rimuovi_testoacapo_e_spazi_da_intestazione()
     _.rinomina_colonne()
-    _.rimuovi_spazi(*('isin', 'valuta'))
-    _.rimuovi_duplicati('isin')
-    _.tronca_valore(3, 'valuta')
-    _.letter_case('upper', 'valuta')
-    _.string_percentage_to_float('commissione')
-    _.fix_fee(fee_column='commissione', commissione_massima=0.055)
-    _.creazione_liste_complete_input()
+    # _.rimuovi_spazi(*('isin', 'valuta'))
+    # _.rimuovi_duplicati('isin')
+    # _.tronca_valore(3, 'valuta')
+    # _.letter_case('upper', 'valuta')
+    # _.string_percentage_to_float('commissione')
+    # _.fix_fee(fee_column='commissione', commissione_massima=0.055)
+    # _.creazione_liste_complete_input()
     end = time.time()
     print("Elapsed time: ", end - start, 'seconds')
