@@ -15,6 +15,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
 # TODO : fai tutto il giro da fondi confronto solo se la lista contiene più di 500?? fondi
+# TODO : la data di scarico iniziale non è 3 anni prima, ma 3 anni + 1 giorno prima.
 class Scarico():
     """
     Importa le liste complete e scarica i dati da Quantalys.it
@@ -38,9 +39,9 @@ class Scarico():
         self.username = username
         self.password = password
         self.t1 = t1
-        self.t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime("%d/%m/%Y") # data iniziale tre anni fa
+        self.t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+3)).strftime("%d/%m/%Y") # data iniziale tre anni fa
         print(f"Tre anni fa : {self.t0_3Y}.")
-        self.t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime("%d/%m/%Y") # data iniziale un anno fa
+        self.t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)).strftime("%d/%m/%Y") # data iniziale un anno fa
         print(f"Un anno fa : {self.t0_1Y}.")
         self.directory_output_liste = directory_output_liste
         self.directory_input_liste = directory_input_liste
@@ -257,7 +258,7 @@ class Scarico():
                 self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_btnComparer1"]').click()
 
             try:
-                WebDriverWait(self.driver, 60).until(EC.presence_of_element_located((By.LINK_TEXT, 'Personalizzato'))) # Personalizzato
+                WebDriverWait(self.driver, 360).until(EC.presence_of_element_located((By.LINK_TEXT, 'Personalizzato'))) # Personalizzato
             except TimeoutException:
                 pass
             finally:
@@ -402,7 +403,7 @@ class Scarico():
 
             # Aggiorna date a 3 anni
             try:
-                WebDriverWait(self.driver, 180).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
+                WebDriverWait(self.driver, 360).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
             except TimeoutException:
                 pass
             finally:
@@ -419,19 +420,19 @@ class Scarico():
 
             # Salva il file con nome a tre anni
             try:
-                WebDriverWait(self.driver, 180).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
+                WebDriverWait(self.driver, 360).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
             except TimeoutException:
                 pass
             finally:
-                WebDriverWait(self.driver, 180).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
+                WebDriverWait(self.driver, 360).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
                 self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_btnExportCSV"]').click()
                 try:
                     loading_img = self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_loader_imgLoad"]')
-                    WebDriverWait(self.driver, 180).until(EC.visibility_of(loading_img))
+                    WebDriverWait(self.driver, 360).until(EC.visibility_of(loading_img))
                 except TimeoutException:
                     pass
                 finally:
-                    WebDriverWait(self.driver, 180).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
+                    WebDriverWait(self.driver, 360).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
                     time.sleep(1)
 
             # Rinomina file
@@ -444,7 +445,7 @@ class Scarico():
 
             # Aggiorna date 1 anno
             try:
-                WebDriverWait(self.driver, 180).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_dtDebut_txtDatePicker"]')))
+                WebDriverWait(self.driver, 360).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_dtDebut_txtDatePicker"]')))
             except TimeoutException:
                 pass
             finally:
@@ -458,19 +459,19 @@ class Scarico():
 
             # Salva il file con nome ad un anno
             try:
-                WebDriverWait(self.driver, 180).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
+                WebDriverWait(self.driver, 360).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
             except TimeoutException:
                 pass
             finally:
-                WebDriverWait(self.driver, 180).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
+                WebDriverWait(self.driver, 360).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
                 self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_btnExportCSV"]').send_keys(Keys.ENTER)
                 try:
                     loading_img = self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_loader_imgLoad"]')
-                    WebDriverWait(self.driver, 180).until(EC.visibility_of(loading_img))
+                    WebDriverWait(self.driver, 360).until(EC.visibility_of(loading_img))
                 except TimeoutException:
                     pass
                 finally:
-                    WebDriverWait(self.driver, 180).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
+                    WebDriverWait(self.driver, 360).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
                     time.sleep(1)
             
             # Rinomina file
