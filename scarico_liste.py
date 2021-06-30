@@ -15,7 +15,6 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
 # TODO : fai tutto il giro da fondi confronto solo se la lista contiene più di 500?? fondi
-# TODO : la data di scarico iniziale non è 3 anni prima, ma 3 anni + 1 giorno prima.
 class Scarico():
     """
     Importa le liste complete e scarica i dati da Quantalys.it
@@ -363,13 +362,13 @@ class Scarico():
             # Aggiungi benchmark
             classi_a_benchmark_BPPB = {'AZ_EUR': '    MSCI Europe', 'AZ_NA': '    MSCI USA', 'AZ_PAC': '    MSCI Pacific', 'AZ_EM': '    MSCI Emerging Markets', 
                 'OBB_BT': '    ICE BofA 1-3 Y Euro Broad Mkt', 'OBB_MLT': '    ICE BofA Euro Broad Market', 'OBB_CORP': '    ICE BofA Euro Corporate', 'OBB_GLOB': '    ICE BofA Global Broad Market',
-                'OBB_EM': '    ICE BofA BBB&Lw EMEA Sov Debt'}
+                'OBB_EM': '    ICE BofA Glb Cross Corp& Gov'}
             classi_a_benchmark_BPL = {'AZ_EUR': '    MSCI Europe', 'AZ_NA': '    MSCI USA', 'AZ_PAC': '    MSCI Pacific', 'AZ_EM': '    MSCI Emerging Markets', 'AZ_GLOB': '    MSCI World',
                 'OBB_BT': '    ICE BofA 1-3 Y Euro Broad Mkt', 'OBB_MLT': '    ICE BofA Euro Broad Market', 'OBB_EUR': '    ICE BofA Pan-Europe Broad Mkt', 'OBB_CORP': '    ICE BofA Euro Corporate',
-                'OBB_GLOB': '    ICE BofA Global Broad Market', 'OBB_USA': '    ICE BofA US Broad Market', 'OBB_EM': '    ICE BofA BBB&Lw EMEA Sov Debt', 'OBB_GLOB_HY': '    ICE BofA Global High Yield'}
+                'OBB_GLOB': '    ICE BofA Global Broad Market', 'OBB_USA': '    ICE BofA US Broad Market', 'OBB_EM': '    ICE BofA Glb Cross Corp& Gov', 'OBB_GLOB_HY': '    ICE BofA Global High Yield'}
             classi_a_benchmark_CRV = {'AZ_EUR': '    MSCI Europe', 'AZ_NA': '    MSCI USA', 'AZ_PAC': '    MSCI Pacific', 'AZ_EM': '    MSCI Emerging Markets', 'AZ_GLOB': '    MSCI World',
                 'OBB_BT': '    ICE BofA 1-3 Y Euro Broad Mkt', 'OBB_MLT': '    ICE BofA Euro Broad Market', 'OBB_CORP': '    ICE BofA Euro Corporate', 'OBB_GLOB': '    ICE BofA Global Broad Market', 
-                'OBB_EM': '    ICE BofA BBB&Lw EMEA Sov Debt', 'OBB_GLOB_HY': '    ICE BofA Global High Yield'}
+                'OBB_EM': '    ICE BofA Glb Cross Corp& Gov', 'OBB_GLOB_HY': '    ICE BofA Global High Yield'}
             if intermediario == 'BPPB':
                 classi_a_benchmark = classi_a_benchmark_BPPB
             elif intermediario == 'BPL':
@@ -403,7 +402,7 @@ class Scarico():
 
             # Aggiorna date a 3 anni
             try:
-                WebDriverWait(self.driver, 360).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
+                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
             except TimeoutException:
                 pass
             finally:
@@ -420,19 +419,19 @@ class Scarico():
 
             # Salva il file con nome a tre anni
             try:
-                WebDriverWait(self.driver, 360).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
+                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
             except TimeoutException:
                 pass
             finally:
-                WebDriverWait(self.driver, 360).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
+                WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
                 self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_btnExportCSV"]').click()
                 try:
                     loading_img = self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_loader_imgLoad"]')
-                    WebDriverWait(self.driver, 360).until(EC.visibility_of(loading_img))
+                    WebDriverWait(self.driver, 600).until(EC.visibility_of(loading_img))
                 except TimeoutException:
                     pass
                 finally:
-                    WebDriverWait(self.driver, 360).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
+                    WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
                     time.sleep(1)
 
             # Rinomina file
@@ -445,7 +444,7 @@ class Scarico():
 
             # Aggiorna date 1 anno
             try:
-                WebDriverWait(self.driver, 360).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_dtDebut_txtDatePicker"]')))
+                WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_dtDebut_txtDatePicker"]')))
             except TimeoutException:
                 pass
             finally:
@@ -459,19 +458,19 @@ class Scarico():
 
             # Salva il file con nome ad un anno
             try:
-                WebDriverWait(self.driver, 360).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
+                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
             except TimeoutException:
                 pass
             finally:
-                WebDriverWait(self.driver, 360).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
+                WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
                 self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_btnExportCSV"]').send_keys(Keys.ENTER)
                 try:
                     loading_img = self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_loader_imgLoad"]')
-                    WebDriverWait(self.driver, 360).until(EC.visibility_of(loading_img))
+                    WebDriverWait(self.driver, 600).until(EC.visibility_of(loading_img))
                 except TimeoutException:
                     pass
                 finally:
-                    WebDriverWait(self.driver, 360).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
+                    WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
                     time.sleep(1)
             
             # Rinomina file
@@ -496,6 +495,6 @@ if __name__ == '__main__':
     _ = Scarico(t1='31/05/2021')
     _.accesso_a_quantalys()
     _.login()
-    _.export(intermediario='BPL')
+    _.export(intermediario='BPPB')
     end = time.time()
     print("Elapsed time: ", end - start, 'seconds')
