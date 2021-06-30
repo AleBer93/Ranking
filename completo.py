@@ -4,8 +4,9 @@ import time
 with os.add_dll_directory('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\_blpapi'):
     import blpapi
 from xbbg import blp
-# TODO : trova una soluzione per i fondi con IR pari a 0 nello scarico delle liste complete. Così non funziona, Metodo : indicatore_BS
-# TODO : ha senso calcolare l'indicatore_BS per i fondi con meno di tre anni?
+import datetime
+import dateutil.relativedelta
+
 class Completo():
     """
     Creazione file completo
@@ -114,7 +115,6 @@ class Completo():
 
     def assegna_macro(self):
         """Assegna una macrocategoria ad ogni microcategoria."""
-
         BPPB_dict = {'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ',
             'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 'Obblig. Euro a scadenza' : 'OBB_BT',
             'Obblig. Euro gov. medio termine' : 'OBB_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_MLT', 'Obblig. Euro lungo termine' : 'OBB_MLT', 
@@ -122,6 +122,7 @@ class Completo():
             'Obblig. Europa' : 'OBB_MLT', 'Obblig. Sterlina inglese' : 'OBB_MLT', 'Obblig. Franco svizzero' : 'OBB_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 
             'Obblig. Euro corporate' : 'OBB_CORP', 'Obblig. Euro high yield' : 'OBB_CORP',
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM', 'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM',
+            'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM',
             'Obblig. Dollaro US breve term.' : 'OBB_GLOB', 'Obblig. USD medio-lungo term.' : 'OBB_GLOB', 'Obblig. USD corporate' : 'OBB_GLOB',
             'Obblig. Doll. US all maturities' : 'OBB_GLOB', 'Obblig. Dollaro US high yield' : 'OBB_GLOB', 'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB',
             'Obblig. globale corporate' : 'OBB_GLOB', 'Obblig. globale high yield' : 'OBB_GLOB', 'Obblig. Yen' : 'OBB_GLOB', 'Obblig. altre valute' : 'OBB_GLOB',
@@ -156,7 +157,7 @@ class Completo():
             'Obblig. Euro all maturities' : 'OBB_MLT',  'Obblig. Euro a scadenza' : 'OBB_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 'Obblig. Convertib. Euro' : 'OBB_MLT',
             'Fondi a scadenza pred. Euro' : 'OBB_MLT', 'Obblig. Europa' : 'OBB_EUR', 'Obblig. Sterlina inglese' : 'OBB_EUR', 'Obblig. Franco svizzero' : 'OBB_EUR',
             'Obblig. Convertib. Europa' : 'OBB_EUR', 'Obblig. Euro corporate' : 'OBB_CORP', 'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM',
-            'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 'Obblig. Dollaro US breve term.' : 'OBB_USA', 'Obblig. USD medio-lungo term.' : 'OBB_USA',
+            'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Dollaro US breve term.' : 'OBB_USA', 'Obblig. USD medio-lungo term.' : 'OBB_USA',
             'Obblig. USD corporate' : 'OBB_USA', 'Obblig. Doll. US all maturities' : 'OBB_USA', 'Obblig. Convertib. Dollaro US' : 'OBB_USA', "Obblig. Indicizz. all'inflaz. USD" : 'OBB_USA',
             'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB', 'Obblig. Yen' : 'OBB_GLOB', 'Obblig. altre valute' : 'OBB_GLOB',
             'Obblig. Global Inflation Linked' : 'OBB_GLOB', 'Obblig. Convertib. Glob.' : 'OBB_GLOB', 'Fondi a scadenza pred. altre valute' : 'OBB_GLOB', 'Obblig. Euro high yield' : 'OBB_GLOB_HY',
@@ -190,6 +191,7 @@ class Completo():
             'Obblig. Franco svizzero' : 'OBB_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 'Obblig. Euro a scadenza' : 'OBB_MLT',
             'Obblig. Euro corporate' : 'OBB_CORP',
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM', 'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM',
+            'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM',
             'Obblig. Dollaro US breve term.' : 'OBB_GLOB', 'Obblig. USD medio-lungo term.' : 'OBB_GLOB', 'Obblig. USD corporate' : 'OBB_GLOB', 'Obblig. Doll. US all maturities' : 'OBB_GLOB',
             'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB', 'Obblig. Yen' : 'OBB_GLOB', 'Obblig. altre valute' : 'OBB_GLOB',
             "Obblig. Indicizz. all'inflaz. USD" : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB',
@@ -227,33 +229,6 @@ class Completo():
         elif self.intermediario == 'CRV':
             df['macro_categoria'] = df['Categoria Quantalys'].map(CRV_dict)
         print(f"Ci sono {df['macro_categoria'].isnull().sum()} fondi a cui non è stata assegnata una macro categoria.")
-        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-
-    def indicatore_BS(self):
-        """
-        Calcola l'indicatore B&S correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
-        Formula = IR - (IR * fee) / (anni_detenzione * alpha)
-        Le colonne considerate ai fini del calcolo sono: 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'commissione'
-        """
-        classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM']
-        classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
-        classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
-        if self.intermediario == 'BPPB':
-            anni_detenzione = 3
-            classi = classi_a_benchmark_BPPB
-        elif self.intermediario == 'BPL':
-            anni_detenzione = 5
-            classi = classi_a_benchmark_BPL
-        elif self.intermediario == 'CRV':
-            anni_detenzione = 3
-            classi = classi_a_benchmark_CRV
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
-            print("Ci sono dei fondi con alpha o information ratio uguale a 0, è necessario aggiornarli per l'analisi successiva,")
-            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
-            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
-        # df.replace({'Info 3 anni") fine mese' : 0, 'Alpha 3 anni") fine mese' : 0}, 0.0001, inplace=True) # alcuni fondi hanno un alpha e quindi un IR pari a 0 che impedisce il calcolo
-        df.loc[df['macro_categoria'].isin(classi), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def scarico_datadiavvio(self):
@@ -303,31 +278,55 @@ class Completo():
             _ = input(f'apri il file {self.file_completo}, aggiungi le date, poi premi enter\n')
             df_merged = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
 
-    def calcolo_best_worst(self):
+    def indicatore_BS(self):
+        # TODO : fai uno scarico da quantalys con benchamrk di default per tutti quei fondi che hanno alpha o IR pari a 0.
+        # quantalys assegna un valore pari a 0 all'information ratio se l'alpha è un numero del tipo 0.00*
+        # controlla che l'indicatore e i best e worst siano rimasti invariati dopo la modifica e commit "indicatore_BS solo per fondi con più di tre anni"
         """
-        Calcolo best e worst per le categorie a benchmark, per fondi con più di tre anni e con indicatore B&S presente.
+        Calcola l'indicatore B&S correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
+        Formula = IR - (IR * fee) / (anni_detenzione * alpha)
+        Formula = (IR * TEV - (fee / anni_detenzione)) / TEV
+        Le colonne considerate ai fini del calcolo sono: 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'commissione'
+        """
+        classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM']
+        classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
+        classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+        if self.intermediario == 'BPPB':
+            anni_detenzione = 3
+            classi = classi_a_benchmark_BPPB
+        elif self.intermediario == 'BPL':
+            anni_detenzione = 5
+            classi = classi_a_benchmark_BPL
+        elif self.intermediario == 'CRV':
+            anni_detenzione = 3
+            classi = classi_a_benchmark_CRV
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
+            print("Ci sono dei fondi con alpha o information ratio uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
+            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+        df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
+        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
+        df.loc[(df['macro_categoria'].isin(classi)) & (df['fund_incept_dt'] < t0_3Y), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
+        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
-        Parameters:
-        intermediario(str) = intermediario per cui fare l'analisi (BPPB o BPL o CRV)
-        """
+    def calcolo_best_worst(self):
+        """Calcolo best e worst per le categorie a benchmark, per fondi con più di tre anni e con indicatore B&S presente."""
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         # print(df['fund_incept_dt'].dtypes) # da oggetto
         df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
         #df['fund_incept_dt'] = df['fund_incept_dt'].astype('datetime64[ns]')
         # print(df['fund_incept_dt'].dtypes) # a datetime
-
         classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM']
         classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
         classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
-        import datetime
-        import dateutil.relativedelta
         t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
         # df2 = df[df['fund_incept_dt'] >= t0_3Y]
         # df2.to_csv('aaa.csv', sep=";", decimal=',', index=False)
         if self.intermediario == 'BPPB':
             for macro in classi_a_benchmark_BPPB:
                 for micro in df.loc[df['macro_categoria'] == macro, 'Categoria Quantalys'].unique():
-                    mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] <= t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
+                    mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
                     df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'Best_Worst'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
         elif self.intermediario == 'BPL':
             for macro in classi_a_benchmark_BPL:
@@ -371,15 +370,6 @@ class Completo():
         Parameters:
         colonne(tuple) = tuple contenente i nuovi nomi da assegnare alle colonne precedentemente selezionate
         """
-        # BPPB
-        # colonne da selezionare = *('Codice ISIN', 'Valuta', 'Nome del fondo', 'Società di Gestione', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt', 'commissione', 'BS_3_anni', 'Best_Worst', 'categoria_flessibili', 'fondo_a_finestra')
-        # colonne da rinominare = *('ISIN', 'valuta', 'nome', 'società_di_gestione', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione', 'B&S_3Y', 'Best_Worst', 'categoria_flessibili', 'fondo_a_finestra')
-        # BPL
-        # colonne da selezionare = *('Codice ISIN', 'Valuta', 'Nome del fondo', 'Società di Gestione', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt', 'commissione', 'BS_3_anni', 'Best_Worst')
-        # colonne da rinominare = *('ISIN', 'valuta', 'nome', 'società_di_gestione', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione', 'B&S_3Y', 'Best_Worst')
-        # CRV 
-        # colonne da selezionare = *('Codice ISIN', 'Valuta', 'Nome del fondo', 'Società di Gestione', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt', 'commissione', 'BS_3_anni', 'Best_Worst', 'categoria_flessibili')
-        # colonne da rinominare = *('ISIN', 'valuta', 'nome', 'società_di_gestione', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione', 'B&S_3Y', 'Best_Worst', 'categoria_flessibili', 'fondo_a_finestra')
         if self.intermediario == 'BPPB':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
                 'commissione', 'BS_3_anni', 'Best_Worst', 'categoria_flessibili', 'fondo_a_finestra']
@@ -412,28 +402,28 @@ class Completo():
         if not os.path.exists(self.directory_input_liste):
             os.makedirs(self.directory_input_liste)
         for categoria in df_com['macro_categoria'].unique():
-            chunks = len(df_com.loc[df_com['macro_categoria'] == categoria])//2000 +1 # blocchi da 1000 elementi
+            chunks = len(df_com.loc[df_com['macro_categoria'] == categoria])//500 +1 # blocchi da 500 elementi
             for chunk in range(chunks):
                 df = df_com.loc[df_com['macro_categoria'] == categoria, ['ISIN', 'valuta']]
-                df = df.iloc[0 + 1999 * chunk : 1999 + 1999 * chunk]
+                df = df.iloc[0 + 499 * chunk : 499 + 499 * chunk]
                 df.columns = ['codice isin', 'divisa']
                 df.to_csv(self.directory_input_liste + categoria + '_' + str(chunk) + '.csv', sep=";", index=False)
 
 
 if __name__ == '__main__':
     start = time.time()
-    _ = Completo(intermediario='BPL', t1='31/05/2021')
-    _.concatenazione_file_excel()
-    _.correzione_micro_russe()
-    _.change_datatype(SRRI = float)
-    _.seleziona_colonne()
-    _.merge_files('catalogo_fondi.xlsx')
-    _.assegna_macro()
+    _ = Completo(intermediario='BPPB', t1='31/05/2021')
+    # _.concatenazione_file_excel()
+    # _.correzione_micro_russe()
+    # _.change_datatype(SRRI = float)
+    # _.seleziona_colonne()
+    # _.merge_files('catalogo_fondi.xlsx')
+    # _.assegna_macro()
+    # _.scarico_datadiavvio()
     _.indicatore_BS()
-    _.scarico_datadiavvio()
-    _.calcolo_best_worst()
-    _.discriminazione_flessibili()
-    _.seleziona_e_rinomina_colonne('completo.csv')
-    _.creazione_liste_input()
+    # _.calcolo_best_worst()
+    # _.discriminazione_flessibili()
+    # _.seleziona_e_rinomina_colonne('completo.csv')
+    # _.creazione_liste_input()
     end = time.time()
     print("Elapsed time: ", end - start, 'seconds')
