@@ -15,11 +15,16 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
 # TODO : fai tutto il giro da fondi confronto solo se la lista contiene più di 500?? fondi
+# TODO : quantalys marcio dio cane mostra un numero di prodotti nel carico della lista che non corrisponde al numero che poi trovo in confronto. Invece di cercare tutto il nome, potrei cercare solo la prima parte ('OPP_3Y') ... e se ce ne sono altri con lo stesso nome? mmm potrei confrontare il numero di prodotti reali (nella lista csv caricata) con quello mostrato da quantalys marcio in confronto. Se i numeri si avvicinano, li accetto
+# oppure metto in pausa il codice e lo faccio a mano, oppure chiedo tra tutti gli OPP_0 quale scegliere scrivendo un numero nel codice.
+# 1. aggiorna la pagina, bottone filtra, scarica l'etichetta con il vero numero dei fondi nella lista.
+# 2. carica la lista, prendi il prefisso che descrive la macro (OPP_0), vai su fondi-confronto e se trova più di una lista che inizia con quel prefisso, fammi scegliere quale confrontare, altrimenti se ce n'è una sola, usa quella.
+
 class Scarico():
     """
     Importa le liste complete e scarica i dati da Quantalys.it
     """
-    # TODO : sistema il drag and drop 
+    # TODO : sistema il drag and drop
     # username='Pomante', password='Pomante22'
 
     def __init__(self, t1, username='AVicario', password='AVicario123', directory_output_liste="C:\\Users\\Administrator\\Desktop\\Sbwkrq\\Ranking\\export_liste_from_Q", directory_input_liste='C:\\Users\\Administrator\\Desktop\\Sbwkrq\\Ranking\\import_liste_into_Q\\'):
@@ -42,9 +47,10 @@ class Scarico():
         print(f"Tre anni fa : {self.t0_3Y}.")
         self.t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)).strftime("%d/%m/%Y") # data iniziale un anno fa
         print(f"Un anno fa : {self.t0_1Y}.")
-        self.directory_output_liste = directory_output_liste
         self.directory_input_liste = directory_input_liste
+        self.directory_output_liste = directory_output_liste
         if not os.path.exists(self.directory_output_liste):
+            print('ahaha')
             os.makedirs(self.directory_output_liste)
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_experimental_option("prefs", {
@@ -187,6 +193,7 @@ class Scarico():
                 pass
             finally:
                 time.sleep(1.5) # Necessario, va troppo veloce.
+                id_lista = self.driver.find_element_by_xpath('/html/body/div[1]/div[3]/input[1]').get_attribute('value') # prendi la chiave unica della lista
                 self.driver.find_element_by_xpath('//*[@id="quantasearch"]/div[2]/div[3]/div/button[2]').click()
 
             try:
@@ -222,18 +229,23 @@ class Scarico():
             try:
                 WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_searchButton"]'))) # Cerca
             except TimeoutException:
-                pass
-            finally:
+                pass # TODO : controlla quanti fondi scarica nello scarico lista completa. Carica una lista completa a mano, espporta completa e vedi quanti ce ne sono in totale
+            finally: # Dopo il caricamento della lista, Quantalys mostra il numero totale di strumenti caricati. Ma nella lista delle liste e in ogni altra pagina in cui compare quella lista, il numero di strumenti potrebbe essere inferiore a causa di alcuni fondi estinti.
                 self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_ddlDynatree"]').click()
-                # select = Select(self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_ddlDynatree"]'))
-                num_fondi_regex = re.compile(r'\d(\d)?(\d)?(\d)?')
-                mo = num_fondi_regex.search(totale_fondi_lista)
-                time.sleep(2)
-                self.driver.find_element_by_partial_link_text(filename[:-4]+' ('+mo.group()+' fondi)').click()
-                self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_hypValider"]').click()
-                # select.select_by_visible_text(filename[:-4]+' ('+mo.group()+' fondi)') # AZ_EM_0 (542 fondi) //*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_searchInput"]
+                # Seleziona il nome usando le regualr expressions
+                # num_fondi_regex = re.compile(r'\d(\d)?(\d)?(\d)?')
+                # mo = num_fondi_regex.search(totale_fondi_lista)
                 # time.sleep(2)
-                # self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_ddlDynatree"]').click()
+                # self.driver.find_element_by_partial_link_text(filename[:-4]+' ('+mo.group()+' fondi)').click()
+                # Seleziona il nome usando l'identificatore unico della lista
+                json_file_liste_string = self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_hidJson"]').get_attribute('value')
+                json_file_liste_string = json_file_liste_string.replace('false', "'False'") # necessario per il passaggio successivo
+                json_file_liste_list = eval(json_file_liste_string) # converte la stringa in una lista di dizionari
+                _ = (__ for __ in json_file_liste_list if __['key'] == str(id_lista)) # scegli il dizionario che contiene l'id della lista appena caricata
+                nome_lista = next(_)['title'] # ricava il nome della lista
+                time.sleep(2)
+                self.driver.find_element_by_partial_link_text(nome_lista).click()
+                self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_hypValider"]').click()
 
             try:
                 WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_searchButton"]'))) # Cerca
@@ -492,9 +504,9 @@ class Scarico():
 
 if __name__ == '__main__':
     start = time.time()
-    _ = Scarico(t1='31/05/2021')
+    _ = Scarico(t1='30/06/2021')
     _.accesso_a_quantalys()
     _.login()
-    _.export(intermediario='BPPB')
+    _.export(intermediario='CRV')
     end = time.time()
     print("Elapsed time: ", end - start, 'seconds')
