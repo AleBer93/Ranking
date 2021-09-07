@@ -7,6 +7,7 @@ import dateutil.relativedelta
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.touch_actions import TouchActions
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
@@ -14,11 +15,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException
 
-# TODO : fai tutto il giro da fondi confronto solo se la lista contiene più di 500?? fondi
-# TODO : quantalys marcio dio cane mostra un numero di prodotti nel carico della lista che non corrisponde al numero che poi trovo in confronto. Invece di cercare tutto il nome, potrei cercare solo la prima parte ('OPP_3Y') ... e se ce ne sono altri con lo stesso nome? mmm potrei confrontare il numero di prodotti reali (nella lista csv caricata) con quello mostrato da quantalys marcio in confronto. Se i numeri si avvicinano, li accetto
-# oppure metto in pausa il codice e lo faccio a mano, oppure chiedo tra tutti gli OPP_0 quale scegliere scrivendo un numero nel codice.
-# 1. aggiorna la pagina, bottone filtra, scarica l'etichetta con il vero numero dei fondi nella lista.
-# 2. carica la lista, prendi il prefisso che descrive la macro (OPP_0), vai su fondi-confronto e se trova più di una lista che inizia con quel prefisso, fammi scegliere quale confrontare, altrimenti se ce n'è una sola, usa quella.
 
 class Scarico():
     """
@@ -150,10 +146,10 @@ class Scarico():
             _ = input('cancella i file prima di proseguire, poi premi enter\n')
         
         directory = self.directory_input_liste
-        et = []
+        elapsed_time = []
         for filename in os.listdir(directory):
             file_totali = len(os.listdir(self.directory_output_liste))
-            start = time.time()
+            start = time.perf_counter()
             print(f"\nCaricamento lista {filename}...\n")
             try:
                 WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="position-menu-quantalys"]/div/div[1]/a/img')))
@@ -208,65 +204,75 @@ class Scarico():
             except TimeoutException:
                 pass
             finally:
-                self.driver.find_element_by_xpath('//*[@id="importForm"]/button').click() 
+                self.driver.find_element_by_xpath('//*[@id="importForm"]/button').click()
 
             try:
-                WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="DataTables_Table_0"]/tbody/tr[1]/td[1]/label'))) # Seleziona tutti i fondi
+                WebDriverWait(self.driver,120).until_not(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[3]/div[2]'), '0 elementi'))
+                # WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="DataTables_Table_0"]/tbody/tr[1]/td[1]/label'))) # Seleziona tutti i fondi
             except TimeoutException:
                 pass
             finally:
-                totale_fondi_lista = self.driver.find_element_by_xpath('//*[@id="DataTables_Table_0_info"]').text # Totale fondi
+                # print(self.driver.find_element_by_xpath('//*[@id="DataTables_Table_0"]/tbody/tr/td').text)
+                totale_fondi_lista = self.driver.find_element_by_xpath('//*[@id="DataTables_Table_0_info"]').text.replace(',','') # Totale fondi
                 print(totale_fondi_lista)
+                num_fondi_regex = re.compile(r'\d(\d)?(\d)?(\d)?')
+                mo = num_fondi_regex.search(totale_fondi_lista)
+                numero_fondi = mo.group()
+            NUM_MAX_FONDI_CONFRONTO_DIRETTO = 1300
+            if int(numero_fondi) < NUM_MAX_FONDI_CONFRONTO_DIRETTO:
+                self.driver.find_element_by_xpath('//*[@id="DataTables_Table_0"]/thead/tr/th[1]/label').click()
+                time.sleep(2) # Necessario, va troppo veloce.
+                self.driver.find_element_by_xpath('//*[@id="quantasearch"]/div[2]/div[3]/div/button[3]').click() # Confronta
+            else:
                 self.driver.find_element_by_partial_link_text('Fondi').click() # Fondi
+                try:
+                    WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, 'Confronto'))) # Confronto
+                except TimeoutException:
+                    pass
+                finally:
+                    self.driver.find_element_by_partial_link_text('Confronto').click()
+                
+                try:
+                    WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_searchButton"]'))) # Cerca
+                except TimeoutException:
+                    pass
+                finally:
+                    self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_ddlDynatree"]').click()
+                    # Seleziona il nome usando le regular expressions
+                    # num_fondi_regex = re.compile(r'\d(\d)?(\d)?(\d)?')
+                    # mo = num_fondi_regex.search(totale_fondi_lista)
+                    # time.sleep(2)
+                    # self.driver.find_element_by_partial_link_text(filename[:-4]+' ('+mo.group()+' fondi)').click()
+                    # Seleziona il nome usando l'identificatore unico della lista
+                    json_file_liste_string = self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_hidJson"]').get_attribute('value')
+                    json_file_liste_string = json_file_liste_string.replace('false', "'False'") # necessario per il passaggio successivo
+                    json_file_liste_list = eval(json_file_liste_string) # converte la stringa in una lista di dizionari
+                    _ = (__ for __ in json_file_liste_list if __['key'] == str(id_lista)) # scegli il dizionario che contiene l'id della lista appena caricata
+                    nome_lista = next(_)['title'] # ricava il nome della lista
+                    time.sleep(2)
+                    self.driver.find_element_by_partial_link_text(nome_lista).click()
+                    self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_hypValider"]').click()
 
-            try:
-                WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, 'Confronto'))) # Confronto
-            except TimeoutException:
-                pass
-            finally:
-                self.driver.find_element_by_partial_link_text('Confronto').click()
-            
-            try:
-                WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_searchButton"]'))) # Cerca
-            except TimeoutException:
-                pass # TODO : controlla quanti fondi scarica nello scarico lista completa. Carica una lista completa a mano, espporta completa e vedi quanti ce ne sono in totale
-            finally: # Dopo il caricamento della lista, Quantalys mostra il numero totale di strumenti caricati. Ma nella lista delle liste e in ogni altra pagina in cui compare quella lista, il numero di strumenti potrebbe essere inferiore a causa di alcuni fondi estinti.
-                self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_ddlDynatree"]').click()
-                # Seleziona il nome usando le regualr expressions
-                # num_fondi_regex = re.compile(r'\d(\d)?(\d)?(\d)?')
-                # mo = num_fondi_regex.search(totale_fondi_lista)
-                # time.sleep(2)
-                # self.driver.find_element_by_partial_link_text(filename[:-4]+' ('+mo.group()+' fondi)').click()
-                # Seleziona il nome usando l'identificatore unico della lista
-                json_file_liste_string = self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_hidJson"]').get_attribute('value')
-                json_file_liste_string = json_file_liste_string.replace('false', "'False'") # necessario per il passaggio successivo
-                json_file_liste_list = eval(json_file_liste_string) # converte la stringa in una lista di dizionari
-                _ = (__ for __ in json_file_liste_list if __['key'] == str(id_lista)) # scegli il dizionario che contiene l'id della lista appena caricata
-                nome_lista = next(_)['title'] # ricava il nome della lista
-                time.sleep(2)
-                self.driver.find_element_by_partial_link_text(nome_lista).click()
-                self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_hypValider"]').click()
+                try:
+                    WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_searchButton"]'))) # Cerca
+                except TimeoutException:
+                    pass
+                finally:
+                    self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_searchButton"]').click()
+                
+                try:
+                    WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_listeFonds_HeaderButton"]'))) # Seleziona tutti
+                except TimeoutException:
+                    pass
+                finally:
+                    self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_listeFonds_HeaderButton"]').click()
 
-            try:
-                WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_searchButton"]'))) # Cerca
-            except TimeoutException:
-                pass
-            finally:
-                self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_searchButton"]').click()
-            
-            try:
-                WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_listeFonds_HeaderButton"]'))) # Seleziona tutti
-            except TimeoutException:
-                pass
-            finally:
-                self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_selectFonds_listeFonds_HeaderButton"]').click()
-
-            try:
-                WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_btnComparer1"]'))) # Confronta
-            except TimeoutException:
-                pass
-            finally:
-                self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_btnComparer1"]').click()
+                try:
+                    WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_btnComparer1"]'))) # Confronta
+                except TimeoutException:
+                    pass
+                finally:
+                    self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_btnComparer1"]').click()
 
             try:
                 WebDriverWait(self.driver, 360).until(EC.presence_of_element_located((By.LINK_TEXT, 'Personalizzato'))) # Personalizzato
@@ -275,16 +281,15 @@ class Scarico():
             finally:
                 self.driver.find_element_by_link_text('Personalizzato').click()
             
-
-
             # Seleziona indicatori
-            self.rimuovi_indicatori(6) 
             # time.sleep(0.5) #invisibility of element located //*[@id="Contenu_Contenu_loader_imgLoad"] or /html/body/div[2]/form/table/tbody/tr[1]/td/div/table/tbody/tr/td[1]/table/tbody/tr[2]/td/div[2]/div/img
             try:
                 WebDriverWait(self.driver, 180).until(EC.presence_of_element_located((By.XPATH, '//*[@id="SelectableItemsWrapper"]/div[3]/div/div/ol/li[1]'))) # Seleziona indicatori
             except TimeoutException:
                 pass
             finally:
+                self.driver.find_element_by_tag_name('body').send_keys(Keys.PAGE_DOWN)
+                self.rimuovi_indicatori(6)
                 try:
                     ind_1 = self.driver.find_element_by_xpath('//*[@id="SelectableItemsWrapper"]/div[3]/div/div/ol/li[1]').text
                     ind_2 = self.driver.find_element_by_xpath('//*[@id="SelectableItemsWrapper"]/div[3]/div/div/ol/li[2]').text
@@ -493,20 +498,20 @@ class Scarico():
             latest_file = max(list_of_files, key=os.path.getctime)
             os.rename(latest_file, self.directory_output_liste + '/'+filename[:-4]+'_1Y.csv')
 
-            end = time.time()
-            et.append(end - start)
+            end = time.perf_counter()
+            elapsed_time.append(end - start)
             print(f"Elapsed time for {filename}: ", end - start, 'seconds')
-            print(f"\nAverage elapsed time: {sum(et)/len(et)}.")
+            print(f"\nAverage elapsed time: {sum(elapsed_time)/len(elapsed_time)}.")
 
         
         self.driver.close()
 
 
 if __name__ == '__main__':
-    start = time.time()
+    start = time.perf_counter()
     _ = Scarico(t1='30/06/2021')
     _.accesso_a_quantalys()
     _.login()
     _.export(intermediario='CRV')
-    end = time.time()
+    end = time.perf_counter()
     print("Elapsed time: ", end - start, 'seconds')
