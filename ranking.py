@@ -4,13 +4,11 @@ import numpy as np
 import time
 import datetime
 import dateutil.relativedelta
-from openpyxl import Workbook # Per creare un libro
 from openpyxl import load_workbook # Per caricare un libro
-from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font # Per cambiare lo stile
-from openpyxl.utils import get_column_letter # Per lavorare sulle colonne
+from openpyxl.styles import PatternFill, Border, Side, Alignment, Font # Per cambiare lo stile
 from openpyxl.styles import numbers # Per cambiare i formati dei numeri
 import zipfile
-import shutil
+import win32com.client
 
 class Ranking():
     """
@@ -44,7 +42,6 @@ class Ranking():
         self.file_zip = file_zip
 
     def merge_completo_liste(self):
-        # TODO : INSERIRE LE OPPORTUNITIES O IN SORTINO O IN SHARPE PER TUTTI
         """
         Aggiunge gli indici scaricati da Quantalys.it nel file completo
         """
@@ -91,7 +88,7 @@ class Ranking():
                 i = 10
                 while True:
                     try:
-                        lista_indici = pd.read_csv(self.directory_output_liste + '/' + filename, sep = ';', header=0, skiprows=2, skipfooter=i, engine='python')
+                        lista_indici = pd.read_csv(self.directory_output_liste + '/' + filename, sep = ';', header=0, skiprows=2, skipfooter=i, engine='python', encoding='unicode_escape')
                     except pd.errors.ParserError:
                         # se i fondi sono pochi la tabella delle correlazioni viene riempita al completo e le righe da saltare in fondo sono più di 14
                         i = i + 1
@@ -106,19 +103,19 @@ class Ranking():
                     df = df.merge(lista_indici, how='outer', left_on='ISIN', right_on='Codice ISIN')
                     df['Information_Ratio_3Y'] = df['Information ratio'].fillna(df['Information_Ratio_3Y'])
                     df['TEV_3Y'] = df['TEV'].fillna(df['TEV_3Y'])
-                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Information ratio', 'TEV'], 1, inplace=True)
+                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Information ratio', 'TEV'], axis=1, inplace=True)
                     df = df.astype({'Information_Ratio_3Y' : float, 'TEV_3Y' : float})
                 elif filename[-6:-4] == '1Y':
                     df = df.merge(lista_indici, how='outer', left_on='ISIN', right_on='Codice ISIN')
                     df['Information_Ratio_1Y'] = df['Information ratio'].fillna(df['Information_Ratio_1Y'])
                     df['TEV_1Y'] = df['TEV'].fillna(df['TEV_1Y'])
-                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Information ratio', 'TEV'], 1, inplace=True)
+                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Information ratio', 'TEV'], axis=1, inplace=True)
                     df = df.astype({'Information_Ratio_1Y' : float, 'TEV_1Y' : float})
             elif filename[:-9] in SOR_DSR:
                 i = 10
                 while True:
                     try:
-                        lista_indici = pd.read_csv(self.directory_output_liste + '/' + filename, sep = ';', header=0, skiprows=2, skipfooter=i, engine='python')
+                        lista_indici = pd.read_csv(self.directory_output_liste + '/' + filename, sep = ';', header=0, skiprows=2, skipfooter=i, engine='python', encoding='unicode_escape')
                     except pd.errors.ParserError:
                         # se i fondi sono pochi la tabella delle correlazioni viene riempita al completo e le righe da saltare in fondo sono più di 14
                         i = i + 1
@@ -133,17 +130,17 @@ class Ranking():
                     df = df.merge(lista_indici, how='outer', left_on='ISIN', right_on='Codice ISIN')
                     df['Sortino_3Y'] = df['Sortino ratio'].fillna(df['Sortino_3Y'])
                     df['DSR_3Y'] = df['DSR'].fillna(df['DSR_3Y'])
-                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Sortino ratio', 'DSR'], 1, inplace=True)
+                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Sortino ratio', 'DSR'], axis=1, inplace=True)
                 elif filename[-6:-4] == '1Y':
                     df = df.merge(lista_indici, how='outer', left_on='ISIN', right_on='Codice ISIN')
                     df['Sortino_1Y'] = df['Sortino ratio'].fillna(df['Sortino_1Y'])
                     df['DSR_1Y'] = df['DSR'].fillna(df['DSR_1Y'])
-                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Sortino ratio', 'DSR'], 1, inplace=True)
+                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Sortino ratio', 'DSR'], axis=1, inplace=True)
             elif filename[:-9] in SHA_VOL:
                 i = 10
                 while True:
                     try:
-                        lista_indici = pd.read_csv(self.directory_output_liste + '/' + filename, sep = ';', header=0, skiprows=2, skipfooter=i, engine='python')
+                        lista_indici = pd.read_csv(self.directory_output_liste + '/' + filename, sep = ';', header=0, skiprows=2, skipfooter=i, engine='python', encoding='unicode_escape')
                     except pd.errors.ParserError:
                         # se i fondi sono pochi la tabella delle correlazioni viene riempita al completo e le righe da saltare in fondo sono più di 14
                         i = i + 1
@@ -159,17 +156,17 @@ class Ranking():
                     df = df.merge(lista_indici, how='outer', left_on='ISIN', right_on='Codice ISIN')
                     df['Sharpe_3Y'] = df['Sharpe ratio'].fillna(df['Sharpe_3Y'])
                     df['Vol_3Y'] = df['Volatilità'].fillna(df['Vol_3Y'])
-                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Sharpe ratio', 'Volatilità'], 1, inplace=True)
+                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Sharpe ratio', 'Volatilità'], axis=1, inplace=True)
                 elif filename[-6:-4] == '1Y':
                     df = df.merge(lista_indici, how='outer', left_on='ISIN', right_on='Codice ISIN')
                     df['Sharpe_1Y'] = df['Sharpe ratio'].fillna(df['Sharpe_1Y'])
                     df['Vol_1Y'] = df['Volatilità'].fillna(df['Vol_1Y'])
-                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Sharpe ratio', 'Volatilità'], 1, inplace=True)
+                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Sharpe ratio', 'Volatilità'], axis=1, inplace=True)
             elif filename[:-9] in PER_VOL:
                 i = 10
                 while True:
                     try:
-                        lista_indici = pd.read_csv(self.directory_output_liste + '/' + filename, sep = ';', header=0, skiprows=2, skipfooter=i, engine='python')
+                        lista_indici = pd.read_csv(self.directory_output_liste + '/' + filename, sep = ';', header=0, skiprows=2, skipfooter=i, engine='python', encoding='unicode_escape')
                     except pd.errors.ParserError:
                         # se i fondi sono pochi la tabella delle correlazioni viene riempita al completo e le righe da saltare in fondo sono più di 14
                         i = i + 1
@@ -185,12 +182,12 @@ class Ranking():
                     df = df.merge(lista_indici, how='outer', left_on='ISIN', right_on='Codice ISIN')
                     df['Perf_3Y'] = df['Perf Ann.'].fillna(df['Perf_3Y'])
                     df['Vol_3Y'] = df['Volatilità'].fillna(df['Vol_3Y'])
-                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Perf Ann.', 'Volatilità'], 1, inplace=True)
+                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Perf Ann.', 'Volatilità'], axis=1, inplace=True)
                 elif filename[-6:-4] == '1Y':
                     df = df.merge(lista_indici, how='outer', left_on='ISIN', right_on='Codice ISIN')
                     df['Perf_1Y'] = df['Perf Ann.'].fillna(df['Perf_1Y'])
                     df['Vol_1Y'] = df['Volatilità'].fillna(df['Vol_1Y'])
-                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Perf Ann.', 'Volatilità'], 1, inplace=True)
+                    df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Perf Ann.', 'Volatilità'], axis=1, inplace=True)
         df.to_excel(self.file_ranking, index=False)
 
     def discriminazione_flessibili_e_bilanciati(self):
@@ -311,6 +308,7 @@ class Ranking():
                     massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'])
                     foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'] / (massimo_1Y - minimo_1Y)
                     foglio['ranking_finale'] = foglio['ranking_finale_3Y'].fillna(foglio['ranking_finale_1Y'])
+                    foglio['podio'] = foglio['ranking_finale'].apply(lambda ranking: 'bronzo' if ranking <= 3.0 else 'argento' if ranking <= 6.0 else 'oro' if ranking <= 9.1 else '')
 
                 # Seleziona colonne utili
                 if self.intermediario == 'BPPB':
@@ -324,7 +322,7 @@ class Ranking():
                         'Information_Ratio_1Y', 'ranking_IR_1Y', 'quartile_IR_1Y', 'terzile_IR_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'ranking_IR_1Y_corretto',
                         'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'note']]
                 if self.intermediario == 'CRV':
-                    foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Information_Ratio_3Y',
+                    foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Information_Ratio_3Y',
                         'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']]
                 
                 # Cambio formato data
@@ -391,6 +389,7 @@ class Ranking():
                     massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'])
                     foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'] / (massimo_1Y - minimo_1Y)
                     foglio['ranking_finale'] = foglio['ranking_finale_3Y'].fillna(foglio['ranking_finale_1Y'])
+                    foglio['podio'] = foglio['ranking_finale'].apply(lambda ranking: 'bronzo' if ranking <= 3.0 else 'argento' if ranking <= 6.0 else 'oro' if ranking <= 9.1 else '')
 
                 # Seleziona colonne utili
                 if self.intermediario == 'BPPB':
@@ -404,7 +403,7 @@ class Ranking():
                         'Sortino_1Y', 'ranking_SO_1Y', 'quartile_SO_1Y', 'terzile_SO_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'ranking_SO_1Y_corretto',
                         'quartile_SO_corretto_1Y', 'terzile_SO_corretto_1Y', 'note']]
                 if self.intermediario == 'CRV':
-                    foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sortino_3Y',
+                    foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sortino_3Y',
                         'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'note']]
                 
                 # Cambio formato data
@@ -471,7 +470,8 @@ class Ranking():
                     massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'])
                     foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'] / (massimo_1Y - minimo_1Y)
                     foglio['ranking_finale'] = foglio['ranking_finale_3Y'].fillna(foglio['ranking_finale_1Y'])
-
+                    foglio['podio'] = foglio['ranking_finale'].apply(lambda ranking: 'bronzo' if ranking <= 3.0 else 'argento' if ranking <= 6.0 else 'oro' if ranking <= 9.1 else '')
+                
                 # Seleziona colonne utili
                 if self.intermediario == 'BPPB':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'ranking_SH_3Y', 'quartile_SH_3Y',
@@ -484,7 +484,7 @@ class Ranking():
                         'Sharpe_1Y', 'ranking_SH_1Y', 'quartile_SH_1Y', 'terzile_SH_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
                         'quartile_SH_corretto_1Y', 'terzile_SH_corretto_1Y', 'note']]
                 if self.intermediario == 'CRV':
-                    foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sharpe_3Y',
+                    foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sharpe_3Y',
                         'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'note']]
                 
                 # Cambio formato data
@@ -551,7 +551,8 @@ class Ranking():
                     massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'])
                     foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'] / (massimo_1Y - minimo_1Y)
                     foglio['ranking_finale'] = foglio['ranking_finale_3Y'].fillna(foglio['ranking_finale_1Y'])
-
+                    foglio['podio'] = foglio['ranking_finale'].apply(lambda ranking: 'bronzo' if ranking <= 3.0 else 'argento' if ranking <= 6.0 else 'oro' if ranking <= 9.1 else '')
+                
                 # Seleziona colonne utili
                 if self.intermediario == 'BPPB':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'ranking_PERF_3Y', 'quartile_PERF_3Y',
@@ -564,7 +565,7 @@ class Ranking():
                         'Perf_1Y', 'ranking_PERF_1Y', 'quartile_PERF_1Y', 'terzile_PERF_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'ranking_PERF_1Y_corretto',
                         'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'note']]
                 elif self.intermediario == 'CRV':
-                    foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Perf_3Y', 
+                    foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Perf_3Y', 
                         'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']]
 
                 # Cambio formato data
@@ -661,19 +662,6 @@ class Ranking():
             elif self.intermediario == 'CRV':
                 if sheet in micro_blend_classi_a_benchmark.keys() or sheet in micro_blend_classi_non_a_benchmark:
                     foglio = wb[sheet] # attiva foglio
-                    for cell in foglio['G']: # colora il ranking finale
-                        try:
-                            if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
-                                cell.number_format = '0.0000'
-                            elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
-                                cell.number_format = '0.0000'
-                            elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
-                                cell.number_format = '0.0000'
-                        except:
-                            pass
                     for cell in foglio['H']: # colora il ranking finale
                         try:
                             if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
@@ -700,13 +688,26 @@ class Ranking():
                                 cell.number_format = '0.0000'
                         except:
                             pass
+                    for cell in foglio['J']: # colora il ranking finale
+                        try:
+                            if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
+                                cell.number_format = '0.0000'
+                            elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
+                                cell.number_format = '0.0000'
+                            elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
+                                cell.number_format = '0.0000'
+                        except:
+                            pass
+                    for cell in foglio['N']:
+                        cell.number_format = '0.0000'
+                    for cell in foglio['R']:
+                        cell.number_format = '0.0000'
                     for cell in foglio['M']:
-                        cell.number_format = '0.0000'
-                    for cell in foglio['Q']:
-                        cell.number_format = '0.0000'
-                    for cell in foglio['L']:
                         cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                    for cell in foglio['P']:
+                    for cell in foglio['Q']:
                         cell.number_format = numbers.FORMAT_PERCENTAGE_00
 
         # Colora e cambia stile alle intestazioni
@@ -732,6 +733,38 @@ class Ranking():
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
 
         wb.save(self.file_ranking)
+
+    def autofit(self):
+        """
+        Imposta la miglior lunghezza per le colonne selezionate.
+        # TODO : accetta più di un foglio
+        # TODO: accetta anche lettere per selezionare le colonne.
+        # TODO: se columns è vuoto, autofit tutte le colonne.
+
+        Parameters:
+            sheet {string} = foglio excel da formattare
+            columns {list} = lista contenente il numero o le lettere delle colonne da formattare. if not columns: formatta tutte le colonne del foglio
+            min_width {list} = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe non superare (usa None se non serve su una data colonna)
+            max_width {list} = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe superare (usa None se non serve su una data colonna)
+        """
+        if self.intermediario == 'BPPB' or self.intermediario == 'BPL':
+            columns = range(1, 31)
+        elif self.intermediario == 'CRV':
+            columns = range(1, 20)
+        xls_file = win32com.client.Dispatch("Excel.Application")
+        xls_file.visible = False
+        wb = xls_file.Workbooks.Open(Filename=r"C:\Users\Administrator\Desktop\Sbwkrq\Ranking\ranking.xlsx")
+        # openpyxl_wb = load_workbook(filename='ranking.xlsx') # carica il file
+        for ws in wb.Sheets:
+            for num, value in enumerate(columns):
+                if value > 0: # la colonna 0 e le negative non esistono
+                    ws.Columns(value).AutoFit()
+                else:
+                    continue
+            wb.Save()
+        xls_file.DisplayAlerts = False
+        wb.Close(SaveChanges=True, Filename=self.file_ranking)
+        xls_file.Quit()
 
     def creazione_liste_best_input(self):
         """
@@ -772,12 +805,13 @@ class Ranking():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Ranking(intermediario='BPL', t1='30/09/2021')
+    _ = Ranking(intermediario='CRV', t1='31/01/2022')
     _.merge_completo_liste()
     _.discriminazione_flessibili_e_bilanciati()
     _.rank()
     _.rank_formatted()
-    _.creazione_liste_best_input()
-    _.zip_file()
+    _.autofit()
+    # _.creazione_liste_best_input()
+    # _.zip_file()
     end = time.perf_counter()
     print("Elapsed time: ", end - start, 'seconds')
