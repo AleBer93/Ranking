@@ -15,7 +15,7 @@ class Ranking():
     Ranking dei fondi.
     """
 
-    def __init__(self, intermediario, t1, file_completo='completo.csv', file_ranking='ranking.xlsx', directory_output_liste='export_liste_from_Q', directory_input_liste_best='./import_liste_best_into_Q/', file_zip='rank.zip'):
+    def __init__(self, intermediario, t1, directory='C:/Users/Administrator/Desktop/Sbwkrq/Ranking', file_catalogo='catalogo_fondi.xlsx', file_completo='completo.csv', file_ranking='ranking.xlsx', directory_output_liste='export_liste_from_Q', directory_input_liste_best='./import_liste_best_into_Q/', file_zip='rank.zip'):
         """
         Initialize the class.
         
@@ -40,6 +40,8 @@ class Ranking():
         self.directory_output_liste = directory_output_liste
         self.directory_input_liste_best = directory_input_liste_best
         self.file_zip = file_zip
+        self.directory = directory
+        self.file_catalogo = file_catalogo
 
     def merge_completo_liste(self):
         """
@@ -209,6 +211,7 @@ class Ranking():
         df.to_excel(self.file_ranking, index=False)
 
     def rank(self):
+        # TODO : fallo all'interno di un wrapper come il metodo aggiunta_colonne
         """
         Crea il file di ranking con tanti fogli quante sono le macro asset class.
         """
@@ -583,8 +586,33 @@ class Ranking():
 
         writer.save()
 
+    def aggiunta_colonne(self, *colonne):
+        """Aggiungi eventuali colonne presenti nel file_catalogo alla fine dei fogli del file di ranking
+        
+        Arguments:
+            colonne {*args} = colonne da aggiungere al file di ranking
+        """
+        # TODO : con un if fissa l'argument colonne pari a nome nel caso di CRV, e pari a fondo_a_finestra nel caso di BPPB
+        # Carica file_catalogo
+        df_input = pd.read_excel(self.directory + '/' + self.file_catalogo, index_col=None)
+        # Carica file di ranking senza specificare un foglio per ottenerli tutti
+        df_globale = pd.read_excel(self.file_ranking, sheet_name=None) # read all sheets
+        with pd.ExcelWriter(self.file_ranking, mode="a", engine="openpyxl", if_sheet_exists="replace") as writer:
+            for sheet in df_globale.keys():
+                df = pd.read_excel(self.file_ranking, sheet_name=sheet, index_col=0)
+                for colonna in colonne:
+                    # Se la colonna da inserire ha lo stesso nome di una colonna già presente modificala
+                    if colonna in df.columns:
+                        colonna_label = colonna + '_2'
+                    else:
+                        colonna_label = colonna
+                    df_input.rename(columns = {colonna : colonna_label}, inplace=True)
+                    df_input_2 = df_input.loc[df_input['isin'].isin(df['ISIN']), ['isin', colonna_label]]
+                    # Unisci i due file togliendo la colonna 'isin'
+                    df = pd.merge(left=df, right=df_input_2, how='left', left_on='ISIN', right_on='isin').drop('isin', axis=1)
+                df.to_excel(writer, sheet_name=sheet)
+
     def rank_formatted(self):
-        # TODO : espandi tutte le colonne
         """
         Formatta il file self.ranking per mettere in evidenza le classi blend e l'ordinamento definitivo.
         Formatta le intestazioni del file.
@@ -785,12 +813,12 @@ class Ranking():
             # per ora solo per BPL
             if not os.path.exists(self.directory_input_liste_best):
                 os.makedirs(self.directory_input_liste_best)
-        print('sto creando le liste contenenti i fondi best di ogni macro categoria...')
-        for classe in classi_a_benchmark:
-            df_rank = pd.read_excel(self.file_ranking, index_col=None, sheet_name=classe)
-            df = df_rank.loc[df_rank['Best_Worst'] == "best", ['ISIN', 'valuta']]
-            df.columns = ['codice isin', 'divisa']
-            df.to_csv(self.directory_input_liste_best + classe + '_best' + '.csv', sep=";", index=False)
+            print('sto creando le liste contenenti i fondi best di ogni macro categoria...')
+            for classe in classi_a_benchmark:
+                df_rank = pd.read_excel(self.file_ranking, index_col=None, sheet_name=classe)
+                df = df_rank.loc[df_rank['Best_Worst'] == "best", ['ISIN', 'valuta']]
+                df.columns = ['codice isin', 'divisa']
+                df.to_csv(self.directory_input_liste_best + classe + '_best' + '.csv', sep=";", index=False)
 
     def zip_file(self):
         # TODO : Metti i file dei best in class nel file zip
@@ -809,9 +837,10 @@ if __name__ == '__main__':
     _.merge_completo_liste()
     _.discriminazione_flessibili_e_bilanciati()
     _.rank()
+    _.aggiunta_colonne() # 'nome' se CRV, 'fondo_a_finestra' se BPPB
     _.rank_formatted()
     _.autofit()
-    # _.creazione_liste_best_input()
-    # _.zip_file()
+    _.creazione_liste_best_input()
+    _.zip_file()
     end = time.perf_counter()
     print("Elapsed time: ", end - start, 'seconds')
