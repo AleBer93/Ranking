@@ -1,14 +1,17 @@
-import os
-import pandas as pd
-import numpy as np
-import time
 import datetime
-import dateutil.relativedelta
-from openpyxl import load_workbook # Per caricare un libro
-from openpyxl.styles import PatternFill, Border, Side, Alignment, Font # Per cambiare lo stile
-from openpyxl.styles import numbers # Per cambiare i formati dei numeri
+import os
+import time
 import zipfile
+
+import dateutil.relativedelta
+import numpy as np
+import pandas as pd
 import win32com.client
+from openpyxl import load_workbook  # Per caricare un libro
+from openpyxl.styles import numbers  # Per cambiare i formati dei numeri
+from openpyxl.styles import (Alignment, Border, Font,  # Per cambiare lo stile
+                             PatternFill, Side)
+
 
 class Ranking():
     """
@@ -211,6 +214,7 @@ class Ranking():
         df.to_excel(self.file_ranking, index=False)
 
     def rank(self):
+        # TODO : fattorizza per tipo di indicatore
         # TODO : fallo all'interno di un wrapper come il metodo aggiunta_colonne
         """
         Crea il file di ranking con tanti fogli quante sono le macro asset class.
@@ -318,15 +322,15 @@ class Ranking():
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'Best_Worst', 'micro_categoria', 'ranking_finale', 'Information_Ratio_3Y', 'ranking_IR_3Y', 'quartile_IR_3Y',
                         'terzile_IR_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'ranking_IR_3Y_corretto', 'quartile_IR_corretto_3Y', 'terzile_IR_corretto_3Y', 
                         'Information_Ratio_1Y', 'ranking_IR_1Y', 'quartile_IR_1Y', 'terzile_IR_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'ranking_IR_1Y_corretto',
-                        'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'fondo_a_finestra', 'note']]
+                        'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
                 elif self.intermediario == 'BPL':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'Best_Worst', 'micro_categoria', 'ranking_finale', 'Information_Ratio_3Y', 'ranking_IR_3Y', 'quartile_IR_3Y',
                         'terzile_IR_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'ranking_IR_3Y_corretto', 'quartile_IR_corretto_3Y', 'terzile_IR_corretto_3Y', 
                         'Information_Ratio_1Y', 'ranking_IR_1Y', 'quartile_IR_1Y', 'terzile_IR_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'ranking_IR_1Y_corretto',
-                        'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'note']]
+                        'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'SFDR', 'note']]
                 if self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Information_Ratio_3Y',
-                        'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']]
+                        'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'SFDR', 'note']]
                 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
@@ -399,15 +403,15 @@ class Ranking():
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sortino_3Y', 'ranking_SO_3Y', 'quartile_SO_3Y',
                         'terzile_SO_3Y', 'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'quartile_SO_corretto_3Y', 'terzile_SO_corretto_3Y', 
                         'Sortino_1Y', 'ranking_SO_1Y', 'quartile_SO_1Y', 'terzile_SO_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'ranking_SO_1Y_corretto',
-                        'quartile_SO_corretto_1Y', 'terzile_SO_corretto_1Y', 'fondo_a_finestra', 'note']]
+                        'quartile_SO_corretto_1Y', 'terzile_SO_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
                 elif self.intermediario == 'BPL':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sortino_3Y', 'ranking_SO_3Y', 'quartile_SO_3Y',
                         'terzile_SO_3Y', 'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'quartile_SO_corretto_3Y', 'terzile_SO_corretto_3Y', 
                         'Sortino_1Y', 'ranking_SO_1Y', 'quartile_SO_1Y', 'terzile_SO_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'ranking_SO_1Y_corretto',
-                        'quartile_SO_corretto_1Y', 'terzile_SO_corretto_1Y', 'note']]
+                        'quartile_SO_corretto_1Y', 'terzile_SO_corretto_1Y', 'SFDR', 'note']]
                 if self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sortino_3Y',
-                        'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'note']]
+                        'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'SFDR', 'note']]
                 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
@@ -480,15 +484,15 @@ class Ranking():
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'ranking_SH_3Y', 'quartile_SH_3Y',
                         'terzile_SH_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'ranking_SH_3Y_corretto', 'quartile_SH_corretto_3Y', 'terzile_SH_corretto_3Y', 
                         'Sharpe_1Y', 'ranking_SH_1Y', 'quartile_SH_1Y', 'terzile_SH_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
-                        'quartile_SH_corretto_1Y', 'terzile_SH_corretto_1Y', 'fondo_a_finestra', 'note']]
+                        'quartile_SH_corretto_1Y', 'terzile_SH_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
                 elif self.intermediario == 'BPL':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'ranking_SH_3Y', 'quartile_SH_3Y',
                         'terzile_SH_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'ranking_SH_3Y_corretto', 'quartile_SH_corretto_3Y', 'terzile_SH_corretto_3Y', 
                         'Sharpe_1Y', 'ranking_SH_1Y', 'quartile_SH_1Y', 'terzile_SH_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
-                        'quartile_SH_corretto_1Y', 'terzile_SH_corretto_1Y', 'note']]
+                        'quartile_SH_corretto_1Y', 'terzile_SH_corretto_1Y', 'SFDR', 'note']]
                 if self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sharpe_3Y',
-                        'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'note']]
+                        'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'SFDR', 'note']]
                 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
@@ -512,7 +516,7 @@ class Ranking():
                     # Terzile PERF_1Y
                     foglio['terzile_PERF_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Perf_1Y'].notnull()), 'Perf_1Y'].apply(lambda x: 'best' if x > foglio['Perf_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     # Creazione PERF_corretto_1Y
-                    foglio['PERF_corretto_1Y'] = ((df['Perf_1Y'] * (df['Vol_1Y']) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_1Y'])
+                    foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / anni_detenzione)
                     # Rank PERF_corretto_1Y
                     foglio['ranking_PERF_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile PERF_1Y corretto
@@ -530,7 +534,7 @@ class Ranking():
                     # Terzile PERF_3Y
                     foglio['terzile_PERF_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Perf_3Y'].notnull()), 'Perf_3Y'].apply(lambda x: 'best' if x > foglio['Perf_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     # Creazione PERF_corretto_3Y (la volatilità è già in percentuale)
-                    foglio['PERF_corretto_3Y'] = ((df['Perf_3Y'] * (df['Vol_3Y']) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_3Y'])
+                    foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / anni_detenzione)
                     # Rank PERF_corretto_3Y
                     foglio['ranking_PERF_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile PERF_3Y corretto
@@ -540,9 +544,9 @@ class Ranking():
 
                 if self.intermediario == 'CRV': # metodo normalizzazione
                     # Creazione PERF_corretto_1Y
-                    foglio['PERF_corretto_1Y'] = ((df['Perf_1Y'] * (df['Vol_1Y']) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_1Y'])
+                    foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / anni_detenzione)
                     # Creazione PERF_corretto_3Y
-                    foglio['PERF_corretto_3Y'] = ((df['Perf_3Y'] * (df['Vol_3Y']) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_3Y'])
+                    foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / anni_detenzione)
                     # Note
                     foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Perf_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
                     foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & (foglio['Perf_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
@@ -561,15 +565,15 @@ class Ranking():
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'ranking_PERF_3Y', 'quartile_PERF_3Y',
                         'terzile_PERF_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'ranking_PERF_3Y_corretto', 'quartile_PERF_corretto_3Y', 'terzile_PERF_corretto_3Y', 
                         'Perf_1Y', 'ranking_PERF_1Y', 'quartile_PERF_1Y', 'terzile_PERF_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'ranking_PERF_1Y_corretto',
-                        'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'fondo_a_finestra', 'note']]
+                        'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
                 elif self.intermediario == 'BPL':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'ranking_PERF_3Y', 'quartile_PERF_3Y',
                         'terzile_PERF_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'ranking_PERF_3Y_corretto', 'quartile_PERF_corretto_3Y', 'terzile_PERF_corretto_3Y', 
                         'Perf_1Y', 'ranking_PERF_1Y', 'quartile_PERF_1Y', 'terzile_PERF_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'ranking_PERF_1Y_corretto',
-                        'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'note']]
+                        'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'SFDR', 'note']]
                 elif self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Perf_3Y', 
-                        'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']]
+                        'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'SFDR', 'note']]
 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
@@ -776,9 +780,9 @@ class Ranking():
             max_width {list} = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe superare (usa None se non serve su una data colonna)
         """
         if self.intermediario == 'BPPB' or self.intermediario == 'BPL':
-            columns = range(1, 31)
+            columns = range(1, 32)
         elif self.intermediario == 'CRV':
-            columns = range(1, 20)
+            columns = range(1, 21)
         xls_file = win32com.client.Dispatch("Excel.Application")
         xls_file.visible = False
         wb = xls_file.Workbooks.Open(Filename=r"C:\Users\Administrator\Desktop\Sbwkrq\Ranking\ranking.xlsx")
@@ -833,7 +837,7 @@ class Ranking():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Ranking(intermediario='CRV', t1='31/01/2022')
+    _ = Ranking(intermediario='BPPB', t1='31/01/2022')
     _.merge_completo_liste()
     _.discriminazione_flessibili_e_bilanciati()
     _.rank()
@@ -843,4 +847,4 @@ if __name__ == '__main__':
     _.creazione_liste_best_input()
     _.zip_file()
     end = time.perf_counter()
-    print("Elapsed time: ", end - start, 'seconds')
+    print("Elapsed time: ", round(end - start, 2), 'seconds')
