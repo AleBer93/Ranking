@@ -1,11 +1,13 @@
-import os
-import pandas as pd
-import time
-with os.add_dll_directory('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\_blpapi'):
-    import blpapi
-from xbbg import blp
 import datetime
+import os
+import time
+
 import dateutil.relativedelta
+import pandas as pd
+# with os.add_dll_directory('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\_blpapi'):
+#     import blpapi
+from xbbg import blp
+
 
 class Completo():
     """
@@ -411,9 +413,9 @@ class Completo():
             pass
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
     
-    def seleziona_e_rinomina_colonne(self, file_excel):
+    def seleziona_e_rinomina_colonne(self):
         """
-        Seleziona solo le colonne utili del file_excel con la funzione sopra definita seleziona_colonne.
+        Seleziona solo le colonne utili del file completo..
         Rinomina le colonne del file_excel.
 
         Parameters:
@@ -421,23 +423,23 @@ class Completo():
         """
         if self.intermediario == 'BPPB':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                'commissione', 'BS_3_anni', 'Best_Worst', 'categoria_flessibili', 'fondo_a_finestra']
+                'commissione', 'BS_3_anni', 'Best_Worst', 'sfdr_classification', 'categoria_flessibili', 'fondo_a_finestra']
             col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione', 'B&S_3Y',
-                'Best_Worst', 'categoria_flessibili', 'fondo_a_finestra']
+                'Best_Worst', 'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
         elif self.intermediario == 'BPL':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                'commissione', 'BS_3_anni', 'Best_Worst']
+                'commissione', 'BS_3_anni', 'Best_Worst', 'sfdr_classification']
             col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
-                'commissione', 'B&S_3Y', 'Best_Worst']
+                'commissione', 'B&S_3Y', 'Best_Worst', 'SFDR']
         elif self.intermediario == 'CRV':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
+                'sfdr_classification', 'categoria_flessibili', 'commissione']
+            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'SFDR',
                 'categoria_flessibili', 'commissione']
-            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'categoria_flessibili',
-                'commissione']
-        df = pd.read_csv(file_excel, sep=";", decimal=',', index_col=None)
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df = df[col_sel]
         df.columns = col_ren
-        df.to_csv(file_excel, sep=";", decimal=',', index=False)
+        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def creazione_liste_input(self):
         """
@@ -473,8 +475,8 @@ if __name__ == '__main__':
     _.indicatore_BS()
     _.calcolo_best_worst()
     _.sfdr()
-    # _.discriminazione_flessibili()
-    # _.seleziona_e_rinomina_colonne('completo.csv')
-    # _.creazione_liste_input()
+    _.discriminazione_flessibili()
+    _.seleziona_e_rinomina_colonne()
+    _.creazione_liste_input()
     end = time.time()
     print("Elapsed time: ", end - start, 'seconds')

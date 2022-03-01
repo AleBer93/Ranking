@@ -1,19 +1,17 @@
+import datetime
+import glob
 import os
 import re
-import glob
 import time
-import datetime
+
 import dateutil.relativedelta
 from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.touch_actions import TouchActions
-from selenium.webdriver.support.ui import Select
-from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select, WebDriverWait
 
 
 class Scarico():
@@ -23,7 +21,7 @@ class Scarico():
     # TODO : sistema il drag and drop
     # username='Pomante', password='Pomante22'
 
-    def __init__(self, t1, username='AVicario', password='AVicario123', directory_output_liste="C:\\Users\\Administrator\\Desktop\\Sbwkrq\\Ranking\\export_liste_from_Q", directory_input_liste='C:\\Users\\Administrator\\Desktop\\Sbwkrq\\Ranking\\import_liste_into_Q\\'):
+    def __init__(self, intermediario, t1, username='AVicario', password='AVicario123', directory_output_liste="C:\\Users\\Administrator\\Desktop\\Sbwkrq\\Ranking\\export_liste_from_Q", directory_input_liste='C:\\Users\\Administrator\\Desktop\\Sbwkrq\\Ranking\\import_liste_into_Q\\'):
         """
         Initialize the class.
         Default download folder : self.directory_output_liste
@@ -36,6 +34,7 @@ class Scarico():
         directory_output_liste = percorso in cui scaricare i dati delle liste
         directory_input_liste = percorso in cui trovare i dati delle liste
         """
+        self.intermediario = intermediario
         self.username = username
         self.password = password
         self.t1 = t1
@@ -135,7 +134,7 @@ class Scarico():
                 ActionChains(self.driver).drag_and_drop(source_element, dest_element).perform()
                 time.sleep(2)
 
-    def export(self, intermediario):
+    def export(self):
         """
         Carica le liste in quantalys.it, scarica gli indicatori pertinenti ed esporta un file csv.
         Rinomina il file con nomi in successione relativi alla macrocategoria.
@@ -147,8 +146,10 @@ class Scarico():
         
         directory = self.directory_input_liste
         elapsed_time = []
+        liste_completate = 0
+        file_totali = len(os.listdir(directory))
         for filename in os.listdir(directory):
-            file_totali = len(os.listdir(self.directory_output_liste))
+            file_scaricati = len(os.listdir(self.directory_output_liste))
             start = time.perf_counter()
             print(f"\nCaricamento lista {filename}...\n")
             try:
@@ -159,8 +160,14 @@ class Scarico():
             try:
                 liste = self.driver.find_element_by_partial_link_text('Liste') # Liste
                 liste.click()
-            except NoSuchElementException:
-                self.driver.find_element_by_partial_link_text('Tools').click() # Tools
+            except:
+                try:
+                    WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Tools')))
+                except TimeoutException:
+                    pass
+                finally:
+                    self.driver.find_element_by_partial_link_text('Tools').click()
+                    
                 try:
                     WebDriverWait(self.driver, 1).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Liste'))) #Liste
                 except TimeoutException:
@@ -207,14 +214,14 @@ class Scarico():
                 self.driver.find_element_by_xpath('//*[@id="importForm"]/button').click()
 
             try:
-                WebDriverWait(self.driver,120).until_not(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[3]/div[2]'), '0 elementi'))
-                # WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="DataTables_Table_0"]/tbody/tr[1]/td[1]/label'))) # Seleziona tutti i fondi
-            except TimeoutException:
+                WebDriverWait(self.driver,120).until_not(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table/tbody/tr/td'), 'Nessun dato disponibile'))
+                # WebDriverWait(self.driver,120).until_not(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[3]/div[2]'), '0 elementi'))
+            except TimeoutException: 
                 pass
             finally:
                 # print(self.driver.find_element_by_xpath('//*[@id="DataTables_Table_0"]/tbody/tr/td').text)
-                totale_fondi_lista = self.driver.find_element_by_xpath('//*[@id="DataTables_Table_0_info"]').text.replace(',','') # Totale fondi
-                print(totale_fondi_lista)
+                totale_fondi_lista = self.driver.find_element_by_xpath('//*[@id="DataTables_Table_0_info"]').text.replace(',','')
+                print(f'{totale_fondi_lista}\n')
                 num_fondi_regex = re.compile(r'\d(\d)?(\d)?(\d)?')
                 mo = num_fondi_regex.search(totale_fondi_lista)
                 numero_fondi = mo.group()
@@ -369,35 +376,26 @@ class Scarico():
                                     self.rimuovi_indicatori(4)
                                     self.aggiungi_indicatori('Volatilità da data a data', 'Perf Ann. da data a data')
 
-                # Prova 1 : 5 elementi, il secondo è sbagliato
-                # Prova 2 : 5 elementi, il quarto è sbagliato
-                # Prova 3 : 4 elementi
-                # Prova 4 : 3 elementi
-                # Prova 5 : 3 elementi,  il secondo è sbagliato
-                # Prova 6 : 2 elementi
-
             # Aggiungi benchmark
-            classi_a_benchmark_BPPB = {'AZ_EUR': '    MSCI Europe', 'AZ_NA': '    MSCI USA', 'AZ_PAC': '    MSCI Pacific', 'AZ_EM': '    MSCI Emerging Markets', 
-                'OBB_BT': '    ICE BofA 1-3 Y Euro Broad Mkt', 'OBB_MLT': '    ICE BofA Euro Broad Market', 'OBB_CORP': '    ICE BofA Euro Corporate', 'OBB_GLOB': '    ICE BofA Global Broad Market',
-                'OBB_EM': '    ICE BofA Glb Cross Corp& Gov'}
-            classi_a_benchmark_BPL = {'AZ_EUR': '    MSCI Europe', 'AZ_NA': '    MSCI USA', 'AZ_PAC': '    MSCI Pacific', 'AZ_EM': '    MSCI Emerging Markets', 'AZ_GLOB': '    MSCI World',
-                'OBB_BT': '    ICE BofA 1-3 Y Euro Broad Mkt', 'OBB_MLT': '    ICE BofA Euro Broad Market', 'OBB_EUR': '    ICE BofA Pan-Europe Broad Mkt', 'OBB_CORP': '    ICE BofA Euro Corporate',
-                'OBB_GLOB': '    ICE BofA Global Broad Market', 'OBB_USA': '    ICE BofA US Broad Market', 'OBB_EM': '    ICE BofA Glb Cross Corp& Gov', 'OBB_GLOB_HY': '    ICE BofA Global High Yield'}
-            classi_a_benchmark_CRV = {'AZ_EUR': '    MSCI Europe', 'AZ_NA': '    MSCI USA', 'AZ_PAC': '    MSCI Pacific', 'AZ_EM': '    MSCI Emerging Markets', 'AZ_GLOB': '    MSCI World',
-                'OBB_BT': '    ICE BofA 1-3 Y Euro Broad Mkt', 'OBB_MLT': '    ICE BofA Euro Broad Market', 'OBB_CORP': '    ICE BofA Euro Corporate', 'OBB_GLOB': '    ICE BofA Global Broad Market', 
-                'OBB_EM': '    ICE BofA Glb Cross Corp& Gov', 'OBB_GLOB_HY': '    ICE BofA Global High Yield'}
-            if intermediario == 'BPPB':
+            classi_a_benchmark_BPPB = {'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 
+                'OBB_BT': '2265', 'OBB_MLT': '2264', 'OBB_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_EM': '2476'}
+            classi_a_benchmark_BPL = {'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
+                'OBB_BT': '2265', 'OBB_MLT': '2264', 'OBB_EUR': '2255', 'OBB_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_USA': '2490',
+                'OBB_EM': '2476', 'OBB_GLOB_HY': '2293'}
+            classi_a_benchmark_CRV = {'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
+                'OBB_BT': '2265', 'OBB_MLT': '2264', 'OBB_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_EM': '2476', 'OBB_GLOB_HY': '2293'}
+            if self.intermediario == 'BPPB':
                 classi_a_benchmark = classi_a_benchmark_BPPB
-            elif intermediario == 'BPL':
+            elif self.intermediario == 'BPL':
                 classi_a_benchmark = classi_a_benchmark_BPL
-            elif intermediario == 'CRV':
+            elif self.intermediario == 'CRV':
                 classi_a_benchmark = classi_a_benchmark_CRV
             if filename[:-6] in classi_a_benchmark.keys():
                 self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_rdIndiceRefTousFonds"]').click() # Aggiungi benchmark se classe a benchmark
-                time.sleep(1)
+                time.sleep(1) # troppo lento
                 select = Select(self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_cmbIndiceRef_Comp"]'))
-                time.sleep(2)
-                select.select_by_visible_text(classi_a_benchmark[filename[:-6]])
+                time.sleep(2) # troppo lento
+                select.select_by_value(classi_a_benchmark[filename[:-6]])
 
                 try:
                     WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_bntProPlusRafraichir"]'))) # Aggiorna benchmark
@@ -416,6 +414,7 @@ class Scarico():
                     self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_bntProPlusRafraichir"]').click()
                     loading_img = self.driver.find_element_by_xpath('//*[@id="Contenu_Contenu_loader_imgLoad"]')
                     WebDriverWait(self.driver, 10).until(EC.visibility_of(loading_img))
+            # TODO : giù tutta la pagina per vedere il cambiamento del dato dell'ultimo strumento
 
             # Aggiorna date a 3 anni
             try:
@@ -452,7 +451,7 @@ class Scarico():
                     time.sleep(1)
 
             # Rinomina file
-            while len(os.listdir(self.directory_output_liste)) == file_totali:
+            while len(os.listdir(self.directory_output_liste)) == file_scaricati:
                 time.sleep(1)
             time.sleep(1.5)
             list_of_files = glob.glob(self.directory_output_liste + '/*')
@@ -491,7 +490,7 @@ class Scarico():
                     time.sleep(1)
             
             # Rinomina file
-            while len(os.listdir(self.directory_output_liste)) == file_totali:
+            while len(os.listdir(self.directory_output_liste)) == file_scaricati:
                 time.sleep(1)
             time.sleep(1.5)
             list_of_files = glob.glob(self.directory_output_liste + '/*')
@@ -502,16 +501,17 @@ class Scarico():
             elapsed_time.append(end - start)
             print(f"Elapsed time for {filename}: ", end - start, 'seconds')
             print(f"\nAverage elapsed time: {sum(elapsed_time)/len(elapsed_time)}.")
-
+            liste_completate += 1
+            print(f"\nTempo previsto alla fine: {datetime.timedelta(seconds=(sum(elapsed_time)/len(elapsed_time))*(file_totali-liste_completate))}")
         
         self.driver.close()
 
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Scarico(t1='30/06/2021')
+    _ = Scarico(intermediario='BPPB', t1='31/01/2022')
     _.accesso_a_quantalys()
     _.login()
-    _.export(intermediario='CRV')
+    _.export()
     end = time.perf_counter()
     print("Elapsed time: ", end - start, 'seconds')

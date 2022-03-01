@@ -1,40 +1,40 @@
+import glob
 import os
 import time
-import glob
+from pathlib import Path
+
 import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 
+
 class Catalogo():
-    """
-    Importa il catalogo dei fondi e formattalo.
-    """
 
-    def __init__(self, intermediario, directory='C:/Users/Administrator/Desktop/Sbwkrq/Ranking', directory_catalogo='C:/Users/Administrator/Desktop/Sbwkrq/Ranking/input', file_catalogo='catalogo_fondi.xlsx', directory_input_liste_complete='./import_liste_complete_into_Q/'):
-        '''
-        Initialize the file.
+    def __str__(self):
+        return "Importa il catalogo dei fondi e lo formatta nel file catalogo_fondi.xlsx"
 
-        Parameters:
-        directory(str) = percorso in cui trovare il file di input
-        file_catalogo(str) = file formattato
-        directory_input_liste_complete(str) = percorso in cui salvare le liste complete
-        '''
-
+    def __init__(self):
+        """
+        Arguments:
+            directory {str} = percorso in cui trovare il file di input
+            directory_catalogo {str}
+            directory_input_liste_complete {str} = percorso in cui salvare le liste complete
+            file_catalogo {str} = file formattato
+        """
+        directory = Path().cwd()
         self.directory = directory
-        self.directory_catalogo = directory_catalogo
-        self.file_catalogo = file_catalogo
-        self.directory_input_liste_complete = directory_input_liste_complete
-        self.intermediario = intermediario
+        self.directory_catalogo = directory.joinpath('docs', 'input')
+        self.directory_input_liste_complete = directory.joinpath('docs', 'import_liste_complete_into_Q')
+        self.file_catalogo = "catalogo_fondi.xlsx"
 
     def rimuovi_testoacapo_e_spazi_da_intestazione(self):
         """
         Rimuove l'allinemanto testo a capo, gli spazi e il segno percentuale nelle colonne di un file excel
         e salva la modifica in un nuovo file.
         """
-
         filename = os.listdir(self.directory_catalogo)[0]
         print(f"sto togliendo l'opzione 'Testo a capo', gli spazi e il segno percentuale nelle colonne del file '{filename}'...")
-        wb = load_workbook(filename=self.directory_catalogo+'/'+filename)
+        wb = load_workbook(filename=self.directory_catalogo.joinpath(filename))
         ws = wb.worksheets[0]
         for row in ws.iter_rows(min_row=1, max_row=1, min_col=1, max_col=ws.max_column):
             for _ in range(0, ws.max_column):
@@ -52,7 +52,7 @@ class Catalogo():
     
     def rinomina_colonne(self):
         """Rinomina le colonne del file catalogo con nomi standard."""
-        etichette = {'isin' : 'isin', 'nome' : 'nome', 'descrizione' :'nome', 'valuta' : 'valuta', 'divisa' : 'valuta', 'currency' : 'valuta', 'commissione' : 'commissione', 'oneri' : 'commissione', 'finestra' : 'fondo_a_finestra'}
+        etichette = {'isin' : 'isin', 'nome' : 'nome', 'descrizione' :'nome', 'name' : 'nome', 'valuta' : 'valuta', 'divisa' : 'valuta', 'currency' : 'valuta', 'commissione' : 'commissione', 'commissioni' : 'commissione', 'oneri' : 'commissione', 'finestra' : 'fondo_a_finestra'}
         df = pd.read_excel(self.file_catalogo)
         print(f"\nColonne originali del file 'catalogo_fondi': {df.columns.values}")
         df.columns = [column.lower() for column in df.columns.values]
@@ -90,7 +90,7 @@ class Catalogo():
         df = pd.read_excel(self.file_catalogo)
         for colonna in colonne:
             print(f"\n...sto rimuovendo i valori multipli nella colonna {colonna}")
-            duplicates = df[df.duplicated()]
+            duplicates = df[df.duplicated(subset=[colonna])]
             print(f"I valori duplicati sono:\n {duplicates}") if not duplicates.empty else print('Non ci sono valori duplicati')
             print(f"\nIl catalogo aveva {len(df)} fondi...")
             df.drop_duplicates(subset=[colonna], inplace=True) 
@@ -167,38 +167,38 @@ class Catalogo():
     def creazione_liste_complete_input(self):
         """
         Crea file csv, con dimensioni massime pari a 1999 elementi, da importare in Quantalys.it.
-        Directory in cui vengono salvati i file : './import_liste_complete_into_Q/'.
-        Crea la directory, se non esiste.
+        Directory in cui vengono salvati i file : './docs/import_liste_complete_into_Q/'.
+        Crea la directory se non esiste.
         """
         if not os.path.exists(self.directory_input_liste_complete):
             os.makedirs(self.directory_input_liste_complete)
         while len(os.listdir('./import_liste_complete_into_Q')) != 0:
-            print(f"\nCi sono dei file presenti nella cartella di download: {glob.glob(self.directory_input_liste_complete+'/*')}\n")
+            print(f"\nCi sono dei file presenti nella cartella di download: {glob.glob(self.directory_input_liste_complete.__str__() + '/*')}\n")
             _ = input('cancella i file prima di proseguire, poi premi enter\n')
         df_cat = pd.read_excel(self.file_catalogo)
         print(f"Lunghezza lista completa: {len(df_cat)} fondi")
         chunks = len(df_cat)//2000 +1 # blocchi da 2000 elementi
         print(f"\nNumero liste totali divise in 1999 elementi: {chunks}")
-        print(f"\nFile presenti nella cartella: {glob.glob(self.directory_input_liste_complete+'*')}\n")
         for chunk in range(chunks):
             df = df_cat.loc[: , ['isin', 'valuta']]
             df = df.iloc[0 + 1999 * chunk : 1999 + 1999 * chunk]
             df.columns = ['codice isin', 'divisa']
             print(f"Lunghezza lista {chunk}: {len(df)}")
-            df.to_csv(self.directory_input_liste_complete + 'lista_completa_' + str(chunk) + '.csv', sep=";", index=False)
+            df.to_csv(self.directory_input_liste_complete.joinpath('lista_completa_' + str(chunk) + '.csv'), sep=";", index=False)
+        print(f"\nFile presenti nella cartella: {glob.glob(self.directory_input_liste_complete.__str__() + '/*')}\n")
 
 
 if __name__ == '__main__':
-    start = time.time()
-    _ = Catalogo(intermediario='BPL')
+    start = time.perf_counter()
+    _ = Catalogo()
     _.rimuovi_testoacapo_e_spazi_da_intestazione()
     _.rinomina_colonne()
-    # _.rimuovi_spazi(*('isin', 'valuta'))
-    # _.rimuovi_duplicati('isin')
-    # _.tronca_valore(3, 'valuta')
-    # _.letter_case('upper', 'valuta')
-    # _.string_percentage_to_float('commissione')
-    # _.fix_fee(fee_column='commissione', commissione_massima=0.055)
-    # _.creazione_liste_complete_input()
-    end = time.time()
-    print("Elapsed time: ", end - start, 'seconds')
+    _.rimuovi_spazi('isin', 'valuta')
+    _.rimuovi_duplicati('isin')
+    _.tronca_valore(3, 'valuta')
+    _.letter_case('upper', 'valuta')
+    _.string_percentage_to_float('commissione')
+    _.fix_fee(fee_column='commissione', commissione_massima=0.0575)
+    _.creazione_liste_complete_input()
+    end = time.perf_counter()
+    print("Elapsed time: ", round(end - start, 2), 'seconds')
