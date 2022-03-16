@@ -7,11 +7,13 @@ from selenium import webdriver
 from selenium.common.exceptions import (ElementNotInteractableException,
                                         NoSuchElementException,
                                         TimeoutException)
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
 
 
 class ScaricoCompleto():
@@ -25,10 +27,10 @@ class ScaricoCompleto():
         Default browser : chromium
         
         Parameters:
-            username(str) = username dell'account
-            password(str) = password dell'account
-            directory_output_liste_complete = percorso in cui scaricare i dati delle liste complete
-            directory_input_liste_complete = percorso in cui trovare i dati delle liste complete
+            username {str} = username dell'account
+            password {str} = password dell'account
+            directory_output_liste_complete {WindowsPath} = percorso in cui scaricare i dati delle liste complete
+            directory_input_liste_complete {WindowsPath} = percorso in cui trovare i dati delle liste complete
         """
         # Alt account username='Pomante', password='Pomante22'
         self.username = username
@@ -46,8 +48,8 @@ class ScaricoCompleto():
             "download.default_directory" : self.directory_output_liste_complete.__str__(),
             "download.directory_upgrade" : True}
             )
-        self.driver = webdriver.Chrome(options=chrome_options)
-        self.driver.implicitly_wait(5)
+        service = Service(ChromeDriverManager().install())
+        self.driver = webdriver.Chrome(service=service, options=chrome_options)
     
     def accesso_a_quantalys(self):
         """
@@ -55,7 +57,7 @@ class ScaricoCompleto():
         e massimizza la finestra.
         """
         print('\n...connessione a Quantalys...')
-        self.driver.get("http://www.quantalys.it")
+        self.driver.get("https://www.quantalys.it")
         self.driver.maximize_window()
 
     def login(self):
@@ -92,7 +94,7 @@ class ScaricoCompleto():
         Rinomina il file con nomi in successione.
         """
         # Il processo parte se la cartella di download è vuota
-        while len(os.listdir('./export_liste_complete_from_Q')) != 0:
+        while len(os.listdir(self.directory_output_liste_complete)) != 0:
             print(f"\nCi sono dei file presenti nella cartella di download: {glob.glob(self.directory_output_liste_complete.__str__()+'/*')}\n")
             _ = input('cancella i file prima di proseguire, poi premi enter\n')
         
@@ -193,10 +195,10 @@ class ScaricoCompleto():
 
 
 if __name__ == '__main__':
-    start = time.time()
+    start = time.perf_counter()
     _ = ScaricoCompleto()
     _.accesso_a_quantalys()
     _.login()
     _.export()
-    end = time.time()
-    print("Elapsed time: ", end - start, 'seconds')
+    end = time.perf_counter()
+    print("Elapsed time: ", round(end - start, 2), 'seconds')

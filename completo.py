@@ -1,6 +1,7 @@
 import datetime
 import os
 import time
+from pathlib import Path
 
 import dateutil.relativedelta
 import pandas as pd
@@ -10,51 +11,39 @@ from xbbg import blp
 
 
 class Completo():
-    """
-    Creazione file completo
-    """
 
-    def __init__(self, intermediario, t1, directory_output_liste_complete="C:/Users/Administrator/Desktop/Sbwkrq/Ranking/export_liste_complete_from_Q", file_completo='completo.csv', file_bloomberg='scarico_bloomberg.csv', directory_input_liste='./import_liste_into_Q/'):
+    def __str__(self):
+        return "Creazione file completo"
+
+    def __init__(self, intermediario, t1):
         """
-        Initialize the file.
-
-        Parameters:
-        t0_1Y = data iniziale un anno fa
-        t0_3Y = data iniziale tre anni fa
-        intermediario = intermediario a cui è destinata l'analisi
-        t1 = data finale
-        directory_output_liste_complete = percorso in cui trovare i dati scaricati delle liste complete
-        file_completo = file da elaborare
-        indicatore_bs = colonna contenente l'indicatore B&S
-        file_bloomberg = file in cui scaricare le date di avvio dei fondi
-        directory_input_liste = percorso in cui salvare le liste
+        Arguments:
+            intermediario = intermediario a cui è destinata l'analisi
+            t1 {datetime} = data di calcolo indici alla fine del mese
+            file_completo = file da elaborare
+            file_bloomberg = file in cui scaricare le date di avvio dei fondi
+            directory_output_liste_complete {WindowsPath} = percorso in cui trovare i dati scaricati delle liste complete
+            directory_input_liste {WindowsPath} = percorso in cui salvare le liste
         """
         self.intermediario = intermediario
         self.t1 = t1
-        # self.t0_3Y = (datetime.datetime.strptime(t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3))
-        # self.t0_1Y = (datetime.datetime.strptime(t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1))
-        self.directory_output_liste_complete = directory_output_liste_complete
-        self.file_completo = file_completo
-        self.file_bloomberg = file_bloomberg
-        self.directory_input_liste = directory_input_liste
+        directory = Path().cwd()
+        self.directory = directory
+        self.directory_output_liste_complete = self.directory.joinpath('docs', 'export_liste_complete_from_Q')
+        self.directory_input_liste = self.directory.joinpath('docs', 'import_liste_into_Q')
+        self.file_completo = 'completo.csv'
 
     def concatenazione_file_excel(self):
         """
         Concatena i file excel all'interno della directory_output_liste_complete l'uno sotto l'altro.
         Salva il risultato con il nome file_name.
-
-        Parameters:
-        /
         """
-        df = pd.concat((pd.read_csv(self.directory_output_liste_complete + '/' + filename, sep = ';', decimal=',', engine='python', encoding = "utf_16_le", error_bad_lines=False, skipfooter=1) for filename in os.listdir(self.directory_output_liste_complete)), ignore_index=True)
+        df = pd.concat((pd.read_csv(self.directory_output_liste_complete.joinpath(filename), sep = ';', decimal=',', engine='python', encoding = "utf_16_le", skipfooter=1) for filename in os.listdir(self.directory_output_liste_complete)), ignore_index=True)
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def correzione_micro_russe(self):
         """
         Corregge le righe delle microcategorie Az. Paesi Emerg. Europa e Russia & Az. Paesi Emerg. Europa ex Russia perchè vanno a capo dalla sesta colonna in poi.
-        
-        Parameters:
-        /
         """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         indexes_to_drop = []
@@ -73,8 +62,8 @@ class Completo():
         """
         Cambia il tipo di dato alle colonne selezionate del file completo.
         
-        Parameters:
-        colonne(dict) = dizionario di colonne a cui cambiare il dato. Key=colonna, value=tipo dato(float, int, string)
+        Arguments:
+            colonne {dict} = dizionario di colonne a cui cambiare il dato. Key=colonna, value=tipo dato(float, int, string)
         """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         for key, value in colonne.items():
@@ -85,9 +74,8 @@ class Completo():
         """
         Seleziona le colonne desiderate dal file_csv con separatore ";" e decimali ","
 
-        Parameters:
-        file_csv(str) = file da cui estrarre le colonne
-        colonne(tuple) = tuple di colonne da estrarre dal file
+        Arguments:
+            colonne {tuple} = tuple di colonne da estrarre dal file
         """
         if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'CRV':
             colonne = 'Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese', 'Rischio 3 anni") fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI'
@@ -95,15 +83,15 @@ class Completo():
         df = df.loc[:, colonne]
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
-    def merge_files(self, file_excel, left_on='Codice ISIN', right_on='isin', merge='left'):
+    def merge_files(self, file_excel='catalogo_fondi.xlsx', left_on='Codice ISIN', right_on='isin', merge='left'):
         """
         Unisce il file completo csv e un secondo file excel o csv con il tipo di merge specificato.
 
-        Parameters:
-        file_excel(str) = file da unire al primo
-        left_on(str) = colonna del primo df
-        right_on(str) = colonna del secondo df
-        merge(str) = specifica tipo di merge
+        Arguments:
+            file_excel {str} = file da unire al primo
+            left_on {str} = colonna del primo df
+            right_on {str} = colonna del secondo df
+            merge {str} = specifica tipo di merge
         """
         df_1 = pd.read_csv(self.file_completo, sep=";", decimal=',',index_col=None)
         if file_excel.endswith('.xlsx'):
@@ -275,6 +263,7 @@ class Completo():
             pass
 
     def scarico_datadiavvio(self):
+        # TODO : SCARICA DA SQL LA DATA DI AVVIO E DA BLOOMBERG LE RIMANENTI. AGGIORNA QUELLE NON PRESENTI SU SQL
         # """ scarica da SQL il dataframe con tutte le date di avvio disponibili, e fai un merge con il file completo, poi """
         # from sqlalchemy import create_engine, MetaData, Table
         # from sqlalchemy.types import Float, DateTime
@@ -296,7 +285,6 @@ class Completo():
         # df_merged = pd.merge(df_merge_id, df_bl, left_on='Codice ISIN', right_on='isin_code', how='left')
         # df_merged.to_csv(self.file_completo, sep=";")
         # df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        # # TODO : SCARICA DA SQL LA DATA DI AVVIO E DA BLOOMBERG LE RIMANENTI. AGGIORNA QUELLE NON PRESENTI SU SQL
         # df.to_sql('persone_fisiche', con=engine, if_exists='replace', index=False, dtype={'data_questionario' : DateTime()})
 
         """
@@ -309,12 +297,12 @@ class Completo():
         df_bl.reset_index(inplace=True)
         df_bl['isin_code'] = df_bl['index'].str[6:]
         df_bl.reset_index(drop=True, inplace=True)
+        df_bl.to_csv(self.directory.joinpath('docs', 'data_di_avvio.csv'), sep=";")
         df_merged = pd.merge(df, df_bl, left_on='Codice ISIN', right_on='isin_code', how='left')
         print('scaricate!')
         fondi_senza_data_di_avvio = df_merged.loc[df_merged['fund_incept_dt'].isna(), ['Codice ISIN', 'Valuta', 'Nome del fondo']]
         print(f"\nCi sono {df_merged['fund_incept_dt'].isnull().sum()} fondi senza data di avvio:\n{fondi_senza_data_di_avvio}\n")
         df_merged.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-        df_bl.to_csv(self.file_bloomberg, sep=";")
         df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
         while any(df_merged['fund_incept_dt'].isna()):
             print("Ci sono delle date mancanti, è necessario aggiornarle per l'analisi successiva,")
@@ -381,6 +369,7 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def sfdr(self):
+        # TODO : SCARICA DA SQL L'ARTICOLO SFDR E DA BLOOMBERG LE RIMANENTI. AGGIORNA QUELLE NON PRESENTI SU SQL
         """Scarica il numero dell'articolo della disciplina europea SFDR"""
         print("\nSto scaricando l'articolo della disciplina SFDR...")
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
@@ -388,6 +377,7 @@ class Completo():
         df_bl.reset_index(inplace=True)
         df_bl['isin_code'] = df_bl['index'].str[6:]
         df_bl.reset_index(drop=True, inplace=True)
+        df_bl.to_csv(self.directory.joinpath('docs', 'sfdr.csv'), sep=";")
         df_merged = pd.merge(df, df_bl, left_on='Codice ISIN', right_on='isin_code', how='left')
         df_merged["sfdr_classification"] = df_merged["sfdr_classification"].fillna(0)
         df_merged["sfdr_classification"] = pd.to_numeric(df_merged["sfdr_classification"], errors='coerce').astype(int)
@@ -417,9 +407,6 @@ class Completo():
         """
         Seleziona solo le colonne utili del file completo..
         Rinomina le colonne del file_excel.
-
-        Parameters:
-        colonne(tuple) = tuple contenente i nuovi nomi da assegnare alle colonne precedentemente selezionate
         """
         if self.intermediario == 'BPPB':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
@@ -444,10 +431,7 @@ class Completo():
     def creazione_liste_input(self):
         """
         Crea file csv, con dimensioni massime pari a ???199 elementi, da importare in Quantalys.it.
-        Directory in cui vengono salvati i file : './import_liste_into_Q/'
-
-        Parameters:
-        /
+        Directory in cui vengono salvati i file : '.docs/import_liste_into_Q/'
         """
         df_com = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         if not os.path.exists(self.directory_input_liste):
@@ -458,17 +442,17 @@ class Completo():
                 df = df_com.loc[df_com['macro_categoria'] == categoria, ['ISIN', 'valuta']]
                 df = df.iloc[0 + 499 * chunk : 499 + 499 * chunk]
                 df.columns = ['codice isin', 'divisa']
-                df.to_csv(self.directory_input_liste + categoria + '_' + str(chunk) + '.csv', sep=";", index=False)
+                df.to_csv(self.directory_input_liste.joinpath(categoria + '_' + str(chunk) + '.csv'), sep=";", index=False)
 
 
 if __name__ == '__main__':
-    start = time.time()
+    start = time.perf_counter()
     _ = Completo(intermediario='BPPB', t1='31/01/2022')
     _.concatenazione_file_excel()
     _.correzione_micro_russe()
     _.change_datatype(SRRI = float)
     _.seleziona_colonne()
-    _.merge_files('catalogo_fondi.xlsx')
+    _.merge_files()
     _.assegna_macro()
     _.sconta_commissioni()
     _.scarico_datadiavvio()
@@ -478,5 +462,5 @@ if __name__ == '__main__':
     _.discriminazione_flessibili()
     _.seleziona_e_rinomina_colonne()
     _.creazione_liste_input()
-    end = time.time()
-    print("Elapsed time: ", end - start, 'seconds')
+    end = time.perf_counter()
+    print("Elapsed time: ", round(end - start, 2), 'seconds')

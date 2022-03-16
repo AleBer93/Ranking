@@ -17,7 +17,7 @@ class Catalogo():
         """
         Arguments:
             directory {str} = percorso in cui trovare il file di input
-            directory_catalogo {str}
+            directory_catalogo {str} = percorso in cui si trova il catalogo
             directory_input_liste_complete {str} = percorso in cui salvare le liste complete
             file_catalogo {str} = file formattato
         """
