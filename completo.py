@@ -405,7 +405,7 @@ class Completo():
     
     def seleziona_e_rinomina_colonne(self):
         """
-        Seleziona solo le colonne utili del file completo..
+        Seleziona solo le colonne utili del file completo.
         Rinomina le colonne del file_excel.
         """
         if self.intermediario == 'BPPB':
@@ -415,13 +415,13 @@ class Completo():
                 'Best_Worst', 'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
         elif self.intermediario == 'BPL':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                'commissione', 'BS_3_anni', 'Best_Worst', 'sfdr_classification']
+                'commissione', 'BS_3_anni', 'Best_Worst']
             col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
-                'commissione', 'B&S_3Y', 'Best_Worst', 'SFDR']
+                'commissione', 'B&S_3Y', 'Best_Worst']
         elif self.intermediario == 'CRV':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                'sfdr_classification', 'categoria_flessibili', 'commissione']
-            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'SFDR',
+                'categoria_flessibili', 'commissione']
+            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 
                 'categoria_flessibili', 'commissione']
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df = df[col_sel]
