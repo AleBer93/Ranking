@@ -23,3 +23,7 @@ while True:
 
 for i in range(3):
     print(i)
+
+# test computer nuovo
+for _ in range(2):
+    print(_)
