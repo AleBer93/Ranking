@@ -177,6 +177,18 @@ class ScaricoCompleto():
                     WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '//*[@id="quantasearch"]/div[1]/div/div[2]/div/button'))) # Esporta
                     time.sleep(1.5)
                     self.driver.find_element(by=By.XPATH, value='//*[@id="quantasearch"]/div[1]/div/div[2]/div/button').click()
+                # Raccogli i fondi non importati perché non presenti in piattaforma
+                try:
+                    prodotti_non_presenti = self.driver.find_element(by=By.XPATH, value='//*[@id="NotImportedData"]/p').get_attribute("textContent")
+                    file_prodotti_non_presenti = open(self.directory.joinpath('docs', "prodotti_non_presenti.txt"), 'w')
+                    prodotti_non_presenti = prodotti_non_presenti.split(sep=',')
+                    prodotti_non_presenti = [item.split('(') for item in prodotti_non_presenti]
+                    prodotti_non_presenti = [[element[0], element[1][:-1]] for element in prodotti_non_presenti]
+                    for element in prodotti_non_presenti:
+                        file_prodotti_non_presenti.write(element[0]+' '+element[1]+'\n')
+                    file_prodotti_non_presenti.close()
+                except:
+                    pass
                 # Esporta CSV completo
                 try:
                     WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '//*[@id="quantasearch"]/div[1]/div/div[2]/div/ul/li[4]/a'))) # CSV completo
