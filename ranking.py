@@ -321,7 +321,7 @@ class Ranking():
                         'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'SFDR', 'note']]
                 if self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Information_Ratio_3Y',
-                        'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'SFDR', 'note']]
+                        'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']]
                 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
@@ -402,7 +402,7 @@ class Ranking():
                         'quartile_SO_corretto_1Y', 'terzile_SO_corretto_1Y', 'SFDR', 'note']]
                 if self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sortino_3Y',
-                        'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'SFDR', 'note']]
+                        'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'note']]
                 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
@@ -483,7 +483,7 @@ class Ranking():
                         'quartile_SH_corretto_1Y', 'terzile_SH_corretto_1Y', 'SFDR', 'note']]
                 if self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sharpe_3Y',
-                        'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'SFDR', 'note']]
+                        'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'note']]
                 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
@@ -564,7 +564,7 @@ class Ranking():
                         'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'SFDR', 'note']]
                 elif self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Perf_3Y', 
-                        'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'SFDR', 'note']]
+                        'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']]
 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
@@ -825,11 +825,11 @@ class Ranking():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Ranking(intermediario='BPPB', t1='31/01/2022')
+    _ = Ranking(intermediario='CRV', t1='31/03/2022')
     _.merge_completo_liste()
     _.discriminazione_flessibili_e_bilanciati()
     _.rank()
-    _.aggiunta_colonne() # 'nome' se CRV, 'fondo_a_finestra' se BPPB
+    _.aggiunta_colonne('nome') # 'nome' se CRV, 'fondo_a_finestra' se BPPB
     _.rank_formatted()
     _.autofit()
     _.creazione_liste_best_input()

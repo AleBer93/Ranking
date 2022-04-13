@@ -404,6 +404,9 @@ class Scarico():
             
                 WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_bntProPlusRafraichir"]'))) # Aggiorna benchmark
                 self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_bntProPlusRafraichir"]').click()
+            else:
+                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_bntProPlusRafraichir"]'))) # Aggiorna benchmark
+                self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_bntProPlusRafraichir"]').click()
             try:
             # except TimeoutException:
             #     pass
@@ -560,7 +563,7 @@ class Scarico():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Scarico(intermediario='BPPB', t1='31/01/2022')
+    _ = Scarico(intermediario='CRV', t1='31/03/2022')
     _.accesso_a_quantalys()
     _.login()
     _.export()

@@ -15,15 +15,3 @@
 # df['sfdr_classification'].replace(0, '', inplace=True)
 # print(df)
 # df.to_excel('lol.xlsx')
-while True:
-    _ = input('scrivi qualcosa ')
-    print(_)
-    if _ == 'ok':
-        break
-
-for i in range(3):
-    print(i)
-
-# test computer nuovo
-for _ in range(2):
-    print(_)

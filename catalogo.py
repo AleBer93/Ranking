@@ -172,7 +172,7 @@ class Catalogo():
         """
         if not os.path.exists(self.directory_input_liste_complete):
             os.makedirs(self.directory_input_liste_complete)
-        while len(os.listdir('./import_liste_complete_into_Q')) != 0:
+        while len(os.listdir(self.directory_input_liste_complete)) != 0:
             print(f"\nCi sono dei file presenti nella cartella di download: {glob.glob(self.directory_input_liste_complete.__str__() + '/*')}\n")
             _ = input('cancella i file prima di proseguire, poi premi enter\n')
         df_cat = pd.read_excel(self.file_catalogo)
@@ -191,14 +191,14 @@ class Catalogo():
 if __name__ == '__main__':
     start = time.perf_counter()
     _ = Catalogo()
-    # _.rimuovi_testoacapo_e_spazi_da_intestazione()
+    _.rimuovi_testoacapo_e_spazi_da_intestazione()
     _.rinomina_colonne()
-    # _.rimuovi_spazi('isin', 'valuta')
-    # _.rimuovi_duplicati('isin')
-    # _.tronca_valore(3, 'valuta')
-    # _.letter_case('upper', 'valuta')
-    # _.string_percentage_to_float('commissione')
-    # _.fix_fee(fee_column='commissione', commissione_massima=0.0575)
-    # _.creazione_liste_complete_input()
+    _.rimuovi_spazi('isin', 'valuta')
+    _.rimuovi_duplicati('isin')
+    _.tronca_valore(3, 'valuta')
+    _.letter_case('upper', 'valuta')
+    _.string_percentage_to_float('commissione')
+    _.fix_fee(fee_column='commissione', commissione_massima=0.0575)
+    _.creazione_liste_complete_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')

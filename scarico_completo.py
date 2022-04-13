@@ -139,6 +139,7 @@ class ScaricoCompleto():
                 except TimeoutException:
                     pass
                 finally:
+                    time.sleep(1)
                     self.driver.find_element(by=By.NAME, value="nom").send_keys(filename[:-4], Keys.TAB, Keys.TAB, Keys.ENTER) # Conferma
                 # Importa prodotti
                 try:
