@@ -290,7 +290,7 @@ class Ranking():
                     foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
                     foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
                 
-                elif self.intermediario == 'CRV': # metodo normalizzazione 
+                elif self.intermediario == 'CRV': # metodo normalizzazione
                     # Creazione IR_corretto_1Y
                     foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_1Y'] / 100)
                     # Creazione IR_corretto_3Y
@@ -319,7 +319,7 @@ class Ranking():
                         'terzile_IR_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'ranking_IR_3Y_corretto', 'quartile_IR_corretto_3Y', 'terzile_IR_corretto_3Y', 
                         'Information_Ratio_1Y', 'ranking_IR_1Y', 'quartile_IR_1Y', 'terzile_IR_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'ranking_IR_1Y_corretto',
                         'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'SFDR', 'note']]
-                if self.intermediario == 'CRV':
+                elif self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Information_Ratio_3Y',
                         'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']]
                 
@@ -330,6 +330,10 @@ class Ranking():
                     foglio.sort_values('ranking_finale', ascending=True, inplace=True)
                 elif self.intermediario == 'CRV':
                     foglio.sort_values('ranking_finale', ascending=False, inplace=True)
+                    # Etichetta ND per i fondi senza dati
+                    foglio['ranking_finale_1Y'] = foglio['ranking_finale_1Y'].fillna('ND')
+                    foglio['ranking_finale_3Y'] = foglio['ranking_finale_3Y'].fillna('ND')
+                    foglio['ranking_finale'] = foglio['ranking_finale'].fillna('ND')
                 # Reindex
                 foglio.reset_index(drop=True, inplace=True)
                 
@@ -371,7 +375,7 @@ class Ranking():
                     # Terzile SO_3Y corretto
                     foglio['terzile_SO_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SO_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                 
-                if self.intermediario == 'CRV': # metodo normalizzazione
+                elif self.intermediario == 'CRV': # metodo normalizzazione
                     # Creazione SO_corretto_1Y
                     foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['DSR_1Y'] / 100)
                     # Creazione SO_corretto_3Y
@@ -400,7 +404,7 @@ class Ranking():
                         'terzile_SO_3Y', 'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'quartile_SO_corretto_3Y', 'terzile_SO_corretto_3Y', 
                         'Sortino_1Y', 'ranking_SO_1Y', 'quartile_SO_1Y', 'terzile_SO_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'ranking_SO_1Y_corretto',
                         'quartile_SO_corretto_1Y', 'terzile_SO_corretto_1Y', 'SFDR', 'note']]
-                if self.intermediario == 'CRV':
+                elif self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sortino_3Y',
                         'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'note']]
                 
@@ -411,6 +415,10 @@ class Ranking():
                     foglio.sort_values('ranking_SO_3Y_corretto', ascending=True, inplace=True)
                 elif self.intermediario == 'CRV':
                     foglio.sort_values('ranking_finale', ascending=False, inplace=True)
+                    # Etichetta ND per i fondi senza dati
+                    foglio['ranking_finale_1Y'] = foglio['ranking_finale_1Y'].fillna('ND')
+                    foglio['ranking_finale_3Y'] = foglio['ranking_finale_3Y'].fillna('ND')
+                    foglio['ranking_finale'] = foglio['ranking_finale'].fillna('ND')
                 # Reindex
                 foglio.reset_index(drop=True, inplace=True)
 
@@ -452,7 +460,7 @@ class Ranking():
                     # Terzile SH_3Y corretto
                     foglio['terzile_SH_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SH_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
 
-                if self.intermediario == 'CRV': # metodo normalizzazione
+                elif self.intermediario == 'CRV': # metodo normalizzazione
                     # Creazione SH_corretto_1Y
                     foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_1Y'] / 100)
                     # Creazione SH_corretto_3Y
@@ -481,7 +489,7 @@ class Ranking():
                         'terzile_SH_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'ranking_SH_3Y_corretto', 'quartile_SH_corretto_3Y', 'terzile_SH_corretto_3Y', 
                         'Sharpe_1Y', 'ranking_SH_1Y', 'quartile_SH_1Y', 'terzile_SH_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
                         'quartile_SH_corretto_1Y', 'terzile_SH_corretto_1Y', 'SFDR', 'note']]
-                if self.intermediario == 'CRV':
+                elif self.intermediario == 'CRV':
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sharpe_3Y',
                         'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'note']]
                 
@@ -492,6 +500,10 @@ class Ranking():
                     foglio.sort_values('ranking_SH_3Y_corretto', ascending=True, inplace=True)
                 elif self.intermediario == 'CRV':
                     foglio.sort_values('ranking_finale', ascending=False, inplace=True)
+                    # Etichetta ND per i fondi senza dati
+                    foglio['ranking_finale_1Y'] = foglio['ranking_finale_1Y'].fillna('ND')
+                    foglio['ranking_finale_3Y'] = foglio['ranking_finale_3Y'].fillna('ND')
+                    foglio['ranking_finale'] = foglio['ranking_finale'].fillna('ND')
                 # Reindex
                 foglio.reset_index(drop=True, inplace=True)
 
@@ -533,7 +545,7 @@ class Ranking():
                     # Terzile PERF_3Y corretto
                     foglio['terzile_PERF_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].apply(lambda x: 'best' if x > foglio['PERF_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
 
-                if self.intermediario == 'CRV': # metodo normalizzazione
+                elif self.intermediario == 'CRV': # metodo normalizzazione
                     # Creazione PERF_corretto_1Y
                     foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / anni_detenzione)
                     # Creazione PERF_corretto_3Y
@@ -573,6 +585,10 @@ class Ranking():
                     foglio.sort_values('ranking_PERF_3Y_corretto', ascending=True, inplace=True)
                 elif self.intermediario == 'CRV':
                     foglio.sort_values('ranking_finale', ascending=False, inplace=True)
+                    # Etichetta ND per i fondi senza dati
+                    foglio['ranking_finale_1Y'] = foglio['ranking_finale_1Y'].fillna('ND')
+                    foglio['ranking_finale_3Y'] = foglio['ranking_finale_3Y'].fillna('ND')
+                    foglio['ranking_finale'] = foglio['ranking_finale'].fillna('ND')
                 # Reindex
                 foglio.reset_index(drop=True, inplace=True)
 
@@ -588,6 +604,10 @@ class Ranking():
             colonne {*args} = colonne da aggiungere al file di ranking
         """
         # TODO : con un if fissa l'argument colonne pari a nome nel caso di CRV, e pari a fondo_a_finestra nel caso di BPPB
+        if self.intermediario == 'CRV':
+            colonne = ['nome']
+        else:
+            colonne = []
         # Carica file_catalogo
         df_input = pd.read_excel(self.directory.joinpath(self.file_catalogo), index_col=None)
         # Carica file di ranking senza specificare un foglio per ottenerli tutti
@@ -686,44 +706,56 @@ class Ranking():
                 if sheet in micro_blend_classi_a_benchmark.keys() or sheet in micro_blend_classi_non_a_benchmark:
                     foglio = wb[sheet] # attiva foglio
                     for cell in foglio['H']: # colora il ranking finale
-                        try:
-                            if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
-                                cell.number_format = '0.0000'
-                            elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
-                                cell.number_format = '0.0000'
-                            elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
-                                cell.number_format = '0.0000'
-                        except:
-                            pass
-                    for cell in foglio['I']: # colora il ranking finale
-                        try:
-                            if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
-                                cell.number_format = '0.0000'
-                            elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
-                                cell.number_format = '0.0000'
-                            elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
-                                cell.number_format = '0.0000'
-                        except:
-                            pass
-                    for cell in foglio['J']: # colora il ranking finale
-                        try:
-                            if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
-                                cell.number_format = '0.0000'
-                            elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
-                                cell.number_format = '0.0000'
-                            elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
-                                cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
-                                cell.number_format = '0.0000'
-                        except:
-                            pass
+                        if cell.value == 'ND':
+                            cell.fill = PatternFill(fgColor="595959", fill_type='solid')
+                            cell.alignment = Alignment(horizontal='right')
+                        else:
+                            try:
+                                if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                    cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
+                                    cell.number_format = '0.0000'
+                                elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                    cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
+                                    cell.number_format = '0.0000'
+                                elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
+                                    cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
+                                    cell.number_format = '0.0000'
+                            except:
+                                pass
+                    for cell in foglio['I']: # colora il ranking finale 3Y
+                        if cell.value == 'ND':
+                            cell.fill = PatternFill(fgColor="595959", fill_type='solid')
+                            cell.alignment = Alignment(horizontal='right')
+                        else:
+                            try:
+                                if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                    cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
+                                    cell.number_format = '0.0000'
+                                elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                    cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
+                                    cell.number_format = '0.0000'
+                                elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
+                                    cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
+                                    cell.number_format = '0.0000'
+                            except:
+                                pass
+                    for cell in foglio['J']: # colora il ranking finale 1Y
+                        if cell.value == 'ND':
+                            cell.fill = PatternFill(fgColor="595959", fill_type='solid')
+                            cell.alignment = Alignment(horizontal='right')
+                        else:
+                            try:
+                                if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                    cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
+                                    cell.number_format = '0.0000'
+                                elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                    cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
+                                    cell.number_format = '0.0000'
+                                elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
+                                    cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
+                                    cell.number_format = '0.0000'
+                            except:
+                                pass
                     for cell in foglio['N']:
                         cell.number_format = '0.0000'
                     for cell in foglio['R']:
@@ -792,15 +824,13 @@ class Ranking():
     def creazione_liste_best_input(self):
         """
         Crea file csv da importare in Quantalys.it contenenti i best di ogni macro categoria direzionale.
-        Directory in cui vengono salvati i file : './import_liste_best_into_Q'
+        Directory in cui vengono salvati i file : './docs/import_liste_best_into_Q'
         """
         df_rank = pd.read_excel(self.file_ranking, index_col=None, sheet_name=1)
         classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM']
         classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
         classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
-        if self.intermediario == 'BPBB' or self.intermediario == 'CRV':
-            pass
-        elif self.intermediario == 'BPL':
+        if self.intermediario == 'BPL':
             classi_a_benchmark = classi_a_benchmark_BPL
             # per ora solo per BPL
             if not os.path.exists(self.directory_input_liste_best):
@@ -811,6 +841,8 @@ class Ranking():
                 df = df_rank.loc[df_rank['Best_Worst'] == "best", ['ISIN', 'valuta']]
                 df.columns = ['codice isin', 'divisa']
                 df.to_csv(self.directory_input_liste_best.joinpath(classe + '_best' + '.csv'), sep=";", index=False)
+        else:
+            pass
 
     def zip_file(self):
         # TODO : Metti i file dei best in class nel file zip
@@ -829,7 +861,7 @@ if __name__ == '__main__':
     _.merge_completo_liste()
     _.discriminazione_flessibili_e_bilanciati()
     _.rank()
-    _.aggiunta_colonne('nome') # 'nome' se CRV, 'fondo_a_finestra' se BPPB
+    _.aggiunta_colonne() # TODO: testa per intermediari diversi da CRV # 'nome' se CRV, 'fondo_a_finestra' se BPPB
     _.rank_formatted()
     _.autofit()
     _.creazione_liste_best_input()
