@@ -597,6 +597,14 @@ class Ranking():
 
         writer.save()
 
+    def aggiunta_prodotti_non_presenti(self):
+        """Aggiunta foglio con i prodotti non presenti sulla piattaforma"""
+        df = pd.read_csv(self.directory.joinpath('docs', 'prodotti_non_presenti.csv'), sep=';', index_col=None)
+        if self.intermediario == 'CRV':
+            df['ranking_finale'] = 'ND'
+        with pd.ExcelWriter(self.file_ranking,  engine='openpyxl', mode='a') as writer:
+            df.to_excel(writer, sheet_name='NON_IN_PIATTAFORMA')
+            
     def aggiunta_colonne(self, *colonne):
         """Aggiungi eventuali colonne presenti nel file_catalogo alla fine dei fogli del file di ranking
         
@@ -863,6 +871,7 @@ if __name__ == '__main__':
     _.rank()
     _.aggiunta_colonne() # TODO: testa per intermediari diversi da CRV # 'nome' se CRV, 'fondo_a_finestra' se BPPB
     _.rank_formatted()
+    _.aggiunta_prodotti_non_presenti() # TODO: testa per intermediari diversi da CRV
     _.autofit()
     _.creazione_liste_best_input()
     _.zip_file()
