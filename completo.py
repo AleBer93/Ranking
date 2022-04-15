@@ -41,6 +41,16 @@ class Completo():
         df = pd.concat((pd.read_csv(self.directory_output_liste_complete.joinpath(filename), sep = ';', decimal=',', engine='python', encoding = "utf_16_le", skipfooter=1) for filename in os.listdir(self.directory_output_liste_complete)), ignore_index=True)
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
+    def fondi_non_presenti(self):
+        """Identifica i fondi non presenti in piattaforma"""
+        df_1 = pd.read_csv(self.file_completo, sep=';', decimal=',', index_col=None)
+        df_2 = pd.read_excel('catalogo_fondi.xlsx')
+        df_3 = pd.concat([df_1['Codice ISIN'], df_2['isin']])
+        df_4 = df_3.drop_duplicates(keep=False)
+        prodotti_non_presenti = df_2.loc[df_2['isin'].isin(df_4), ['isin', 'valuta', 'nome']]
+        print(f'I prodotti non presenti nella piattaforma sono i seguenti:\n{prodotti_non_presenti}')
+        prodotti_non_presenti.to_csv(self.directory.joinpath('docs', 'prodotti_non_presenti.csv'), sep=';', decimal=',', index=False)
+
     def correzione_micro_russe(self):
         """
         Corregge le righe delle microcategorie Az. Paesi Emerg. Europa e Russia & Az. Paesi Emerg. Europa ex Russia perchè vanno a capo dalla sesta colonna in poi.
@@ -456,6 +466,7 @@ if __name__ == '__main__':
     start = time.perf_counter()
     _ = Completo(intermediario='CRV', t1='31/03/2022')
     _.concatenazione_file_excel()
+    _.fondi_non_presenti()
     _.correzione_micro_russe()
     _.change_datatype(SRRI = float)
     _.seleziona_colonne()
