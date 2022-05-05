@@ -4,6 +4,7 @@ import time
 from pathlib import Path
 
 import dateutil.relativedelta
+import numpy as np
 import pandas as pd
 # with os.add_dll_directory('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\_blpapi'):
 #     import blpapi
@@ -335,10 +336,12 @@ class Completo():
         # TODO : fai uno scarico da quantalys con benchmark di default per tutti quei fondi che hanno alpha o IR pari a 0. L'alfa scaricato da quantalys è in percentuale...
         # quantalys assegna un valore pari a 0 all'information ratio se l'alpha è un numero del tipo 0.00*
         """
-        Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
-        Formula = IR - (IR * fee) / (anni_detenzione * alpha)
-        Formula = (IR * TEV - (fee / anni_detenzione)) / TEV
-        Le colonne considerate ai fini del calcolo sono: 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'commissione'
+        1. Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
+        2. Calcola l'indicatore B&S a 1 anno, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
+        Formula v1 = IR - (IR * fee) / (anni_detenzione * alpha)
+        Formula v2 = (IR * TEV - (fee / anni_detenzione)) / TEV
+        Le colonne considerate ai fini del calcolo sono: 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese',
+        'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'commissione'
         """
         classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM']
         classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
@@ -372,8 +375,11 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def calcolo_best_worst(self):
-        # Fai lo stesso ranking ad 1 anno
-        """Calcolo best e worst per le categorie a benchmark, per fondi con più di tre anni e con indicatore B&S presente."""
+        """
+        1. Calcolo best e worst per le categorie a benchmark, per fondi con più di tre anni e con indicatore B&S presente.
+        2. Calcolo best e worst per le categorie a benchmark, per fondi con più di un anno e con indicatore B&S presente.
+        3. I fondi con più di un anno di vita che sono best a 3 anni o best ad un anno, sono best, altrimenti worst.
+        """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         # print(df['fund_incept_dt'].dtypes) # da oggetto
         df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
@@ -383,20 +389,25 @@ class Completo():
         classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
         classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
         t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
+        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
         # df2 = df[df['fund_incept_dt'] >= t0_3Y]
         # df2.to_csv('aaa.csv', sep=";", decimal=',', index=False)
         if self.intermediario == 'BPPB':
-            for macro in classi_a_benchmark_BPPB:
-                for micro in df.loc[df['macro_categoria'] == macro, 'Categoria Quantalys'].unique():
-                    mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
-                    df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'Best_Worst'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
+            classi = classi_a_benchmark_BPPB
         elif self.intermediario == 'BPL':
-            for macro in classi_a_benchmark_BPL:
-                for micro in df.loc[df['macro_categoria'] == macro, 'Categoria Quantalys'].unique():
-                    mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
-                    df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'Best_Worst'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
+            classi = classi_a_benchmark_BPL
         elif self.intermediario == 'CRV':
-            pass
+            classi = classi_a_benchmark_CRV
+            return None
+        
+        for macro in classi:
+            for micro in df.loc[df['macro_categoria'] == macro, 'Categoria Quantalys'].unique():
+                mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
+                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'Best_Worst_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
+                primo_quartile = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'BS_1_anno'].quantile(q=0.75, interpolation='linear')
+                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'Best_Worst_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
+        df['Best_Worst'] = df['Best_Worst_3Y'].replace('worst', np.nan).fillna(df['Best_Worst_1Y'])
+
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def sfdr(self):
@@ -488,8 +499,8 @@ if __name__ == '__main__':
     # _.assegna_macro()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
-    _.indicatore_BS()
-    # _.calcolo_best_worst()
+    # _.indicatore_BS()
+    _.calcolo_best_worst()
     # # _.sfdr()
     # _.discriminazione_flessibili()
     # _.seleziona_e_rinomina_colonne()
