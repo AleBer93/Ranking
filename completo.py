@@ -87,7 +87,9 @@ class Completo():
         Arguments:
             colonne {tuple} = tuple di colonne da estrarre dal file
         """
-        if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'CRV':
+        if self.intermediario == 'BPPB' or self.intermediario == 'BPL':
+            colonne = 'Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese', 'Rischio 3 anni") fine mese', 'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI'
+        elif self.intermediario == 'CRV':
             colonne = 'Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese', 'Rischio 3 anni") fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI'
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df = df.loc[:, colonne]
@@ -115,20 +117,23 @@ class Completo():
 
     def assegna_macro(self):
         """Assegna una macrocategoria ad ogni microcategoria."""
+        # Controlla se l'assegnazione funziona per BPPB
         BPPB_dict = {'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ', 'Monetari altre valute europ' : 'LIQ',
             'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 'Obblig. Euro a scadenza' : 'OBB_BT',
             'Obblig. Euro gov. medio termine' : 'OBB_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_MLT', 'Obblig. Euro lungo termine' : 'OBB_MLT', 
-            'Obblig. Euro medio term.' : 'OBB_MLT', 'Obblig. Euro gov.' : 'OBB_MLT', 'Obblig. Euro all maturities' : 'OBB_MLT', 'Obblig. Europa High Yield' : 'OBB_MLT',
+            'Obblig. Euro medio term.' : 'OBB_MLT', 'Obblig. Euro gov.' : 'OBB_MLT', 'Obblig. Euro all maturities' : 'OBB_MLT',
             'Obblig. Europa' : 'OBB_MLT', 'Obblig. Sterlina inglese' : 'OBB_MLT', 'Obblig. Franco svizzero' : 'OBB_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 
-            'Obblig. Euro corporate' : 'OBB_CORP', 'Obblig. Euro high yield' : 'OBB_CORP',
+            'Obblig. Euro corporate' : 'OBB_CORP', 
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM',
             'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM',
             'Obblig. Dollaro US breve term.' : 'OBB_GLOB', 'Obblig. USD medio-lungo term.' : 'OBB_GLOB', 'Obblig. Dollaro US medio-lungo term.' : 'OBB_GLOB',
             'Obblig. USD corporate' : 'OBB_GLOB', 'Obblig. Dollaro US corporate' : 'OBB_GLOB', 'Obblig. Doll. US all maturities' : 'OBB_GLOB',
-            'Obblig. Dollaro US all mat' : 'OBB_GLOB', 'Obblig. Dollaro US high yield' : 'OBB_GLOB', 'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB',
-            'Obblig. globale corporate' : 'OBB_GLOB', 'Obblig. globale high yield' : 'OBB_GLOB', 'Obblig. Yen' : 'OBB_GLOB', 'Obblig. altre valute' : 'OBB_GLOB',
+            'Obblig. Dollaro US all mat' : 'OBB_GLOB', 'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB',
+            'Obblig. globale corporate' : 'OBB_GLOB', 'Obblig. Yen' : 'OBB_GLOB', 'Obblig. altre valute' : 'OBB_GLOB',
             "Obblig. Indicizz. all'inflaz. USD" : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB', 'Monetari Dollaro USA' : 'OBB_GLOB',
             'Monet. ex Europa altre valute' : 'OBB_GLOB', 'Monetari ex Europa altre valute' : 'OBB_GLOB',
+            'Obblig. Euro high yield' : 'OBB_GLOB_HY', 'Obblig. Europa High Yield' : 'OBB_GLOB_HY', 'Obblig. Dollaro US high yield' : 'OBB_GLOB_HY', 
+            'Obblig. globale high yield' : 'OBB_GLOB_HY', 
             'Az. Europa' : 'AZ_EUR', 'Az. Area Euro' : 'AZ_EUR', 'Az. Area Euro small cap' : 'AZ_EUR', 'Az. Area Euro Growth' : 'AZ_EUR',
             'Az. Area Euro Value' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 'Az. Europa Value' : 'AZ_EUR',
             'Az. Belgio' : 'AZ_EUR', 'Az. Francia' : 'AZ_EUR', 'Az. Francia small cap' : 'AZ_EUR', 'Az. Germania' : 'AZ_EUR', 'Az. Germania small cap' : 'AZ_EUR',
@@ -327,6 +332,9 @@ class Completo():
             df_merged = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
 
     def indicatore_BS(self):
+        # Fai lo stesso ranking ad 1 anno 
+
+
         # TODO : fai uno scarico da quantalys con benchamrk di default per tutti quei fondi che hanno alpha o IR pari a 0. L'alfa scaricato da quantalys è in percentuale...
         # quantalys assegna un valore pari a 0 all'information ratio se l'alpha è un numero del tipo 0.00*
         """
@@ -359,6 +367,7 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def calcolo_best_worst(self):
+        # Fai lo stesso ranking ad 1 anno
         """Calcolo best e worst per le categorie a benchmark, per fondi con più di tre anni e con indicatore B&S presente."""
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         # print(df['fund_incept_dt'].dtypes) # da oggetto
@@ -464,21 +473,21 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='CRV', t1='31/03/2022')
-    _.concatenazione_file_excel()
-    _.fondi_non_presenti()
-    _.correzione_micro_russe()
-    _.change_datatype(SRRI = float)
-    _.seleziona_colonne()
-    _.merge_files()
+    _ = Completo(intermediario='BPL', t1='31/03/2022')
+    # _.concatenazione_file_excel()
+    # _.fondi_non_presenti()
+    # _.correzione_micro_russe()
+    # _.change_datatype(SRRI = float)
+    # _.seleziona_colonne()
+    # _.merge_files()
     _.assegna_macro()
-    _.sconta_commissioni()
-    _.scarico_datadiavvio()
-    _.indicatore_BS()
-    _.calcolo_best_worst()
-    # _.sfdr()
-    _.discriminazione_flessibili()
-    _.seleziona_e_rinomina_colonne()
-    _.creazione_liste_input()
+    # _.sconta_commissioni()
+    # _.scarico_datadiavvio()
+    # _.indicatore_BS()
+    # _.calcolo_best_worst()
+    # # _.sfdr()
+    # _.discriminazione_flessibili()
+    # _.seleziona_e_rinomina_colonne()
+    # _.creazione_liste_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
