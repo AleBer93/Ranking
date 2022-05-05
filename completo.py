@@ -332,13 +332,10 @@ class Completo():
             df_merged = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
 
     def indicatore_BS(self):
-        # Fai lo stesso ranking ad 1 anno 
-
-
-        # TODO : fai uno scarico da quantalys con benchamrk di default per tutti quei fondi che hanno alpha o IR pari a 0. L'alfa scaricato da quantalys è in percentuale...
+        # TODO : fai uno scarico da quantalys con benchmark di default per tutti quei fondi che hanno alpha o IR pari a 0. L'alfa scaricato da quantalys è in percentuale...
         # quantalys assegna un valore pari a 0 all'information ratio se l'alpha è un numero del tipo 0.00*
         """
-        Calcola l'indicatore B&S correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
+        Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
         Formula = IR - (IR * fee) / (anni_detenzione * alpha)
         Formula = (IR * TEV - (fee / anni_detenzione)) / TEV
         Le colonne considerate ai fini del calcolo sono: 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'commissione'
@@ -357,13 +354,21 @@ class Completo():
             classi = classi_a_benchmark_CRV
             return None
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        # Indicatore corretto a 3 anni
         while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
-            print("Ci sono dei fondi con alpha o information ratio uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+            print("Ci sono dei fondi con alpha 3 anni o information ratio 3 anni uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
+            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+        # Indicatore corretto ad 1 anno
+        while any(df['Info 1 anno fine mese']==0) or any(df['Alpha 1 anno fine mese']==0):
+            print("Ci sono dei fondi con alpha 1 anno o information ratio 1 anno uguale a 0, è necessario aggiornarli per l'analisi successiva,")
             _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
             df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
         df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
         t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
         df.loc[(df['macro_categoria'].isin(classi)) & (df['fund_incept_dt'] < t0_3Y), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
+        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
+        df.loc[(df['macro_categoria'].isin(classi)) & (df['fund_incept_dt'] < t0_1Y), 'BS_1_anno'] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 1 anno fine mese'])
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def calcolo_best_worst(self):
@@ -480,10 +485,10 @@ if __name__ == '__main__':
     # _.change_datatype(SRRI = float)
     # _.seleziona_colonne()
     # _.merge_files()
-    _.assegna_macro()
+    # _.assegna_macro()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
-    # _.indicatore_BS()
+    _.indicatore_BS()
     # _.calcolo_best_worst()
     # # _.sfdr()
     # _.discriminazione_flessibili()
