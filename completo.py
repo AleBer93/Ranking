@@ -33,9 +33,10 @@ class Completo():
         self.directory_output_liste_complete = self.directory.joinpath('docs', 'export_liste_complete_from_Q')
         self.directory_input_liste = self.directory.joinpath('docs', 'import_liste_into_Q')
         self.file_completo = 'completo.csv'
-        self.soglie = {'LIQ' : [0.0015, 0.01], 'OBB_BT' : [0.0075, 0.02], 'OBB_MLT' : [0.0125, 0.035], 'OBB_CORP' : [0.01, 0.0275],
-            'OBB_GLOB' : [0.03, 0.06], 'OBB_EM' : [0.045, 0.07], 'OBB_GLOB_HY' : [0.04, 0.065], 'AZ_EUR' : [0.055, 0.1], 
-            'AZ_NA' : [0.055, 0.1], 'AZ_PAC' : [0.08, 0.12], 'AZ_EM' : [0.06, 0.14], 'AZ_GLOB' : [0.1, 0.3]} #Cambia le soglie dell'az globale
+        self.soglie = {'LIQ' : [0.0015, 0.01], 'OBB_BT' : [0.0075, 0.02], 'OBB_MLT' : [0.0125, 0.035], 'OBB_EUR' : [0.035, 0.065], 
+            'OBB_USA' : [0.035, 0.065], 'OBB_CORP' : [0.01, 0.0275], 'OBB_GLOB' : [0.03, 0.06], 'OBB_EM' : [0.045, 0.07], 
+            'OBB_GLOB_HY' : [0.04, 0.065], 'AZ_EUR' : [0.055, 0.1], 'AZ_NA' : [0.055, 0.1], 'AZ_PAC' : [0.08, 0.12], 'AZ_EM' : [0.06, 0.14], 
+            'AZ_GLOB' : [0.055, 0.1]}
 
     def concatenazione_file_excel(self):
         """
@@ -380,15 +381,17 @@ class Completo():
             macro_micro = macro_micro_a_benchmark_BPL
         elif self.intermediario == 'CRV':
             return None
-        # Se non trova la micro (perché gli hanno cambiato nome) segnalalo con un print
-        df.loc[df['Categoria Quantalys'].isin(list(macro_micro.values())), 'TEV'] = df.loc[df['Categoria Quantalys'].isin(list(macro_micro.values())), 'Alpha 3 anni") fine mese'] / df.loc[df['Categoria Quantalys'].isin(list(macro_micro.values())), 'Info 3 anni") fine mese']
+        df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
+        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
+        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
+        df.loc[(df['Categoria Quantalys'].isin(list(macro_micro.values()))) & (df['fund_incept_dt'] < t0_3Y) & (df['Alpha 3 anni") fine mese'].notnull()), 'TEV_3Y'] = df['Alpha 3 anni") fine mese'] / df['Info 3 anni") fine mese']
         for macro, micro in macro_micro.items():
-            print(macro, micro)
+            df.loc[(df['Categoria Quantalys']==micro) & (df['fund_incept_dt'] < t0_3Y) & (df['TEV_3Y'].notnull()), 'grado_attività_3Y'] = df.loc[(df['Categoria Quantalys']==micro), 'TEV_3Y'].apply(lambda x: 'semi_attivo' if x < self.soglie[macro][0] else 'attivo' if x < self.soglie[macro][1] else 'molto_attivo')
+        df.loc[(df['Categoria Quantalys'].isin(list(macro_micro.values()))) & (df['fund_incept_dt'] < t0_1Y) & (df['Alpha 1 anno fine mese'].notnull()), 'TEV_1Y'] = df['Alpha 1 anno fine mese'] / df['Info 1 anno fine mese']
+        for macro, micro in macro_micro.items():
+            df.loc[(df['Categoria Quantalys']==micro) & (df['fund_incept_dt'] < t0_1Y) & (df['TEV_1Y'].notnull()), 'grado_attività_1Y'] = df.loc[(df['Categoria Quantalys']==micro), 'TEV_1Y'].apply(lambda x: 'semi_attivo' if x < self.soglie[macro][0] else 'attivo' if x < self.soglie[macro][1] else 'molto_attivo')
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
             
-        
-
-
     def indicatore_BS(self):
         """
         1. Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
@@ -547,7 +550,7 @@ if __name__ == '__main__':
     # _.assegna_macro()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
-    _.correzione_alfa_IR_nulli()
+    # _.correzione_alfa_IR_nulli()
     _.attività()
     # _.indicatore_BS()
     # _.calcolo_best_worst()
