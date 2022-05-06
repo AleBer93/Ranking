@@ -33,6 +33,9 @@ class Completo():
         self.directory_output_liste_complete = self.directory.joinpath('docs', 'export_liste_complete_from_Q')
         self.directory_input_liste = self.directory.joinpath('docs', 'import_liste_into_Q')
         self.file_completo = 'completo.csv'
+        self.soglie = {'LIQ' : [0.0015, 0.01], 'OBB_BT' : [0.0075, 0.02], 'OBB_MLT' : [0.0125, 0.035], 'OBB_CORP' : [0.01, 0.0275],
+            'OBB_GLOB' : [0.03, 0.06], 'OBB_EM' : [0.045, 0.07], 'OBB_GLOB_HY' : [0.04, 0.065], 'AZ_EUR' : [0.055, 0.1], 
+            'AZ_NA' : [0.055, 0.1], 'AZ_PAC' : [0.08, 0.12], 'AZ_EM' : [0.06, 0.14], 'AZ_GLOB' : [0.1, 0.3]} #Cambia le soglie dell'az globale
 
     def concatenazione_file_excel(self):
         """
@@ -118,7 +121,7 @@ class Completo():
 
     def assegna_macro(self):
         """Assegna una macrocategoria ad ogni microcategoria."""
-        # Controlla se l'assegnazione funziona per BPPB
+        # Controlla se l'assegnazione funziona per BPPB (ho modificato i globali high yield)
         BPPB_dict = {'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ', 'Monetari altre valute europ' : 'LIQ',
             'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 'Obblig. Euro a scadenza' : 'OBB_BT',
             'Obblig. Euro gov. medio termine' : 'OBB_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_MLT', 'Obblig. Euro lungo termine' : 'OBB_MLT', 
@@ -332,9 +335,61 @@ class Completo():
             _ = input(f'apri il file {self.file_completo}, aggiungi le date, poi premi enter\n')
             df_merged = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
 
-    def indicatore_BS(self):
+    def correzione_alfa_IR_nulli(self):
         # TODO : fai uno scarico da quantalys con benchmark di default per tutti quei fondi che hanno alpha o IR pari a 0. L'alfa scaricato da quantalys è in percentuale...
         # quantalys assegna un valore pari a 0 all'information ratio se l'alpha è un numero del tipo 0.00*
+        ## Purtroppo quantalys potrebbe scaricare di nuovo un IR pari a 0. E' conveniente scaricare anche la TEV e nel caso l'IR fosse 0
+        # anche nel nuovo scarico, ricavarlo come alpha / TEV. 
+        """
+        Quantalys calcola l'alfa fino alla quarta cifra dopo la virgola. Se le prime quatto cifre sono 0, l'alfa sarà 0, e così anche l'IR.
+        Un valore di alfa e IR pari a 0 inficia i due metodi successivi in cui viene calcolata la TEV e viene calcolato l'indicatore corretto.
+        Sostiuisci i valori di alfa e IR 0 con i valori corretti.
+        """
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        # Indicatore corretto a 3 anni
+        while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
+            print("Ci sono dei fondi con alpha 3 anni o information ratio 3 anni uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
+            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+        # Indicatore corretto ad 1 anno
+        while any(df['Info 1 anno fine mese']==0) or any(df['Alpha 1 anno fine mese']==0):
+            print("Ci sono dei fondi con alpha 1 anno o information ratio 1 anno uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
+            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+
+    def attività(self):
+        """
+        Crea la colonna TEV ottenuta come rapporto tr alpha e IR, sia a 3 anni che ad 1 anno.
+        Assegna ai fondi appartenenti alle classi direzionali più la liquidità un grado di attività tra semiattivo, attivo, molto attivo.
+        L'etichetta verrà assegnata in base al superamento o meno di determinate soglie presenti nella variabile self.soglie.
+        """
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        macro_micro_a_benchmark_BPPB = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
+            'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+            'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
+            'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo'}
+        macro_micro_a_benchmark_BPL = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
+            'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 
+            'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+            'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
+            'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale'}
+        if self.intermediario == 'BPPB':
+            macro_micro = macro_micro_a_benchmark_BPPB
+        elif self.intermediario == 'BPL':
+            macro_micro = macro_micro_a_benchmark_BPL
+        elif self.intermediario == 'CRV':
+            return None
+        # Se non trova la micro (perché gli hanno cambiato nome) segnalalo con un print
+        df.loc[df['Categoria Quantalys'].isin(list(macro_micro.values())), 'TEV'] = df.loc[df['Categoria Quantalys'].isin(list(macro_micro.values())), 'Alpha 3 anni") fine mese'] / df.loc[df['Categoria Quantalys'].isin(list(macro_micro.values())), 'Info 3 anni") fine mese']
+        for macro, micro in macro_micro.items():
+            print(macro, micro)
+        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+            
+        
+
+
+    def indicatore_BS(self):
         """
         1. Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
         2. Calcola l'indicatore B&S a 1 anno, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
@@ -343,7 +398,7 @@ class Completo():
         Le colonne considerate ai fini del calcolo sono: 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese',
         'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'commissione'
         """
-        classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM']
+        classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
         classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
         classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
         if self.intermediario == 'BPPB':
@@ -357,16 +412,8 @@ class Completo():
             classi = classi_a_benchmark_CRV
             return None
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        # Indicatore corretto a 3 anni
-        while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
-            print("Ci sono dei fondi con alpha 3 anni o information ratio 3 anni uguale a 0, è necessario aggiornarli per l'analisi successiva,")
-            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
-            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
-        # Indicatore corretto ad 1 anno
-        while any(df['Info 1 anno fine mese']==0) or any(df['Alpha 1 anno fine mese']==0):
-            print("Ci sono dei fondi con alpha 1 anno o information ratio 1 anno uguale a 0, è necessario aggiornarli per l'analisi successiva,")
-            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
-            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+
+
         df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
         t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
         df.loc[(df['macro_categoria'].isin(classi)) & (df['fund_incept_dt'] < t0_3Y), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
@@ -446,20 +493,21 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
     
     def seleziona_e_rinomina_colonne(self):
+        # In BPPB e BPL servono le colonne relative al BS_3_anni e BS_1_anno
         """
         Seleziona solo le colonne utili del file completo.
         Rinomina le colonne del file_excel.
         """
         if self.intermediario == 'BPPB':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                'commissione', 'BS_3_anni', 'Best_Worst', 'sfdr_classification', 'categoria_flessibili', 'fondo_a_finestra']
-            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione', 'B&S_3Y',
+                'commissione', 'BS_3_anni', 'BS_1_anno', 'Best_Worst', 'sfdr_classification', 'categoria_flessibili', 'fondo_a_finestra']
+            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione', 'B&S_3Y', 'B&S_1Y', 
                 'Best_Worst', 'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
         elif self.intermediario == 'BPL':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                'commissione', 'BS_3_anni', 'Best_Worst']
+                'commissione', 'BS_3_anni', 'BS_1_anno', 'Best_Worst']
             col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
-                'commissione', 'B&S_3Y', 'Best_Worst']
+                'commissione', 'B&S_3Y', 'B&S_1Y', 'Best_Worst']
         elif self.intermediario == 'CRV':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
                 'categoria_flessibili', 'commissione']
@@ -479,10 +527,10 @@ class Completo():
         if not os.path.exists(self.directory_input_liste):
             os.makedirs(self.directory_input_liste)
         for categoria in df_com['macro_categoria'].unique():
-            chunks = len(df_com.loc[df_com['macro_categoria'] == categoria])//500 +1 # blocchi da 500 elementi
+            chunks = len(df_com.loc[df_com['macro_categoria'] == categoria])//2000 +1 # blocchi da 2000 elementi
             for chunk in range(chunks):
                 df = df_com.loc[df_com['macro_categoria'] == categoria, ['ISIN', 'valuta']]
-                df = df.iloc[0 + 499 * chunk : 499 + 499 * chunk]
+                df = df.iloc[0 + 1999 * chunk : 1999 + 1999 * chunk]
                 df.columns = ['codice isin', 'divisa']
                 df.to_csv(self.directory_input_liste.joinpath(categoria + '_' + str(chunk) + '.csv'), sep=";", index=False)
 
@@ -499,8 +547,10 @@ if __name__ == '__main__':
     # _.assegna_macro()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
+    _.correzione_alfa_IR_nulli()
+    _.attività()
     # _.indicatore_BS()
-    _.calcolo_best_worst()
+    # _.calcolo_best_worst()
     # # _.sfdr()
     # _.discriminazione_flessibili()
     # _.seleziona_e_rinomina_colonne()
