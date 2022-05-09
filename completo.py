@@ -336,7 +336,7 @@ class Completo():
             _ = input(f'apri il file {self.file_completo}, aggiungi le date, poi premi enter\n')
             df_merged = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
 
-    def correzione_alfa_IR_nulli(self):
+    def correzione_alfa_IR_nulli(self, metodo):
         # TODO : fai uno scarico da quantalys con benchmark di default per tutti quei fondi che hanno alpha o IR pari a 0. L'alfa scaricato da quantalys è in percentuale...
         # quantalys assegna un valore pari a 0 all'information ratio se l'alpha è un numero del tipo 0.00*
         ## Purtroppo quantalys potrebbe scaricare di nuovo un IR pari a 0. E' conveniente scaricare anche la TEV e nel caso l'IR fosse 0
@@ -347,53 +347,66 @@ class Completo():
         Sostiuisci i valori di alfa e IR 0 con i valori corretti.
         """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        # Indicatore corretto a 3 anni
-        while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
-            print("Ci sono dei fondi con alpha 3 anni o information ratio 3 anni uguale a 0, è necessario aggiornarli per l'analisi successiva,")
-            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
-            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
-        # Indicatore corretto ad 1 anno
-        while any(df['Info 1 anno fine mese']==0) or any(df['Alpha 1 anno fine mese']==0):
-            print("Ci sono dei fondi con alpha 1 anno o information ratio 1 anno uguale a 0, è necessario aggiornarli per l'analisi successiva,")
-            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
-            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+        if metodo == 'singolo':
+            # Indicatore corretto a 3 anni
+            while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
+                print("Ci sono dei fondi con alpha 3 anni o information ratio 3 anni uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+                _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
+                df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+        elif metodo == 'doppio':
+            # Indicatore corretto a 3 anni
+            while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
+                print("Ci sono dei fondi con alpha 3 anni o information ratio 3 anni uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+                _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
+                df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+            # Indicatore corretto ad 1 anno
+            while any(df['Info 1 anno fine mese']==0) or any(df['Alpha 1 anno fine mese']==0):
+                print("Ci sono dei fondi con alpha 1 anno o information ratio 1 anno uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+                _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
+                df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
-    def attività(self):
+    def attività(self, metodo):
         """
         Crea la colonna TEV ottenuta come rapporto tr alpha e IR, sia a 3 anni che ad 1 anno.
         Assegna ai fondi appartenenti alle classi direzionali più la liquidità un grado di attività tra semiattivo, attivo, molto attivo.
         L'etichetta verrà assegnata in base al superamento o meno di determinate soglie presenti nella variabile self.soglie.
         """
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        macro_micro_a_benchmark_BPPB = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
+        classi_a_benchmark_BPPB_metodo_doppio = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
             'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
             'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
             'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo'}
-        macro_micro_a_benchmark_BPL = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
+        macro_micro_a_benchmark_BPL_metodo_doppio = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
             'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 
             'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
             'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
             'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale'}
         if self.intermediario == 'BPPB':
-            macro_micro = macro_micro_a_benchmark_BPPB
+            macro_micro = classi_a_benchmark_BPPB_metodo_doppio
         elif self.intermediario == 'BPL':
-            macro_micro = macro_micro_a_benchmark_BPL
+            macro_micro = macro_micro_a_benchmark_BPL_metodo_doppio
         elif self.intermediario == 'CRV':
             return None
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
         t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
         t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
-        df.loc[(df['Categoria Quantalys'].isin(list(macro_micro.values()))) & (df['fund_incept_dt'] < t0_3Y) & (df['Alpha 3 anni") fine mese'].notnull()), 'TEV_3Y'] = df['Alpha 3 anni") fine mese'] / df['Info 3 anni") fine mese']
-        for macro, micro in macro_micro.items():
-            df.loc[(df['Categoria Quantalys']==micro) & (df['fund_incept_dt'] < t0_3Y) & (df['TEV_3Y'].notnull()), 'grado_attività_3Y'] = df.loc[(df['Categoria Quantalys']==micro), 'TEV_3Y'].apply(lambda x: 'semi_attivo' if x < self.soglie[macro][0] else 'attivo' if x < self.soglie[macro][1] else 'molto_attivo')
-        df.loc[(df['Categoria Quantalys'].isin(list(macro_micro.values()))) & (df['fund_incept_dt'] < t0_1Y) & (df['Alpha 1 anno fine mese'].notnull()), 'TEV_1Y'] = df['Alpha 1 anno fine mese'] / df['Info 1 anno fine mese']
-        for macro, micro in macro_micro.items():
-            df.loc[(df['Categoria Quantalys']==micro) & (df['fund_incept_dt'] < t0_1Y) & (df['TEV_1Y'].notnull()), 'grado_attività_1Y'] = df.loc[(df['Categoria Quantalys']==micro), 'TEV_1Y'].apply(lambda x: 'semi_attivo' if x < self.soglie[macro][0] else 'attivo' if x < self.soglie[macro][1] else 'molto_attivo')
+        if metodo == 'singolo':
+            return None
+        elif metodo == 'doppio':
+            df.loc[(df['Categoria Quantalys'].isin(list(macro_micro.values()))) & (df['fund_incept_dt'] < t0_3Y) & (df['Alpha 3 anni") fine mese'].notnull()), 'TEV_3Y'] = df['Alpha 3 anni") fine mese'] / df['Info 3 anni") fine mese']
+            for macro, micro in macro_micro.items():
+                df.loc[(df['Categoria Quantalys']==micro) & (df['fund_incept_dt'] < t0_3Y) & (df['TEV_3Y'].notnull()), 'grado_gestione_3Y'] = df.loc[(df['Categoria Quantalys']==micro), 'TEV_3Y'].apply(lambda x: 'semi_attivo' if x < self.soglie[macro][0] else 'attivo' if x < self.soglie[macro][1] else 'molto_attivo')
+            df.loc[(df['Categoria Quantalys'].isin(list(macro_micro.values()))) & (df['fund_incept_dt'] < t0_1Y) & (df['Alpha 1 anno fine mese'].notnull()), 'TEV_1Y'] = df['Alpha 1 anno fine mese'] / df['Info 1 anno fine mese']
+            for macro, micro in macro_micro.items():
+                df.loc[(df['Categoria Quantalys']==micro) & (df['fund_incept_dt'] < t0_1Y) & (df['TEV_1Y'].notnull()), 'grado_gestione_1Y'] = df.loc[(df['Categoria Quantalys']==micro), 'TEV_1Y'].apply(lambda x: 'semi_attivo' if x < self.soglie[macro][0] else 'attivo' if x < self.soglie[macro][1] else 'molto_attivo')
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
             
-    def indicatore_BS(self):
+    def indicatore_BS(self, metodo):
         """
+        Metodo singolo
+        1. Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
+        Metodo doppio
         1. Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
         2. Calcola l'indicatore B&S a 1 anno, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
         Formula v1 = IR - (IR * fee) / (anni_detenzione * alpha)
@@ -401,62 +414,172 @@ class Completo():
         Le colonne considerate ai fini del calcolo sono: 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese',
         'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'commissione'
         """
-        classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
-        classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
-        classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+        classi_a_benchmark_BPPB_metodo_singolo = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+        classi_a_benchmark_BPL_metodo_singolo = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
+        classi_a_benchmark_CRV_metodo_singolo = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+        classi_a_benchmark_BPPB_metodo_doppio = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
+            'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+            'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
+            'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo'}
+        classi_a_benchmark_BPL_metodo_doppio = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
+            'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 
+            'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+            'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
+            'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale'}
         if self.intermediario == 'BPPB':
             anni_detenzione = 3
-            classi = classi_a_benchmark_BPPB
+            classi = classi_a_benchmark_BPPB_metodo_singolo
+            macro_micro = classi_a_benchmark_BPPB_metodo_doppio
         elif self.intermediario == 'BPL':
             anni_detenzione = 5
-            classi = classi_a_benchmark_BPL
+            classi = classi_a_benchmark_BPL_metodo_singolo
+            macro_micro = classi_a_benchmark_BPL_metodo_doppio
         elif self.intermediario == 'CRV':
-            anni_detenzione = 3
-            classi = classi_a_benchmark_CRV
             return None
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-
-
-        df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
         t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
-        df.loc[(df['macro_categoria'].isin(classi)) & (df['fund_incept_dt'] < t0_3Y), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
         t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
-        df.loc[(df['macro_categoria'].isin(classi)) & (df['fund_incept_dt'] < t0_1Y), 'BS_1_anno'] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 1 anno fine mese'])
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        if metodo == 'singolo':
+            df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
+            df.loc[(df['macro_categoria'].isin(classi)) & (df['fund_incept_dt'] < t0_3Y), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
+        elif metodo == 'doppio':
+            df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
+            df.loc[(df['macro_categoria'].isin(list(macro_micro.keys()))) & (df['fund_incept_dt'] < t0_3Y), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
+            df.loc[(df['macro_categoria'].isin(list(macro_micro.keys()))) & (df['fund_incept_dt'] < t0_1Y), 'BS_1_anno'] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 1 anno fine mese'])
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
-    def calcolo_best_worst(self):
+    def calcolo_best_worst(self, metodo):
         """
-        1. Calcolo best e worst per le categorie a benchmark, per fondi con più di tre anni e con indicatore B&S presente.
-        2. Calcolo best e worst per le categorie a benchmark, per fondi con più di un anno e con indicatore B&S presente.
-        3. I fondi con più di un anno di vita che sono best a 3 anni o best ad un anno, sono best, altrimenti worst.
+        Metodo singolo
+        1. Calcolo best e worst per le micro categorie contenute nelle macro categorie a benchmark, per fondi con più di tre anni
+        e con indicatore B&S a tre anni presente, in base alla mediana.
+        Metodo doppio
+        1. Calcolo best e worst per le micro categorie contenute nelle macro categorie a benchmark, per fondi con più di tre anni
+        e con indicatore B&S ad un anno presente, rispetto al grado di attività nel caso siano micro categorie direzionali, 
+        in base alla mediana.
+        2. Calcolo best e worst per le micro categorie contenute nelle macro categorie a benchmark, per fondi con più di un anno
+        e con indicatore B&S ad un anno presente, rispetto al grado di attività nel caso siano micro categorie direzionali,
+        in base al primo quartile.
+        3. NON PIU' VALIDO I fondi con più di un anno di vita che sono best a 3 anni o best ad 1 anno, sono best, altrimenti worst.
+        
+        Arguments:
+            metodo {str} = singolo : calcolo indicatore b&s corretto a 3 anni, 
+                           doppio : calcolo indicatori b&s corretto a 3 anni e ad 1 anno.
         """
+        classi_a_benchmark_BPPB_metodo_singolo = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM']
+        classi_a_benchmark_BPL_metodo_singolo = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
+        classi_a_benchmark_CRV_metodo_singolo = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+        classi_a_benchmark_BPPB_metodo_doppio = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
+            'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+            'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
+            'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo'}
+        classi_a_benchmark_BPL_metodo_doppio = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
+            'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 
+            'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+            'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
+            'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale'}
+        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
+        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         # print(df['fund_incept_dt'].dtypes) # da oggetto
         df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
         #df['fund_incept_dt'] = df['fund_incept_dt'].astype('datetime64[ns]')
         # print(df['fund_incept_dt'].dtypes) # a datetime
-        classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM']
-        classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
-        classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
-        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
-        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
         # df2 = df[df['fund_incept_dt'] >= t0_3Y]
         # df2.to_csv('aaa.csv', sep=";", decimal=',', index=False)
         if self.intermediario == 'BPPB':
-            classi = classi_a_benchmark_BPPB
+            classi = classi_a_benchmark_BPPB_metodo_singolo
+            macro_micro = classi_a_benchmark_BPPB_metodo_doppio
         elif self.intermediario == 'BPL':
-            classi = classi_a_benchmark_BPL
+            classi = classi_a_benchmark_BPL_metodo_singolo
+            macro_micro = classi_a_benchmark_BPL_metodo_doppio
         elif self.intermediario == 'CRV':
-            classi = classi_a_benchmark_CRV
             return None
-        
-        for macro in classi:
-            for micro in df.loc[df['macro_categoria'] == macro, 'Categoria Quantalys'].unique():
-                mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
-                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'Best_Worst_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
-                primo_quartile = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'BS_1_anno'].quantile(q=0.75, interpolation='linear')
-                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'Best_Worst_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
-        df['Best_Worst'] = df['Best_Worst_3Y'].replace('worst', np.nan).fillna(df['Best_Worst_1Y'])
+        if metodo == 'singolo':
+            for macro in classi:
+                for micro in df.loc[df['macro_categoria'] == macro, 'Categoria Quantalys'].unique():
+                    mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
+                    df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'Best_Worst_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
+        elif metodo == 'doppio':
+            for macro in list(macro_micro.keys()):
+                for micro in df.loc[df['macro_categoria'] == macro, 'Categoria Quantalys'].unique():
+                    if micro in list(macro_micro.values()):
+                        for grado in df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro), 'grado_gestione_3Y'].unique():
+                            mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'BS_3_anni'].median()
+                            df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'Best_Worst_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
+                        for grado in df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro), 'grado_gestione_1Y'].unique():
+                            primo_quartile = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == grado), 'BS_1_anno'].quantile(q=0.75, interpolation='linear')
+                            df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == grado), 'Best_Worst_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == grado), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
+                    else:
+                        mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
+                        df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'Best_Worst_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
+                        primo_quartile = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'BS_1_anno'].quantile(q=0.75, interpolation='linear')
+                        df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'Best_Worst_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
+            # df['Best_Worst'] = df['Best_Worst_3Y'].replace('worst', np.nan).fillna(df['Best_Worst_1Y'])
+        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+
+    def ranking_per_grado(self, metodo):
+        """
+        Assegna un punteggio in ordine decrescente ai fondi delle micro categorie direzionali in base al loro indicatore corretto
+        a 3 anni e ad 1 anno, discriminando in base al grado di gestione.
+        """
+        classi_a_benchmark_BPPB_metodo_doppio = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
+            'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+            'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
+            'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo'}
+        soluzioni_BPPB = {'LIQ' : 1, 'OBB_BT' : 1, 'OBB_MLT' : 1, 'OBB_CORP' : 1, 'OBB_GLOB' : 1, 'OBB_EM' : 1, 'OBB_GLOB_HY' : 1, 
+            'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3}
+        classi_a_benchmark_BPL_metodo_doppio = {'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
+            'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 
+            'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+            'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
+            'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale'}
+        soluzioni_BPL = {'LIQ' : 3, 'OBB_BT' : 3, 'OBB_MLT' : 3, 'OBB_EUR' : 3, 'OBB_CORP' : 3, 'OBB_GLOB' : 3, 'OBB_USA' : 3, 
+            'OBB_EM' : 3, 'OBB_GLOB_HY' : 3, 'AZ_EUR' : 3, 'AZ_NA' : 2, 'AZ_PAC' : 3, 'AZ_EM' : 3, 'AZ_GLOB' : 1} #AZ GLOBALE DA 1 A 3!!
+        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
+        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
+        if self.intermediario == 'BPPB':
+            macro_micro = classi_a_benchmark_BPPB_metodo_doppio
+            soluzioni = soluzioni_BPPB
+        elif self.intermediario == 'BPL':
+            macro_micro = classi_a_benchmark_BPL_metodo_doppio
+            soluzioni = soluzioni_BPL
+        elif self.intermediario == 'CRV':
+            return None
+
+        if metodo == 'singolo':
+            return None
+        elif metodo == 'doppio':
+            for macro in list(macro_micro.keys()):
+                for micro in df.loc[df['macro_categoria'] == macro, 'Categoria Quantalys'].unique():
+                    if micro in list(macro_micro.values()):
+                        if soluzioni[macro] == 1:
+                            for etichetta in ['best', 'worst']:
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
+                            for etichetta in ['best', 'worst']:
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
+                        elif soluzioni[macro] == 2:
+                            for etichetta in ['best', 'worst']:
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
+                            for etichetta in ['best', 'worst']:
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
+                        elif soluzioni[macro] == 3:
+                            for etichetta in ['best', 'worst']:
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
+                            for etichetta in ['best', 'worst']:
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
 
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
@@ -482,7 +605,7 @@ class Completo():
         Assegna l'etichetta 'bassa_vola' se la volatilità a 3 anni è inferiore a 0.05 oppure 'media_alta_vola', ove disponibile,
         altrimenti se la volatilità a 1 anno è inferiore a 0.05 oppure 'media_alta_vola', ove disponibile,
         altrimenti se l'indicatore SRRI è inferiore a 3 oppure 'media_alta_vola', ove disponbile,
-        altrimenti asssegna l'etichetta 'bassa_vola' ai fondi senza dati sul rischio.
+        altrimenti assegna l'etichetta 'bassa_vola' ai fondi senza dati sul rischio.
         """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         if self.intermediario == 'BPPB' or self.intermediario == 'CRV':
@@ -495,22 +618,38 @@ class Completo():
             pass
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
     
-    def seleziona_e_rinomina_colonne(self):
+    def seleziona_e_rinomina_colonne(self, metodo):
         # In BPPB e BPL servono le colonne relative al BS_3_anni e BS_1_anno
         """
         Seleziona solo le colonne utili del file completo.
         Rinomina le colonne del file_excel.
         """
         if self.intermediario == 'BPPB':
-            col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                'commissione', 'BS_3_anni', 'BS_1_anno', 'Best_Worst', 'sfdr_classification', 'categoria_flessibili', 'fondo_a_finestra']
-            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione', 'B&S_3Y', 'B&S_1Y', 
-                'Best_Worst', 'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
+            if metodo == 'singolo':
+                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
+                    'commissione', 'Best_Worst_3Y', 'sfdr_classification', 'categoria_flessibili', 'fondo_a_finestra']
+                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 
+                    'commissione', 'Best_Worst', 'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
+            elif metodo == 'doppio':
+                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
+                    'commissione', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y',
+                    'ranking_per_grado_1Y', 'sfdr_classification', 'categoria_flessibili', 'fondo_a_finestra']
+                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
+                    'commissione', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 
+                    'ranking_per_grado_1Y', 'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
         elif self.intermediario == 'BPL':
-            col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                'commissione', 'BS_3_anni', 'BS_1_anno', 'Best_Worst']
-            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
-                'commissione', 'B&S_3Y', 'B&S_1Y', 'Best_Worst']
+            if metodo == 'singolo':
+                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
+                    'commissione', 'Best_Worst_3Y']
+                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
+                    'commissione', 'Best_Worst']
+            elif metodo == 'doppio':
+                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
+                    'commissione', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y',
+                    'ranking_per_grado_1Y']
+                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
+                    'commissione', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 
+                    'ranking_per_grado_1Y']
         elif self.intermediario == 'CRV':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
                 'categoria_flessibili', 'commissione']
@@ -550,13 +689,14 @@ if __name__ == '__main__':
     # _.assegna_macro()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
-    # _.correzione_alfa_IR_nulli()
-    _.attività()
-    # _.indicatore_BS()
-    # _.calcolo_best_worst()
+    # _.correzione_alfa_IR_nulli('doppio')
+    # _.attività('doppio')
+    # _.indicatore_BS('doppio')
+    # _.calcolo_best_worst('doppio')
+    _.ranking_per_grado('doppio')
     # # _.sfdr()
     # _.discriminazione_flessibili()
-    # _.seleziona_e_rinomina_colonne()
+    # _.seleziona_e_rinomina_colonne('doppio')
     # _.creazione_liste_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
