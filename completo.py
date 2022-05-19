@@ -34,7 +34,7 @@ class Completo():
         self.directory_input_liste = self.directory.joinpath('docs', 'import_liste_into_Q')
         self.file_completo = 'completo.csv'
         self.soglie = {'LIQ' : [0.0015, 0.01], 'OBB_BT' : [0.0075, 0.02], 'OBB_MLT' : [0.0125, 0.035], 'OBB_EUR' : [0.035, 0.065], 
-            'OBB_USA' : [0.035, 0.065], 'OBB_CORP' : [0.01, 0.0275], 'OBB_GLOB' : [0.03, 0.06], 'OBB_EM' : [0.045, 0.07], 
+            'OBB_USA' : [0.035, 0.055], 'OBB_CORP' : [0.01, 0.0275], 'OBB_GLOB' : [0.03, 0.06], 'OBB_EM' : [0.045, 0.07], 
             'OBB_GLOB_HY' : [0.04, 0.065], 'AZ_EUR' : [0.055, 0.1], 'AZ_NA' : [0.055, 0.1], 'AZ_PAC' : [0.08, 0.12], 'AZ_EM' : [0.06, 0.14], 
             'AZ_GLOB' : [0.055, 0.1]}
 
@@ -623,11 +623,11 @@ if __name__ == '__main__':
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
     # _.correzione_alfa_IR_nulli('doppio')
-    # _.attività('doppio')
-    # _.indicatore_BS('doppio')
-    # _.calcolo_best_worst('doppio')
+    _.attività('doppio')
+    _.indicatore_BS('doppio')
+    _.calcolo_best_worst('doppio')
     # # _.sfdr()
-    # _.discriminazione_flessibili()
+    _.discriminazione_flessibili()
     _.seleziona_e_rinomina_colonne('doppio')
     # _.creazione_liste_input()
     end = time.perf_counter()
