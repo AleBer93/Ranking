@@ -84,7 +84,7 @@ class ScaricoCompleto():
         except TimeoutException:
             pass
         else:
-            # time.sleep(0.5)
+            time.sleep(0.5)
             self.driver.find_element(by=By.XPATH, value='//*[@id="inputLogin"]').send_keys(self.username)
             self.driver.find_element(by=By.XPATH, value='//*[@id="inputPassword"]').send_keys(self.password,Keys.ENTER)
 
@@ -113,6 +113,7 @@ class ScaricoCompleto():
                     liste.click()
                 except:
                     try:
+                        time.sleep(0.5)
                         WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Tools')))
                     except TimeoutException:
                         pass
@@ -143,7 +144,7 @@ class ScaricoCompleto():
                     self.driver.find_element(by=By.NAME, value="nom").send_keys(filename[:-4], Keys.TAB, Keys.TAB, Keys.ENTER) # Conferma
                 # Importa prodotti
                 try:
-                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '//*[@id="quantasearch"]/div[2]/div[3]/div/button[2]'))) # Importa dei prodotti
+                    WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="quantasearch"]/div[2]/div[3]/div/button[2]'))) # Importa dei prodotti
                 except TimeoutException:
                     pass
                 finally:
@@ -151,44 +152,47 @@ class ScaricoCompleto():
                     self.driver.find_element(by=By.XPATH, value='//*[@id="quantasearch"]/div[2]/div[3]/div/button[2]').click()
                 # Scegli un file da importare
                 try:
-                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.NAME, 'file'))) # Seleziona lista da importare
+                    WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.NAME, 'file'))) # Seleziona lista da importare
                 except TimeoutException:
                     pass
                 finally:
                     self.driver.find_element(by=By.NAME, value="file").send_keys(self.directory_input_liste_complete.joinpath(filename).__str__()) # Directory
                 # Importa lista
                 try:
-                    WebDriverWait(self.driver, 7).until(EC.presence_of_element_located((By.XPATH, '//*[@id="importForm"]/button'))) # Importa
+                    WebDriverWait(self.driver, 40).until(EC.presence_of_element_located((By.XPATH, '//*[@id="importForm"]/button'))) # Importa
                 except TimeoutException:
                     pass
                 finally:
-                    time.sleep(0.5) # Necessario, va troppo veloce ed esporta liste vuote
+                    time.sleep(1) # Necessario, va troppo veloce ed esporta liste vuote
                     self.driver.find_element(by=By.XPATH, value='//*[@id="importForm"]/button').click()
-                    WebDriverWait(self.driver,60).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[3]/div[2]')))
+                    # La riga sotto è prbobalimente inutile
+                    WebDriverWait(self.driver, 60).until(EC.presence_of_element_located((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[3]/div[2]')))
                 # Esporta
                 try:
-                    WebDriverWait(self.driver,120).until_not(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table/tbody/tr/td'), 'Nessun dato disponibile'))
+                    WebDriverWait(self.driver, 120).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table/tbody/tr/td'), 'Nessun dato disponibile'))
+                    WebDriverWait(self.driver, 120).until_not(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table/tbody/tr/td'), 'Nessun dato disponibile'))
                     # WebDriverWait(self.driver,60).until_not(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[3]/div[2]'), '0 elementi'))
                 except TimeoutException:
                     pass
                 else:
-                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '//*[@id="DataTables_Table_0"]/thead/tr/th[1]/label'))) # Seleziona tutto
+                    WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="DataTables_Table_0"]/thead/tr/th[1]/label'))) # Seleziona tutto
                     self.driver.find_element(by=By.XPATH, value='//*[@id="DataTables_Table_0"]/thead/tr/th[1]/label').click()
-                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '//*[@id="quantasearch"]/div[1]/div/div[2]/div/button'))) # Esporta
+                    time.sleep(1)
+                    WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="quantasearch"]/div[1]/div/div[2]/div/button'))) # Esporta
                     time.sleep(1.5)
                     self.driver.find_element(by=By.XPATH, value='//*[@id="quantasearch"]/div[1]/div/div[2]/div/button').click()
                 # Raccogli i fondi non importati perché non presenti in piattaforma
-                try:
-                    prodotti_non_presenti = self.driver.find_element(by=By.XPATH, value='//*[@id="NotImportedData"]/p').get_attribute("textContent")
-                    file_prodotti_non_presenti = open(self.directory.joinpath('docs', "prodotti_non_presenti.txt"), 'w')
-                    prodotti_non_presenti = prodotti_non_presenti.split(sep=',')
-                    prodotti_non_presenti = [item.split('(') for item in prodotti_non_presenti]
-                    prodotti_non_presenti = [[element[0], element[1][:-1]] for element in prodotti_non_presenti]
-                    for element in prodotti_non_presenti:
-                        file_prodotti_non_presenti.write(element[0]+' '+element[1]+'\n')
-                    file_prodotti_non_presenti.close()
-                except:
-                    pass
+                # try:
+                #     prodotti_non_presenti = self.driver.find_element(by=By.XPATH, value='//*[@id="NotImportedData"]/p').get_attribute("textContent")
+                #     file_prodotti_non_presenti = open(self.directory.joinpath('docs', "prodotti_non_presenti.txt"), 'a')
+                #     prodotti_non_presenti = prodotti_non_presenti.split(sep=',')
+                #     prodotti_non_presenti = [item.split('(') for item in prodotti_non_presenti]
+                #     prodotti_non_presenti = [[element[0], element[1][:-1]] for element in prodotti_non_presenti]
+                #     for element in prodotti_non_presenti:
+                #         file_prodotti_non_presenti.write(element[0]+' '+element[1]+'\n')
+                #     file_prodotti_non_presenti.close()
+                # except:
+                #     pass
                 # Esporta CSV completo
                 try:
                     WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '//*[@id="quantasearch"]/div[1]/div/div[2]/div/ul/li[4]/a'))) # CSV completo

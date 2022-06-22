@@ -205,23 +205,25 @@ class Scarico():
                 self.driver.find_element(by=By.XPATH, value='//*[@id="quantasearch"]/div[2]/div[3]/div/button[2]').click()
             # Scegli un file da importare
             try:
-                WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.NAME, 'file'))) # Seleziona lista da importare
+                WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.NAME, 'file'))) # Seleziona lista da importare
             except TimeoutException:
                 pass
             finally:
                 self.driver.find_element(by=By.NAME, value="file").send_keys(self.directory_input_liste.joinpath(filename).__str__())
             # Importa lista
             try:
-                WebDriverWait(self.driver, 7).until(EC.presence_of_element_located((By.XPATH, '//*[@id="importForm"]/button'))) # Importa
+                WebDriverWait(self.driver, 40).until(EC.presence_of_element_located((By.XPATH, '//*[@id="importForm"]/button'))) # Importa
             except TimeoutException:
                 pass
             finally:
+                time.sleep(1) # Necessario, va troppo veloce ed esporta liste vuote
                 self.driver.find_element(by=By.XPATH, value='//*[@id="importForm"]/button').click()
 
             try:
+                WebDriverWait(self.driver,120).until(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table/tbody/tr/td'), 'Nessun dato disponibile'))
                 WebDriverWait(self.driver,120).until_not(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table/tbody/tr/td'), 'Nessun dato disponibile'))
                 # WebDriverWait(self.driver,120).until_not(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[3]/div[2]'), '0 elementi'))
-            except TimeoutException: 
+            except TimeoutException:
                 pass
             finally:
                 # print(self.driver.find_element_by_xpath('//*[@id="DataTables_Table_0"]/tbody/tr/td').text)
@@ -230,7 +232,7 @@ class Scarico():
                 num_fondi_regex = re.compile(r'\d(\d)?(\d)?(\d)?')
                 mo = num_fondi_regex.search(totale_fondi_lista)
                 numero_fondi = mo.group()
-            NUM_MAX_FONDI_CONFRONTO_DIRETTO = 1300
+            NUM_MAX_FONDI_CONFRONTO_DIRETTO = 1 # 2000 
             if int(numero_fondi) < NUM_MAX_FONDI_CONFRONTO_DIRETTO:
                 self.driver.find_element(by=By.XPATH, value='//*[@id="DataTables_Table_0"]/thead/tr/th[1]/label').click()
                 time.sleep(2) # Necessario, va troppo veloce.
@@ -238,14 +240,14 @@ class Scarico():
             else:
                 self.driver.find_element(by=By.PARTIAL_LINK_TEXT, value='Fondi').click() # Fondi
                 try:
-                    WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, 'Confronto'))) # Confronto
+                    WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, 'Confronto'))) # Confronto
                 except TimeoutException:
                     pass
                 finally:
                     self.driver.find_element(by=By.PARTIAL_LINK_TEXT, value='Confronto').click()
                 
                 try:
-                    WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_searchButton"]'))) # Cerca
+                    WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_searchButton"]'))) # Cerca
                 except TimeoutException:
                     pass
                 finally:
@@ -266,7 +268,7 @@ class Scarico():
                     self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_selectFonds_ctrlTreeListe_hypValider"]').click()
 
                 try:
-                    WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_searchButton"]'))) # Cerca
+                    WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_selectFonds_searchButton"]'))) # Cerca
                 except TimeoutException:
                     pass
                 finally:
@@ -280,7 +282,7 @@ class Scarico():
                     self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_selectFonds_listeFonds_HeaderButton"]').click()
 
                 try:
-                    WebDriverWait(self.driver, 5).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_btnComparer1"]'))) # Confronta
+                    WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_btnComparer1"]'))) # Confronta
                 except TimeoutException:
                     pass
                 finally:
@@ -383,7 +385,7 @@ class Scarico():
 
             # Aggiungi benchmark
             classi_a_benchmark_BPPB = {'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 
-                'OBB_BT': '2265', 'OBB_MLT': '2264', 'OBB_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_EM': '2476'}
+                'OBB_BT': '2265', 'OBB_MLT': '2264', 'OBB_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_EM': '2476', 'OBB_GLOB_HY': '2293'}
             classi_a_benchmark_BPL = {'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
                 'OBB_BT': '2265', 'OBB_MLT': '2264', 'OBB_EUR': '2255', 'OBB_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_USA': '2490',
                 'OBB_EM': '2476', 'OBB_GLOB_HY': '2293'}
@@ -563,7 +565,7 @@ class Scarico():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Scarico(intermediario='CRV', t1='31/03/2022')
+    _ = Scarico(intermediario='BPPB', t1='31/05/2022')
     _.accesso_a_quantalys()
     _.login()
     _.export()

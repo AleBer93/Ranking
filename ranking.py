@@ -44,7 +44,7 @@ class Ranking():
         self.soluzioni_BPPB = {'LIQ' : 1, 'OBB_BT' : 1, 'OBB_MLT' : 1, 'OBB_CORP' : 1, 'OBB_GLOB' : 1, 'OBB_EM' : 1, 'OBB_GLOB_HY' : 1, 
             'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3}
         self.soluzioni_BPL = {'LIQ' : 3, 'OBB_BT' : 3, 'OBB_MLT' : 3, 'OBB_EUR' : 3, 'OBB_CORP' : 3, 'OBB_GLOB' : 3, 'OBB_USA' : 3, 
-            'OBB_EM' : 3, 'OBB_GLOB_HY' : 3, 'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 2, 'AZ_GLOB' : 1}
+            'OBB_EM' : 3, 'OBB_GLOB_HY' : 3, 'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3, 'AZ_GLOB' : 3}
 
     def ranking_per_grado(self, metodo):
         """
@@ -292,7 +292,7 @@ class Ranking():
         
         if self.intermediario == 'BPPB':
             anni_detenzione = 3
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM']
+            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
             SOR_DSR = ['FLEX_BVOL', 'FLEX_MAVOL'] # Ora i flessibili sono discriminati
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ']
@@ -477,7 +477,9 @@ class Ranking():
                             'Information_Ratio_1Y', 'ranking_IR_1Y', 'quartile_IR_1Y', 'terzile_IR_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'ranking_IR_1Y_corretto',
                             'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
                     elif metodo == 'doppio':
-                        pass
+                        foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 
+                            'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Information_Ratio_3Y',
+                            'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
                 elif self.intermediario == 'BPL':
                     if metodo == 'singolo':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'Best_Worst', 'micro_categoria', 'ranking_finale', 'Information_Ratio_3Y', 'ranking_IR_3Y', 'quartile_IR_3Y',
@@ -938,11 +940,15 @@ class Ranking():
         print('\nsto formattando il file di ranking...')
         if self.intermediario == 'BPPB': # TODO aggiungi la globale high yield
             if metodo == 'singolo':
-                micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'OBB_BT' : 'Obblig. Euro breve term.',
-                    'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.'}
+                micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
+                    'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield'}
                 micro_blend_classi_non_a_benchmark = ['FLEX_BVOL', 'FLEX_MAVOL', 'OPP', 'LIQ']
             elif metodo == 'doppio':
-                pass
+                micro_blend_classi_a_benchmark = {'LIQ' : 'Monetari Euro', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
+                    'AZ_EM' : 'Az. paesi emerg. Mondo', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
+                    'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',  'OBB_EM' : 'Obblig. Paesi Emerg.', 
+                    'OBB_GLOB_HY' : 'Obblig. globale high yield'}
         elif self.intermediario == 'BPL':
             if metodo == 'singolo':
                 micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale',
@@ -1251,16 +1257,16 @@ class Ranking():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Ranking(intermediario='BPL', t1='31/03/2022')
+    _ = Ranking(intermediario='BPPB', t1='31/05/2022')
     # _.ranking_per_grado('doppio')
     # _.merge_completo_liste()
     # _.discriminazione_flessibili_e_bilanciati()
     # _.rank('doppio')
     # _.aggiunta_colonne() # TODO: testa per intermediari diversi da CRV # 'nome' se CRV, 'fondo_a_finestra' se BPPB
     # _.rank_formatted('doppio')
-    # _.aggiunta_prodotti_non_presenti() # TODO: testa per intermediari diversi da CRV
+    # _.aggiunta_prodotti_non_presenti()
     # _.autofit()
     # _.creazione_liste_best_input()
-    # _.zip_file()
+    _.zip_file()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
