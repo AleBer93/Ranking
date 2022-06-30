@@ -31,6 +31,7 @@ class Completo():
         directory = Path().cwd()
         self.directory = directory
         self.directory_output_liste_complete = self.directory.joinpath('docs', 'export_liste_complete_from_Q')
+        self.directory_sfdr = self.directory.joinpath('docs', 'sfdr')
         self.directory_input_liste = self.directory.joinpath('docs', 'import_liste_into_Q')
         self.file_completo = 'completo.csv'
         self.soglie = {'LIQ' : [0.0015, 0.01], 'OBB_BT' : [0.0075, 0.02], 'OBB_MLT' : [0.0125, 0.035], 'OBB_EUR' : [0.035, 0.065], 
@@ -38,12 +39,33 @@ class Completo():
             'OBB_GLOB_HY' : [0.04, 0.065], 'AZ_EUR' : [0.055, 0.1], 'AZ_NA' : [0.055, 0.1], 'AZ_PAC' : [0.08, 0.12], 'AZ_EM' : [0.06, 0.14], 
             'AZ_GLOB' : [0.055, 0.1]}
 
-    def concatenazione_file_excel(self):
+    def concatenazione_liste_complete(self):
         """
         Concatena i file excel all'interno della directory_output_liste_complete l'uno sotto l'altro.
-        Salva il risultato con il nome file_name.
+        Salva il risultato con il nome completo.csv
         """
         df = pd.concat((pd.read_csv(self.directory_output_liste_complete.joinpath(filename), sep = ';', decimal=',', engine='python', encoding = "utf_16_le", skipfooter=1) for filename in os.listdir(self.directory_output_liste_complete)), ignore_index=True)
+        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+
+    def concatenazione_sfdr(self):
+        """
+        Concatena i file sfdr all'interno della directory_sfdr l'uno sotto l'altro.
+        Salva il risultato con il nome sfdr.csv
+        """
+        df = pd.concat((pd.read_csv(self.directory_sfdr.joinpath(filename), sep = ';', decimal=',', engine='python', encoding = "unicode_escape") for filename in os.listdir(self.directory_sfdr)), ignore_index=True)
+        df.to_csv(self.directory_sfdr.joinpath('sfdr.csv'), sep=";", decimal=',', index=False)
+    
+    def concatenazione_completo_sfdr(self):
+        """
+        Concatena orizzontalmente i file completo.csv e sfdr.csv
+        Controlla che i nomi dei due file uniti siano identici, tolti ad entrambi gli spazi bianchi.
+        """
+        df_completo = pd.read_csv(self.file_completo, sep=';', decimal=',', index_col=None)
+        df_sfdr = pd.read_csv(self.directory_sfdr.joinpath('sfdr.csv'), sep=';', decimal=',', index_col=None)
+        df_sfdr = df_sfdr[['Nome', 'SFDR']]
+        assert len(df_completo) == len(df_sfdr)
+        df = pd.concat([df_completo, df_sfdr], axis=1)
+        df['Nome del fondo'].str.replace(" ","").equals(df['Nome'].str.replace(" ",""))
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def fondi_non_presenti(self):
@@ -93,9 +115,11 @@ class Completo():
             colonne {tuple} = tuple di colonne da estrarre dal file
         """
         if self.intermediario == 'BPPB' or self.intermediario == 'BPL':
-            colonne = 'Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese', 'Rischio 3 anni") fine mese', 'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI'
+            colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese', 'Rischio 3 anni") fine mese',
+                'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI', 'SFDR']
         elif self.intermediario == 'CRV':
-            colonne = 'Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese', 'Rischio 3 anni") fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI'
+            colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese', 'Rischio 3 anni") fine mese',
+                'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI']
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df = df.loc[:, colonne]
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
@@ -519,21 +543,23 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def sfdr(self):
-        # TODO : SCARICA DA SQL L'ARTICOLO SFDR E DA BLOOMBERG LE RIMANENTI. AGGIORNA QUELLE NON PRESENTI SU SQL
-        """Scarica il numero dell'articolo della disciplina europea SFDR"""
-        print("\nSto scaricando l'articolo della disciplina SFDR...")
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        df_bl = blp.bdp('/isin/' + df['Codice ISIN'], flds="sfdr_classification")
-        df_bl.reset_index(inplace=True)
-        df_bl['isin_code'] = df_bl['index'].str[6:]
-        df_bl.reset_index(drop=True, inplace=True)
-        df_bl.to_csv(self.directory.joinpath('docs', 'sfdr.csv'), sep=";")
-        df_merged = pd.merge(df, df_bl, left_on='Codice ISIN', right_on='isin_code', how='left')
-        df_merged["sfdr_classification"] = df_merged["sfdr_classification"].fillna(0)
-        df_merged["sfdr_classification"] = pd.to_numeric(df_merged["sfdr_classification"], errors='coerce').astype(int)
-        df_merged["sfdr_classification"].replace(0, '', inplace=True)
-        print('scaricate!')
-        df_merged.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+        """Troppo dispendioso in termini di dati scaricabili mensilmente"""
+        # # TODO : SCARICA DA SQL L'ARTICOLO SFDR E DA BLOOMBERG LE RIMANENTI. AGGIORNA QUELLE NON PRESENTI SU SQL
+        # """Scarica il numero dell'articolo della disciplina europea SFDR"""
+        # print("\nSto scaricando l'articolo della disciplina SFDR...")
+        # df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        # df_bl = blp.bdp('/isin/' + df['Codice ISIN'], flds="sfdr_classification")
+        # df_bl.reset_index(inplace=True)
+        # df_bl['isin_code'] = df_bl['index'].str[6:]
+        # df_bl.reset_index(drop=True, inplace=True)
+        # df_bl.to_csv(self.directory.joinpath('docs', 'sfdr.csv'), sep=";")
+        # df_merged = pd.merge(df, df_bl, left_on='Codice ISIN', right_on='isin_code', how='left')
+        # df_merged["sfdr_classification"] = df_merged["sfdr_classification"].fillna(0)
+        # df_merged["sfdr_classification"] = pd.to_numeric(df_merged["sfdr_classification"], errors='coerce').astype(int)
+        # df_merged["sfdr_classification"].replace(0, '', inplace=True)
+        # print('scaricate!')
+        # df_merged.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+        """close"""
 
     def discriminazione_flessibili(self):
         """
@@ -562,13 +588,13 @@ class Completo():
         if self.intermediario == 'BPPB':
             if metodo == 'singolo':
                 col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                    'commissione', 'Best_Worst_3Y', 'sfdr_classification', 'categoria_flessibili', 'fondo_a_finestra']
+                    'commissione', 'Best_Worst_3Y', 'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
                 col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 
                     'commissione', 'Best_Worst', 'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
             elif metodo == 'doppio':
                 col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
                     'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y', 
-                    'sfdr_classification', 'categoria_flessibili', 'fondo_a_finestra']
+                    'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
                 col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
                     'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y', 
                     'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
@@ -613,7 +639,9 @@ class Completo():
 if __name__ == '__main__':
     start = time.perf_counter()
     _ = Completo(intermediario='BPPB', t1='31/05/2022')
-    _.concatenazione_file_excel()
+    _.concatenazione_liste_complete()
+    _.concatenazione_sfdr()
+    _.concatenazione_completo_sfdr()
     _.fondi_non_presenti()
     _.correzione_micro_russe()
     _.change_datatype(SRRI = float)
@@ -626,7 +654,6 @@ if __name__ == '__main__':
     _.attività('doppio')
     _.indicatore_BS('doppio')
     _.calcolo_best_worst('doppio')
-    # _.sfdr()
     _.discriminazione_flessibili()
     _.seleziona_e_rinomina_colonne('doppio')
     _.creazione_liste_input()

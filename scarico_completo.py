@@ -39,12 +39,13 @@ class ScaricoCompleto():
         self.password = password
         directory = Path().cwd()
         self.directory = directory
-        self.directory_output_liste_complete = self.directory.joinpath('docs', 'export_liste_complete_from_Q')
-        # self.directory_output_liste_complete = directory_output_liste_complete
         self.directory_input_liste_complete = self.directory.joinpath('docs', 'import_liste_complete_into_Q')
-        # self.directory_input_liste_complete = directory_input_liste_complete
+        self.directory_output_liste_complete = self.directory.joinpath('docs', 'export_liste_complete_from_Q')
         if not os.path.exists(self.directory_output_liste_complete):
             os.makedirs(self.directory_output_liste_complete)
+        self.directory_sfdr = self.directory.joinpath('docs', 'sfdr')
+        if not os.path.exists(self.directory_sfdr):
+            os.makedirs(self.directory_sfdr)
         chrome_options = webdriver.ChromeOptions()
         chrome_options.add_experimental_option("prefs", {
             "download.default_directory" : self.directory_output_liste_complete.__str__(),
@@ -264,7 +265,7 @@ class ScaricoCompleto():
                     print('numero pagine:', numero_pagine)
                     # Scarica l'articolo SFDR
                     df = self.get_data_from_table(self.driver, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table', numero_pagine)
-                    df.to_csv(self.directory.joinpath('docs','sfdr'+filename[-6:-4]+'.csv'), sep=";", decimal=',', index=False)
+                    df.to_csv(self.directory_sfdr.joinpath('sfdr'+filename[-6:-4]+'.csv'), sep=";", decimal=',', index=False)
                         
         self.driver.close()
 

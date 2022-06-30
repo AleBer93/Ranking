@@ -938,7 +938,7 @@ class Ranking():
         wb = load_workbook(filename='ranking.xlsx') # carica il file
         # Colora le micro blend
         print('\nsto formattando il file di ranking...')
-        if self.intermediario == 'BPPB': # TODO aggiungi la globale high yield
+        if self.intermediario == 'BPPB':
             if metodo == 'singolo':
                 micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
                     'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
@@ -1267,6 +1267,6 @@ if __name__ == '__main__':
     # _.aggiunta_prodotti_non_presenti()
     # _.autofit()
     # _.creazione_liste_best_input()
-    _.zip_file()
+    # _.zip_file()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
