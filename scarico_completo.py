@@ -1,8 +1,10 @@
 import glob
 import os
+import re
 import time
 from pathlib import Path
 
+import pandas as pd
 from selenium import webdriver
 from selenium.common.exceptions import (ElementNotInteractableException,
                                         NoSuchElementException,
@@ -87,6 +89,40 @@ class ScaricoCompleto():
             time.sleep(0.5)
             self.driver.find_element(by=By.XPATH, value='//*[@id="inputLogin"]').send_keys(self.username)
             self.driver.find_element(by=By.XPATH, value='//*[@id="inputPassword"]').send_keys(self.password,Keys.ENTER)
+            self.driver.find_element(by=By.XPATH, value='//*[@id="btnConnecter"]').click()
+
+    def get_data_from_table(self, driver, table, num_pages):
+        """
+        Ricava i dati da una tabella html contenuta in pagine multiple
+
+        Arguments:
+            driver {str} = driver che inietta il codice nel browser
+            table {url} = indirizzo url che porta alla tabella (full x-path)
+            num_pages {int} =  numero di pagine in cui è divisa la tabella
+
+        Return
+            df {dataframe} = Dataframe contenente i dati estratti
+        """
+        element = driver.find_element(By.XPATH, table).get_attribute('outerHTML')
+        df = pd.read_html(element)[0]
+        for page in range(2, num_pages+1):
+            # Individua il nome del primo elemento
+            nome_primo_fondo = self.driver.find_element(by=By.XPATH, value='/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table/tbody/tr[1]/td[2]').text
+            # Quantalys non mette tutti gli li. Li aggiunge alla mano
+            # a = self.driver.find_element(by=By.CSS_SELECTOR, value=list_class+' li:nth-child('+str(page)+') a')
+            # L'unico modo di individuare l'anchor link che mi serve è selezionare l'anchor link in base al numero progressivo corrispondente alla pagina
+            num_pagina = self.driver.find_element(by=By.LINK_TEXT, value=str(page))
+            num_pagina.click()
+            # Attendi che il tag li abbia l'attributo active (non funziona per il motivo nel commento sopra)
+            # WebDriverWait(self.driver, 20).until(EC.visibility_of_element_located((By.CSS_SELECTOR, list_class+' li:nth-child('+str(page)+')'))).get_attribute('active')
+            # Attendi che il nome del primo elemento della nuova tabella sia diverso dal nome del primo elemento della tabella aggiornata
+            WebDriverWait(self.driver, 20).until_not(EC.text_to_be_present_in_element((By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table/tbody/tr[1]/td[2]'), nome_primo_fondo))
+            # Scarica il nuovo dataframe
+            element2 = driver.find_element(By.XPATH, table).get_attribute('outerHTML')
+            df2 = pd.read_html(element2)[0]
+            # Allegalo in coda al primo (df)
+            df = pd.concat([df, df2], ignore_index=True)
+        return df
 
     def export(self):
         """
@@ -103,32 +139,32 @@ class ScaricoCompleto():
             if filename.startswith('lista_completa'):
                 print(f'caricamento {filename}...')
                 # Logo quantalys
-                try:
-                    WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="position-menu-quantalys"]/div/div[1]/a/img')))
-                except TimeoutException:
-                    pass
+                # try:
+                #     WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="position-menu-quantalys"]/div/div[1]/a/img')))
+                # except TimeoutException:
+                #     pass
                 # Liste
                 try:
                     liste = self.driver.find_element(by=By.PARTIAL_LINK_TEXT, value='Liste')
                     liste.click()
                 except:
                     try:
-                        time.sleep(0.5)
-                        WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Tools')))
+                        # time.sleep(0.5)
+                        WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Tools')))
                     except TimeoutException:
                         pass
                     finally:
                         self.driver.find_element(by=By.PARTIAL_LINK_TEXT, value='Tools').click()
 
                     try:
-                        WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Liste')))
+                        WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Liste')))
                     except TimeoutException:
                         pass
                     finally:
                         self.driver.find_element(by=By.PARTIAL_LINK_TEXT, value='Liste').click()
                 # Nuova lista
                 try:
-                    WebDriverWait(self.driver, 3).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[3]/div[1]/div[2]/div/div[2]/div[1]/button')))
+                    WebDriverWait(self.driver, 10).until(EC.element_to_be_clickable((By.XPATH, '/html/body/div[1]/div[3]/div[1]/div[2]/div/div[2]/div[1]/button')))
                 except TimeoutException:
                     pass
                 finally:
@@ -136,7 +172,7 @@ class ScaricoCompleto():
                     self.driver.find_element(by=By.NAME, value='new').click()
                 # Nome lista
                 try:
-                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.NAME, 'nom'))) # Nome
+                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.NAME, 'nom'))) # Nome
                 except TimeoutException:
                     pass
                 finally:
@@ -195,7 +231,7 @@ class ScaricoCompleto():
                 #     pass
                 # Esporta CSV completo
                 try:
-                    WebDriverWait(self.driver, 3).until(EC.presence_of_element_located((By.XPATH, '//*[@id="quantasearch"]/div[1]/div/div[2]/div/ul/li[4]/a'))) # CSV completo
+                    WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="quantasearch"]/div[1]/div/div[2]/div/ul/li[4]/a'))) # CSV completo
                 except TimeoutException:
                     pass
                 finally:
@@ -208,6 +244,28 @@ class ScaricoCompleto():
                 latest_file = max(list_of_files, key=os.path.getctime)
                 os.rename(latest_file, self.directory_output_liste_complete.joinpath(filename[:-4]+'.csv'))
 
+                # Scarico articolo SFDR
+                self.driver.find_element(by=By.XPATH, value='//*[@id="quantasearch"]/div[2]/ul/li[7]/a').click()
+                try:
+                    WebDriverWait(self.driver, 20).until(EC.presence_of_element_located((By.XPATH, '//*[@id="DataTables_Table_0"]/thead/tr/th[4]'))).text == 'SFDR'
+                except TimeoutException:
+                    pass
+                finally:
+                    # Numero elementi arrotondati sempre in eccesso
+                    totale_fondi_lista = self.driver.find_element(by=By.XPATH, value='//*[@id="DataTables_Table_0_info"]').text.replace(',','')
+                    print(f'{totale_fondi_lista}\n')
+                    num_fondi_regex = re.compile(r'\d(\d)?(\d)?(\d)?')
+                    mo = num_fondi_regex.search(totale_fondi_lista)
+                    numero_fondi = mo.group()
+                    # Calcolo numero pagine
+                    NUMERO_FONDI_PER_PAGINA = 100
+                    # numero_pagine = int(round(int(numero_fondi) / NUMERO_FONDI_PER_PAGINA, 0) + 1) - 1 # se ci sono 115 fondi non funziona
+                    numero_pagine = int(int(numero_fondi) / NUMERO_FONDI_PER_PAGINA) + 1
+                    print('numero pagine:', numero_pagine)
+                    # Scarica l'articolo SFDR
+                    df = self.get_data_from_table(self.driver, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table', numero_pagine)
+                    df.to_csv(self.directory.joinpath('docs','sfdr'+filename[-6:-4]+'.csv'), sep=";", decimal=',', index=False)
+                        
         self.driver.close()
 
 
