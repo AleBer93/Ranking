@@ -120,6 +120,9 @@ class Completo():
         elif self.intermediario == 'CRV':
             colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese', 'Rischio 3 anni") fine mese',
                 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI']
+        elif self.intermediario == 'RIPA':
+            colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese', 'Rischio 3 anni") fine mese',
+                'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI', 'SFDR']
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df = df.loc[:, colonne]
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
@@ -146,7 +149,6 @@ class Completo():
 
     def assegna_macro(self):
         """Assegna una macrocategoria ad ogni microcategoria."""
-        # Controlla se l'assegnazione funziona per BPPB (ho modificato i globali high yield)
         BPPB_dict = {'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ', 'Monetari altre valute europ' : 'LIQ',
             'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 'Obblig. Euro a scadenza' : 'OBB_BT',
             'Obblig. Euro gov. medio termine' : 'OBB_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_MLT', 'Obblig. Euro lungo termine' : 'OBB_MLT', 
@@ -276,12 +278,14 @@ class Completo():
             'Bilanc. Prud. Global' : 'FLEX', 'Bilanc. Prud. altre valute' : 'FLEX', 'Bilanc. Equilib. Europa' : 'FLEX', 
             'Bilanc. Equil. Global Euro' : 'FLEX', 'Bilanc. Equil. Dollaro US' : 'FLEX', 'Bilanc. Equil. Global' : 'FLEX', 
             'Bilanc. Equil. altre valute' : 'FLEX', 'Bilanc. Aggress. Europa' : 'FLEX', 'Bilanc. Aggress. Global Euro' : 'FLEX', 
-            'Bilanc. aggress. Dollaro US' : 'FLEX', 'Bilanc. Aggress. Global' : 'FLEX', 'Bilanc. Aggress. altre valute' : 'FLEX', 'Flessibili Europa' : 'FLEX', 'Fless. Global Euro' : 'FLEX', 'Flessibili prudenti Europa' : 'FLEX', 
+            'Bilanc. aggress. Dollaro US' : 'FLEX', 'Bilanc. Aggress. Global' : 'FLEX', 'Bilanc. Aggress. altre valute' : 'FLEX', 'Flessibili Europa' : 'FLEX', 
+            'Fless. Global Euro' : 'FLEX', 'Flessibili prudenti Europa' : 'FLEX', 
             'Flessibili Dollaro US' : 'FLEX', 'Flessibili prudenti globale' : 'FLEX', 'Fless. Global' : 'FLEX',
             'Commodities a leva' : 'OPP', 'Commodities Bear' : 'OPP', 'Commodities' : 'OPP', 'Obblig. Convertib. Euro' : 'OPP', 
             'Obblig. Convertib. Europa' : 'OPP', 'Obblig. Convertib. Dollaro US' : 'OPP', 'Obblig. Convertib. Glob.' : 'OPP', 
             'Az. real estate Europa' : 'OPP', 'Az. Biotech' : 'OPP', 'Az. beni di consumo' : 'OPP', 'Az. ambiente' : 'OPP', 
-            'Az. energia, materie prime, oro' : 'OPP', 'Az. energia. materie prime. oro' : 'OPP', 'Az. energia materie prime oro' : 'OPP', 'Az. real estate Mondo' : 'OPP', 'Az. industria' : 'OPP', 'Az. salute   farmaceutico' : 'OPP', 
+            'Az. energia, materie prime, oro' : 'OPP', 'Az. energia. materie prime. oro' : 'OPP', 'Az. energia materie prime oro' : 'OPP',
+            'Az. real estate Mondo' : 'OPP', 'Az. industria' : 'OPP', 'Az. salute   farmaceutico' : 'OPP', 
             'Az. salute – farmaceutico' : 'OPP', 'Az. salute - farmaceutico' : 'OPP', 'Az. Servizi di pubblica utilita' : 'OPP', 
             'Az. servizi finanziari' : 'OPP', 'Az. tecnologia' : 'OPP', 'Az. telecomunicazioni' : 'OPP', 'Az. Oro' : 'OPP', 
             'Az. Bear' : 'OPP', 'Obblig. Bear' : 'OPP', 'Valuta Long/Short' : 'OPP', 'Altri' : 'OPP', 'Perf. ass. Dividendi' : 'OPP', 
@@ -291,6 +295,52 @@ class Completo():
             'Perf. ass. USD' : 'OPP', 'Fondi  a garanzia o a formula Euro' : 'OPP', 'Fondi a scadenza pred. Euro' : 'OPP', 
             'Fondi a scadenza pred. altre valute' : 'OPP', 'Obblig. Euro a scadenza' : 'OPP', 
             }
+        RIPA_dict = {'Monetari Euro' : 'LIQ',
+            'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT',
+            'Obblig. Euro gov. medio termine' : 'OBB_MLT', 'Obblig. Euro lungo termine' : 'OBB_MLT', 'Obblig. Euro medio term.' : 'OBB_MLT', 
+            'Obblig. Euro gov. lungo termine' : 'OBB_MLT', 'Obblig. Euro gov.' : 'OBB_MLT', 'Obblig. Euro all maturities' : 'OBB_MLT', 
+            'Obblig. Euro a scadenza' : 'OBB_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 'Obblig. Convertib. Euro' : 'OBB_MLT', 
+            'Obblig. Euro corporate' : 'OBB_CORP', 
+            'Obblig. Europa' : 'OBB_EUR', 'Obblig. Sterlina inglese' : 'OBB_EUR', 'Obblig. Franco svizzero' : 'OBB_EUR', 
+            'Obblig. Convertib. Europa' : 'OBB_EUR',
+            'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB',
+            'Obblig. altre valute' : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB', 'Obblig. Convertib. Glob.' : 'OBB_GLOB',
+            'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM',
+            'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM',
+            'Obblig. Dollaro US breve term.' : 'OBB_USA', 'Obblig. USD medio-lungo term.' : 'OBB_USA', 'Obblig. Dollaro US corporate' : 'OBB_USA', 
+            'Obblig. Dollaro US all mat' : 'OBB_USA', "Obblig. Indicizz. all'inflaz. USD" : 'OBB_USA', 
+            'Obblig. Yen' : 'OBB_JAP',
+            'Obblig. Euro high yield' : 'OBB_GLOB_HY', 'Obblig. Europa High Yield' : 'OBB_GLOB_HY',
+            'Obblig. Dollaro US high yield' : 'OBB_GLOB_HY', 'Obblig. globale high yield' : 'OBB_GLOB_HY',
+            'Az. Area Euro' : 'AZ_EUR', 'Az. Area Euro small cap' : 'AZ_EUR', 'Az. Area Euro Growth' : 'AZ_EUR', 'Az. Area Euro Value' : 'AZ_EUR', 
+            'Az. Europa' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 'Az. Europa Value' : 'AZ_EUR', 'Az. Belgio' : 'AZ_EUR', 
+            'Az. Francia' : 'AZ_EUR', 'Az. Francia small cap' : 'AZ_EUR', 'Az. Germania' : 'AZ_EUR', 'Az. Germania small cap' : 'AZ_EUR', 'Az. Spagna' : 'AZ_EUR', 
+            'Az. Paesi Bassi' : 'AZ_EUR', 'Az. Italia' : 'AZ_EUR', 'Az. UK' : 'AZ_EUR', 'Az. UK small cap' : 'AZ_EUR', 'Az. Svizzera' : 'AZ_EUR',
+            'Az.Svizzera small cap' : 'AZ_EUR', 'Az. paesi nordici' : 'AZ_EUR', 'Az. Europa altri paesi' : 'AZ_EUR',
+            'Az. USA' : 'AZ_NA', 'Az. USA small cap' : 'AZ_NA', 'Az. USA Growth' : 'AZ_NA', 'Az. USA Value' : 'AZ_NA',
+            'Az. Asia Pacifico ex Giapp.' : 'AZ_PAC', 'Az. Giappone' : 'AZ_PAC', 'Az. Giappone small cap' : 'AZ_PAC', 'Az. Pacifico' : 'AZ_PAC', 
+            'Az. Brasile' : 'AZ_EM', 'Az. Cina' : 'AZ_EM', 'Az. India' : 'AZ_EM', 'Az. Altri paesi emerg.' : 'AZ_EM', 
+            'Az. Paesi Emerg. Europa e Russia' : 'AZ_EM', 'Az. Paesi Emerg. Europa ex Russia' : 'AZ_EM', 'Az. paesi emerg. Asia' :'AZ_EM', 
+            'Az. BRIC' : 'AZ_EM', 'Az. Grande Cina' : 'AZ_EM', 'Az. paesi emerg. America Latina' : 'AZ_EM', 'Az. paesi emerg. altre zone' : 'AZ_EM', 
+            'Az. paesi emerg. Mondo' : 'AZ_EM', 
+            'Az. globale' : 'AZ_GLOB', 'Az. globale small cap' : 'AZ_GLOB', 'Az. globale Growth' : 'AZ_GLOB', 'Az. globale Value' : 'AZ_GLOB', 
+            'Az. Biotech' : 'AZ_BIO', 'Az. beni di consumo' : 'AZ_BDC', 'Az. servizi finanziari' : 'AZ_FIN', 'Az. ambiente' : 'AZ_AMB', 
+            'Az. real estate Europa' : 'AZ_IMM', 'Az. real estate Mondo' : 'AZ_IMM', 'Az. industria' : 'AZ_IND', 
+            'Az. energia materie prime oro' : 'AZ_ECO', 'Az. salute - farmaceutico' : 'AZ_SAL', 'Az. Servizi di pubblica utilita' : 'AZ_SPU', 
+            'Az. tecnologia' : 'AZ_TEC', 'Az. telecomunicazioni' : 'AZ_TEL', 'Az. Oro' : 'AZ_ORO', 'Az. Bear' : 'AZ_BEAR', 
+            'Perf. ass. Dividendi' : 'PERF_ASS', 'Perf. Ass. Arbitr.Fus.-acquis. Euro' : 'PERF_ASS', 'Perf. assoluta strategia valute' : 'PERF_ASS', 
+            'Perf. assoluta Market Neutral Euro' : 'PERF_ASS', 'Perf. ass. Long/Short eq.' : 'PERF_ASS', 'Perf. assoluta tassi' : 'PERF_ASS', 
+            'Perf. assoluta volatilita' : 'PERF_ASS', 'Perf. assoluta multi-strategia' : 'PERF_ASS', 'Perf. assoluta (GBP)' : 'PERF_ASS', 
+            'Perf. ass. USD' : 'PERF_ASS', 
+            'Flessibili prudenti Europa' : 'FLEX', 'Flessibili prudenti globale' : 'FLEX', 'Flessibili Europa' : 'FLEX', 'Fless. Global' : 'FLEX', 
+            'Flessibili Dollaro US' : 'FLEX', 
+            'Commodities' : 'COMM', 'Commodities a leva' : 'COMM', 'Commodities Bear' : 'COMM', 
+            'Monetari altre valute europ' : 'ND', 'Monetari Dollaro USA' : 'ND', 'Monetari ex Europa altre valute' : 'ND', 
+            'Bilanc. Prud. Europa' : 'ND', 'Bilanc. Prud. Dollaro US' : 'ND', 'Bilanc. Prud. altre valute' : 'ND', 'Bilanc. Prud. Global' : 'ND', 
+            'Bilanc. Equilib. Europa' : 'ND', 'Bilanc. Equil. Dollaro US' : 'ND', 'Bilanc. Equil. Global' : 'ND', 'Bilanc. Equil. altre valute' : 'ND', 
+            'Bilanc. aggress. Dollaro US' : 'ND', 'Bilanc. Aggress. altre valute' : 'ND', 'Bilanc. Aggress. Global' : 'ND', 
+            'Fondi a scadenza pred. Euro' : 'ND', 'Obblig. paesi emerg. Asia' : 'ND', 'Altri' : 'ND', 
+            }
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         if self.intermediario == 'BPPB':
             df['macro_categoria'] = df['Categoria Quantalys'].map(BPPB_dict)
@@ -298,6 +348,11 @@ class Completo():
             df['macro_categoria'] = df['Categoria Quantalys'].map(BPL_dict)
         elif self.intermediario == 'CRV':
             df['macro_categoria'] = df['Categoria Quantalys'].map(CRV_dict)
+        elif self.intermediario == 'RIPA':
+            df['macro_categoria'] = df['Categoria Quantalys'].map(RIPA_dict)
+            # Nel caso di Ripa solo le micro categorie appartenenti ad una macro nella sezione asset allocation vengono analizzate, mentre
+            # le altre vengono scartate. Assegno dunque tutte le micro categorie senza macro ad una macro fittizzia 'ND', che mi tornerà utile
+            # per scartare interamente questa macro dall'analisi.
         print(f"Ci sono {df['macro_categoria'].isnull().sum()} fondi a cui non è stata assegnata una macro categoria.")
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
@@ -638,24 +693,24 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='BPPB', t1='31/05/2022')
-    _.concatenazione_liste_complete()
-    _.concatenazione_sfdr()
-    _.concatenazione_completo_sfdr()
-    _.fondi_non_presenti()
-    _.correzione_micro_russe()
-    _.change_datatype(SRRI = float)
-    _.seleziona_colonne()
-    _.merge_files()
+    _ = Completo(intermediario='RIPA', t1='31/08/2022')
+    # _.concatenazione_liste_complete()
+    # _.concatenazione_sfdr()
+    # _.concatenazione_completo_sfdr()
+    # _.fondi_non_presenti()
+    # _.correzione_micro_russe()
+    # _.change_datatype(SRRI = float)
+    # _.seleziona_colonne()
+    # _.merge_files()
     _.assegna_macro()
-    _.sconta_commissioni()
-    _.scarico_datadiavvio()
-    _.correzione_alfa_IR_nulli('doppio')
-    _.attività('doppio')
-    _.indicatore_BS('doppio')
-    _.calcolo_best_worst('doppio')
-    _.discriminazione_flessibili()
-    _.seleziona_e_rinomina_colonne('doppio')
-    _.creazione_liste_input()
+    # _.sconta_commissioni()
+    # _.scarico_datadiavvio()
+    # _.correzione_alfa_IR_nulli('doppio') # salta per CRV
+    # _.attività('doppio') # salta per CRV
+    # _.indicatore_BS('doppio') # salta per CRV
+    # _.calcolo_best_worst('doppio') # salta per CRV
+    # _.discriminazione_flessibili()
+    # _.seleziona_e_rinomina_colonne('doppio')
+    # _.creazione_liste_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
