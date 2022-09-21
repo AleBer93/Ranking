@@ -314,7 +314,7 @@ class Scarico():
                     if filename.startswith('AZ') or filename.startswith('OBB'):
                         # Aggiungi TEV e IR
                         self.aggiungi_indicatori('TEV da data a data', 'Information ratio da data a data')
-                    elif filename.startswith('FLEX') or filename.startswith('BIL'):
+                    elif filename.startswith('FLEX') or filename.startswith('BIL') or filename.startwith('COMM') or filename.startswith('PERF'):
                         # Aggiungi DSR e Sortino
                         self.aggiungi_indicatori('DSR da data a data', 'Sortino ratio da data a data')
                     elif filename.startswith('OPP'):
@@ -330,7 +330,7 @@ class Scarico():
                         if filename.startswith('AZ') or filename.startswith('OBB'):
                             # Aggiungi TEV e IR
                             self.aggiungi_indicatori('TEV da data a data', 'Information ratio da data a data')
-                        elif filename.startswith('FLEX') or filename.startswith('BIL'):
+                        elif filename.startswith('FLEX') or filename.startswith('BIL') or filename.startwith('COMM') or filename.startswith('PERF'):
                             # Aggiungi DSR e Sortino
                             self.aggiungi_indicatori('DSR da data a data', 'Sortino ratio da data a data')
                         elif filename.startswith('OPP'):
@@ -348,7 +348,7 @@ class Scarico():
                             if filename.startswith('AZ') or filename.startswith('OBB'):
                                 # Aggiungi TEV e IR
                                 self.aggiungi_indicatori('TEV da data a data', 'Information ratio da data a data')
-                            elif filename.startswith('FLEX') or filename.startswith('BIL'):
+                            elif filename.startswith('FLEX') or filename.startswith('BIL') or filename.startwith('COMM') or filename.startswith('PERF'):
                                 # Aggiungi DSR e Sortino
                                 self.aggiungi_indicatori('DSR da data a data', 'Sortino ratio da data a data')
                             elif filename.startswith('OPP'):
@@ -364,7 +364,7 @@ class Scarico():
                                 else:
                                     self.rimuovi_indicatori(4)
                                     self.aggiungi_indicatori('TEV da data a data', 'Information ratio da data a data')
-                            elif filename.startswith('FLEX') or filename.startswith('BIL'):
+                            elif filename.startswith('FLEX') or filename.startswith('BIL') or filename.startwith('COMM') or filename.startswith('PERF'):
                                 if ind_4 == 'Sortino ratio da data a data' and ind_5 == 'DSR da data a data':
                                     pass
                                 else:
@@ -384,19 +384,31 @@ class Scarico():
                                     self.aggiungi_indicatori('Volatilità da data a data', 'Perf Ann. da data a data')
 
             # Aggiungi benchmark
-            classi_a_benchmark_BPPB = {'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 
+            classi_a_benchmark_BPPB = {
+                'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 
                 'OBB_BT': '2265', 'OBB_MLT': '2264', 'OBB_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_EM': '2476', 'OBB_GLOB_HY': '2293'}
-            classi_a_benchmark_BPL = {'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
+            classi_a_benchmark_BPL = {
+                'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
                 'OBB_BT': '2265', 'OBB_MLT': '2264', 'OBB_EUR': '2255', 'OBB_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_USA': '2490',
                 'OBB_EM': '2476', 'OBB_GLOB_HY': '2293'}
-            classi_a_benchmark_CRV = {'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
+            classi_a_benchmark_CRV = {
+                'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
                 'OBB_BT': '2265', 'OBB_MLT': '2264', 'OBB_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_EM': '2476', 'OBB_GLOB_HY': '2293'}
+            classi_a_benchmark_RIPA = {
+                'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318', 
+                'AZ_BIO' : '2240', 'AZ_BDC' : '2318', 'AZ_FIN' : '2716', 'AZ_AMB' : '2318', 'AZ_IMM' : '2187', 'AZ_IND' : '2175', 
+                'AZ_ECO' : '2174', 'AZ_SAL' : '2178', 'AZ_SPU' : '2181', 'AZ_TEC' : '2179', 'AZ_TEL' : '2180', 'AZ_ORO' : '2318', 
+                'AZ_BEAR' : '2318', 
+                'OBB_BT': '2265', 'OBB_MLT': '2264', 'OBB_CORP': '2272', 'OBB_EUR': '2255', 'OBB_USA': '2490', 'OBB_JAP' : '2309', 
+                'OBB_GLOB': '2309', 'OBB_EM': '2476', 'OBB_GLOB_HY': '2293'}
             if self.intermediario == 'BPPB':
                 classi_a_benchmark = classi_a_benchmark_BPPB
             elif self.intermediario == 'BPL':
                 classi_a_benchmark = classi_a_benchmark_BPL
             elif self.intermediario == 'CRV':
                 classi_a_benchmark = classi_a_benchmark_CRV
+            elif self.intermediario == 'RIPA':
+                classi_a_benchmark = classi_a_benchmark_RIPA
             if filename[:-6] in classi_a_benchmark.keys():
                 self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_rdIndiceRefTousFonds"]').click() # Aggiungi benchmark se classe a benchmark
                 # time.sleep(1) # troppo lento
@@ -565,7 +577,7 @@ class Scarico():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Scarico(intermediario='BPPB', t1='31/05/2022')
+    _ = Scarico(intermediario='RIPA', t1='31/08/2022')
     _.accesso_a_quantalys()
     _.login()
     _.export()
