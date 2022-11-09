@@ -83,7 +83,8 @@ class Completo():
             'AZ_BDC' : 'Az. beni di consumo', 'AZ_FIN' : 'Az. servizi finanziari', 'AZ_AMB' : 'Az. ambiente', 
             'AZ_IMM' : 'Az. real estate Mondo', 'AZ_IND' : 'Az. industria', 'AZ_ECO' : 'Az. energia materie prime oro', 
             'AZ_SAL' : 'Az. salute - farmaceutico', 'AZ_SPU' : 'Az. Servizi di pubblica utilita', 'AZ_TEC' : 'Az. tecnologia', 
-            'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear'}
+            'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear',
+        }
 
     def concatenazione_liste_complete(self):
         """
@@ -211,7 +212,8 @@ class Completo():
             'Obblig. Euro corporate' : 'OBB_CORP', 
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 
-            'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM',
+            'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 
+            'Obblig. Paesi Emerg. Asia Local Ccy' : 'OBB_EM', 
             'Obblig. Dollaro US breve term.' : 'OBB_GLOB', 'Obblig. USD medio-lungo term.' : 'OBB_GLOB', 
             'Obblig. Dollaro US medio-lungo term.' : 'OBB_GLOB', 'Obblig. USD corporate' : 'OBB_GLOB', 
             'Obblig. Dollaro US corporate' : 'OBB_GLOB', 'Obblig. Doll. US all maturities' : 'OBB_GLOB', 
@@ -232,9 +234,10 @@ class Completo():
             'Az. USA Value' : 'AZ_NA', 'Az. Canada' : 'AZ_NA', 
             'Az. Asia Pacifico ex Giapp.' : 'AZ_PAC', 'Az. Giappone' : 'AZ_PAC', 'Az. Giappone small cap' : 'AZ_PAC', 
             'Az. Pacifico' : 'AZ_PAC', 
-            'Az. Paesi Emerg. Europa e Russia' : 'AZ_EM', 'Az. Paesi Emerg. Europa ex Russia' : 'AZ_EM', 
-            'Az. paesi emerg. Asia' : 'AZ_EM', 'Az. BRIC' : 'AZ_EM', 'Az. Grande Cina' : 'AZ_EM', 
+            'Az. Paesi Emerg. Europa e Russia' : 'AZ_EM', 'Az. Paesi Emerg. Europa ex Russia' : 'AZ_EM', 'Az. Russia' : 'AZ_EM',
+            'Az. paesi emerg. Asia' : 'AZ_EM', 'Az. BRIC' : 'AZ_EM', 'Az. Grande Cina' : 'AZ_EM', 'Az. Cina' : 'AZ_EM',
             'Az. paesi emerg. America Latina' : 'AZ_EM', 'Az. paesi emerg. altre zone' : 'AZ_EM', 'Az. paesi emerg. Mondo' : 'AZ_EM', 
+            'Az. India' : 'AZ_EM', 'Az. Brasile' : 'AZ_EM', 'Az. Altri paesi emerg.' : 'AZ_EM', 
             'Commodities a leva' : 'OPP', 'Commodities Bear' : 'OPP', 'Commodities' : 'OPP', 'Obblig. Convertib. Euro' : 'OPP', 
             'Obblig. Convertib. Europa' : 'OPP', 'Obblig. Convertib. Dollaro US' : 'OPP', 'Obblig. Convertib. Glob.' : 'OPP', 
             'Az. real estate Europa' : 'OPP', 'Az. Biotech' : 'OPP', 'Az. beni di consumo' : 'OPP', 'Az. ambiente' : 'OPP', 
@@ -255,7 +258,8 @@ class Completo():
             'Perf. assoluta Market Neutral Euro' : 'FLEX', 'Perf. ass. Long/Short eq.' : 'FLEX', 'Perf. assoluta tassi' : 'FLEX', 
             'Perf. assoluta volatilita' : 'FLEX', 'Perf. assoluta multi-strategia' : 'FLEX', 'Perf. assoluta (GBP)' : 'FLEX', 
             'Perf. ass. USD' : 'FLEX', 'Fondi  a garanzia o a formula Euro' : 'FLEX', 'Az. globale' : 'FLEX', 
-            'Az. globale small cap' : 'FLEX', 'Az. globale Growth' : 'FLEX', 'Az. globale Value' : 'FLEX',
+            'Az. globale small cap' : 'FLEX', 'Az. globale Growth' : 'FLEX', 'Az. globale Value' : 'FLEX', 
+            'F.a garanz. o a formul. altr valu.' : 'FLEX', 
             }
         BPL_dict = {
             'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 
@@ -272,7 +276,8 @@ class Completo():
             'Obblig. Euro corporate' : 'OBB_CORP', 
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM',  'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 
-            'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM',
+            'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 
+            'Obblig. Paesi Emerg. Asia Local Ccy' : 'OBB_EM', 
             'Obblig. Dollaro US breve term.' : 'OBB_USA', 'Obblig. USD medio-lungo term.' : 'OBB_USA', 
             'Obblig. Dollaro US medio-lungo term.' : 'OBB_USA', 'Obblig. USD corporate' : 'OBB_USA', 
             'Obblig. Dollaro US corporate' : 'OBB_USA', 'Obblig. Doll. US all maturities' : 'OBB_USA', 
@@ -310,7 +315,7 @@ class Completo():
             'Perf. assoluta strategia valute' : 'OPP', 'Perf. assoluta Market Neutral Euro' : 'OPP', 'Perf. ass. Long/Short eq.' : 'OPP', 
             'Perf. assoluta tassi' : 'OPP', 'Perf. assoluta volatilita' : 'OPP', 'Perf. assoluta multi-strategia' : 'OPP', 
             'Perf. assoluta (GBP)' : 'OPP', 'Perf. ass. USD' : 'OPP', 'Fondi  a garanzia o a formula Euro' : 'OPP', 
-            'Valuta Long/Short' : 'OPP',
+            'Valuta Long/Short' : 'OPP', 'F.a garanz. o a formul. altr valu.' : 'OPP', 
             'Bilanc. Prud. Europa' : 'BIL', 'Bilanc. Prud. Global Euro' : 'BIL', 'Bilanc. Prud. Dollaro US' : 'BIL', 
             'Bilanc. Prud. Global' : 'BIL', 'Bilanc. Prud. altre valute' : 'BIL', 'Bilanc. Equilib. Europa' : 'BIL', 
             'Bilanc. Equil. Global Euro' : 'BIL', 'Bilanc. Equil. Dollaro US' : 'BIL', 'Bilanc. Equil. Global' : 'BIL', 
@@ -331,6 +336,7 @@ class Completo():
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 
             'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 
+            'Obblig. Paesi Emerg. Asia Local Ccy' : 'OBB_EM', 
             'Obblig. Dollaro US breve term.' : 'OBB_GLOB', 'Obblig. USD medio-lungo term.' : 'OBB_GLOB', 
             'Obblig. Dollaro US medio-lungo term.' : 'OBB_GLOB', 'Obblig. USD corporate' : 'OBB_GLOB', 
             'Obblig. Dollaro US corporate' : 'OBB_GLOB', 'Obblig. Doll. US all maturities' : 'OBB_GLOB', 
@@ -377,7 +383,7 @@ class Completo():
             'Perf. assoluta Market Neutral Euro' : 'OPP', 'Perf. ass. Long/Short eq.' : 'OPP', 'Perf. assoluta tassi' : 'OPP', 
             'Perf. assoluta volatilita' : 'OPP', 'Perf. assoluta multi-strategia' : 'OPP', 'Perf. assoluta (GBP)' : 'OPP', 
             'Perf. ass. USD' : 'OPP', 'Fondi  a garanzia o a formula Euro' : 'OPP', 'Fondi a scadenza pred. Euro' : 'OPP', 
-            'Fondi a scadenza pred. altre valute' : 'OPP', 'Obblig. Euro a scadenza' : 'OPP', 
+            'Fondi a scadenza pred. altre valute' : 'OPP', 'Obblig. Euro a scadenza' : 'OPP', 'F.a garanz. o a formul. altr valu.' : 'OPP', 
             }
         RIPA_dict = {
             'Monetari Euro' : 'LIQ', 
@@ -411,7 +417,7 @@ class Completo():
             'Az. Brasile' : 'AZ_EM', 'Az. Cina' : 'AZ_EM', 'Az. India' : 'AZ_EM', 'Az. Altri paesi emerg.' : 'AZ_EM', 
             'Az. Paesi Emerg. Europa e Russia' : 'AZ_EM', 'Az. Paesi Emerg. Europa ex Russia' : 'AZ_EM', 'Az. paesi emerg. Asia' :'AZ_EM', 
             'Az. BRIC' : 'AZ_EM', 'Az. Grande Cina' : 'AZ_EM', 'Az. paesi emerg. America Latina' : 'AZ_EM', 
-            'Az. paesi emerg. altre zone' : 'AZ_EM', 'Az. paesi emerg. Mondo' : 'AZ_EM', 
+            'Az. paesi emerg. altre zone' : 'AZ_EM', 'Az. paesi emerg. Mondo' : 'AZ_EM',
             'Az. globale' : 'AZ_GLOB', 'Az. globale small cap' : 'AZ_GLOB', 'Az. globale Growth' : 'AZ_GLOB', 
             'Az. globale Value' : 'AZ_GLOB', 
             'Az. Biotech' : 'AZ_BIO', 'Az. beni di consumo' : 'AZ_BDC', 'Az. servizi finanziari' : 'AZ_FIN', 'Az. ambiente' : 'AZ_AMB', 
@@ -453,16 +459,19 @@ class Completo():
         Cancella le micro categorie appartenenti alle macrocategorie mappate come ND.
         Metodo usato solo da RIPA.
         """
-        delete_keyword = 'ND'
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        df_to_delete = df[df['macro_categoria'] == delete_keyword]
-        if df_to_delete.empty:
-            pass
+        if self.intermediario == 'RIPA':
+            delete_keyword = 'ND'
+            df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+            df_to_delete = df[df['macro_categoria'] == delete_keyword]
+            if df_to_delete.empty:
+                pass
+            else:
+                print(f'{df_to_delete.shape[0]} fondi sono stati eliminati dal catalogo')
+                df_to_delete.to_csv(self.directory.joinpath('docs', 'prodotti_cancellati.csv'), sep=";", decimal=',', index=False)
+                df = df.loc[df['macro_categoria'] != delete_keyword, :]
+            df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
         else:
-            print(f'{df_to_delete.shape[0]} fondi sono stati eliminati dal catalogo')
-            df_to_delete.to_csv(self.directory.joinpath('docs', 'prodotti_cancellati.csv'), sep=";", decimal=',', index=False)
-            df = df.loc[df['macro_categoria'] != delete_keyword, :]
-        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+            return None
 
     def sconta_commissioni(self):
         """Sconta le commissioni dei fondi in base alla loro macro categoria"""
@@ -536,6 +545,8 @@ class Completo():
         Sostiuisci i valori di alfa e IR 0 con i valori corretti.
         """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        if self.intermediario == 'CRV':
+            quit()
         if self.metodo == 'singolo':
             # Indicatore corretto a 3 anni
             while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
@@ -670,7 +681,8 @@ class Completo():
         elif self.metodo == 'doppio':
             for macro in list(macro_micro.keys()):
                 for micro in df.loc[df['macro_categoria'] == macro, 'Categoria Quantalys'].unique():
-                    if micro in list(macro_micro.values()):
+                    # Ripa, un singolo consulente finanziario, pretende di mescolare i tre diversi gradi di attività in ciascuna micro categoria
+                    if micro in list(macro_micro.values()) and self.intermediario != 'RIPA':
                         for grado in df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro), 'grado_gestione_3Y'].unique():
                             mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'BS_3_anni'].median()
                             df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'Best_Worst_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
@@ -790,24 +802,24 @@ class Completo():
 if __name__ == '__main__':
     start = time.perf_counter()
     _ = Completo(intermediario='RIPA', t1='31/08/2022', metodo='doppio')
-    _.concatenazione_liste_complete()
-    _.concatenazione_sfdr()
-    _.concatenazione_completo_sfdr()
-    _.fondi_non_presenti()
-    _.correzione_micro_russe()
-    _.change_datatype(SRRI = float)
-    _.seleziona_colonne()
-    _.merge_files()
-    _.assegna_macro()
-    _.cancella_macro()
+    # _.concatenazione_liste_complete()
+    # _.concatenazione_sfdr()
+    # _.concatenazione_completo_sfdr()
+    # _.fondi_non_presenti()
+    # _.correzione_micro_russe()
+    # _.change_datatype(SRRI = float)
+    # _.seleziona_colonne()
+    # _.merge_files()
+    # _.assegna_macro()
+    # _.cancella_macro()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
-    # _.correzione_alfa_IR_nulli() # salta per CRV
+    # _.correzione_alfa_IR_nulli()
     # _.attività()
     # _.indicatore_BS()
     # _.calcolo_best_worst()
-    # _.discriminazione_flessibili()
-    # _.seleziona_e_rinomina_colonne()
+    _.discriminazione_flessibili()
+    _.seleziona_e_rinomina_colonne()
     # _.creazione_liste_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
