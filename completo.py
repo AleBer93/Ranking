@@ -725,7 +725,8 @@ class Completo():
             quit()
         elif self.intermediario == 'RIPA':
             macro_micro = self.classi_a_benchmark_RIPA_metodo_doppio
-
+        elif self.intermediario == 'RAI':
+            macro_micro = self.classi_a_benchmark_RAI_metodo_doppio
 
         if self.metodo == 'singolo':
             for macro in classi:
