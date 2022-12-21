@@ -796,7 +796,6 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
     
     def seleziona_e_rinomina_colonne(self):
-        # In BPPB e BPL servono le colonne relative al BS_3_anni e BS_1_anno
         """
         Seleziona solo le colonne utili del file completo.
         Rinomina le colonne del file_excel.
@@ -836,6 +835,14 @@ class Completo():
                     'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
                 col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
                     'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
+        elif self.intermediario == 'RAI':
+            # Rispetto agli altri intermediari che utilizzano il metodo doppio, Raiffeisen si trascina la colonna
+            # 'anni_detenzione' in cui viene specificato l'anno di detenzione di ogni singolo fondo.
+            if self.metodo == 'doppio':
+                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
+                    'commissione', 'anni_detenzione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
+                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
+                    'commissione', 'anni_detenzione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df = df[col_sel]
         df.columns = col_ren
@@ -877,8 +884,8 @@ if __name__ == '__main__':
     # _.attività()
     # _.indicatore_BS()
     # _.calcolo_best_worst()
-    _.discriminazione_flessibili()
-    # _.seleziona_e_rinomina_colonne()
+    # _.discriminazione_flessibili()
+    _.seleziona_e_rinomina_colonne()
     # _.creazione_liste_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
