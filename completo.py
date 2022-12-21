@@ -737,7 +737,11 @@ class Completo():
             for macro in list(macro_micro.keys()):
                 for micro in df.loc[df['macro_categoria'] == macro, 'Categoria Quantalys'].unique():
                     # Ripa, un singolo consulente finanziario, pretende di mescolare i tre diversi gradi di attività in ciascuna micro categoria
-                    if micro in list(macro_micro.values()) and self.intermediario != 'RIPA':
+                    # Ogni altro intermediario o consulente finanziario che scelga la soluzione 4, ovvero nessun ordinamento, rendendo inutile il metodo
+                    # doppio, deve essere inserito nella condizione sotto per trattare le micro categorie direzionali alla pari delle altre, senza
+                    # discriminarle per grado di attività. Si tratta di una condizione temporanea; dopo il primo o i primi giri di ranking, le realtà
+                    # sceglieranno un ordinamento tra i tre disponibili.
+                    if micro in list(macro_micro.values()) and self.intermediario != 'RIPA' and self.intermediario != 'RAI':
                         for grado in df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro), 'grado_gestione_3Y'].unique():
                             mediana = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'BS_3_anni'].median()
                             df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'Best_Worst_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
@@ -872,8 +876,8 @@ if __name__ == '__main__':
     # _.correzione_alfa_IR_nulli()
     # _.attività()
     # _.indicatore_BS()
-    _.calcolo_best_worst()
-    # _.discriminazione_flessibili()
+    # _.calcolo_best_worst()
+    _.discriminazione_flessibili()
     # _.seleziona_e_rinomina_colonne()
     # _.creazione_liste_input()
     end = time.perf_counter()
