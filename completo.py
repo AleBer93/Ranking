@@ -17,6 +17,7 @@ class Completo():
     BPL è passata da metodo singolo a metodo doppio
     CRV usa il metodo lineare
     RIPA usa il metodo doppio
+    RAI ...
     """
 
     def __str__(self):
@@ -84,6 +85,13 @@ class Completo():
             'AZ_IMM' : 'Az. real estate Mondo', 'AZ_IND' : 'Az. industria', 'AZ_ECO' : 'Az. energia materie prime oro', 
             'AZ_SAL' : 'Az. salute - farmaceutico', 'AZ_SPU' : 'Az. Servizi di pubblica utilita', 'AZ_TEC' : 'Az. tecnologia', 
             'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear',
+        }
+        self.classi_a_benchmark_RAI_metodo_doppio = {
+            'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
+            'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_EUR' : 'Obblig. Europa', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
+            'OBB_GLOB' : 'Obblig. globale', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+            'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
+            'AZ_GLOB' : 'Az. globale', 
         }
 
     def concatenazione_liste_complete(self):
@@ -164,7 +172,7 @@ class Completo():
         Arguments:
             colonne {tuple} = tuple di colonne da estrarre dal file
         """
-        if self.intermediario == 'BPPB' or self.intermediario == 'BPL':
+        if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RAI':
             colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese',
                 'Rischio 3 anni") fine mese', 'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'Info 3 anni") fine mese',
                 'Alpha 3 anni") fine mese', 'SRRI', 'SFDR']
@@ -213,7 +221,7 @@ class Completo():
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 
             'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 
-            'Obblig. Paesi Emerg. Asia Local Ccy' : 'OBB_EM', 
+            'Obblig. Paesi Emerg. Asia Local Ccy' : 'OBB_EM',
             'Obblig. Dollaro US breve term.' : 'OBB_GLOB', 'Obblig. USD medio-lungo term.' : 'OBB_GLOB', 
             'Obblig. Dollaro US medio-lungo term.' : 'OBB_GLOB', 'Obblig. USD corporate' : 'OBB_GLOB', 
             'Obblig. Dollaro US corporate' : 'OBB_GLOB', 'Obblig. Doll. US all maturities' : 'OBB_GLOB', 
@@ -260,7 +268,7 @@ class Completo():
             'Perf. ass. USD' : 'FLEX', 'Fondi  a garanzia o a formula Euro' : 'FLEX', 'Az. globale' : 'FLEX', 
             'Az. globale small cap' : 'FLEX', 'Az. globale Growth' : 'FLEX', 'Az. globale Value' : 'FLEX', 
             'F.a garanz. o a formul. altr valu.' : 'FLEX', 
-            }
+        }
         BPL_dict = {
             'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 
             'Monet. ex Europa altre valute' : 'LIQ_FOR', 'Monetari ex Europa altre valute' : 'LIQ_FOR', 
@@ -323,7 +331,7 @@ class Completo():
             'Bilanc. aggress. Dollaro US' : 'BIL', 'Bilanc. Aggress. Global' : 'BIL', 'Bilanc. Aggress. altre valute' : 'BIL', 
             'Flessibili Europa' : 'FLEX', 'Fless. Global Euro' : 'FLEX', 'Flessibili prudenti Europa' : 'FLEX', 
             'Flessibili Dollaro US' : 'FLEX', 'Flessibili prudenti globale' : 'FLEX', 'Fless. Global' : 'FLEX',
-            }      
+        }      
         CRV_dict = {
             'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ', 
             'Monetari altre valute    europ' : 'LIQ', 
@@ -384,7 +392,7 @@ class Completo():
             'Perf. assoluta volatilita' : 'OPP', 'Perf. assoluta multi-strategia' : 'OPP', 'Perf. assoluta (GBP)' : 'OPP', 
             'Perf. ass. USD' : 'OPP', 'Fondi  a garanzia o a formula Euro' : 'OPP', 'Fondi a scadenza pred. Euro' : 'OPP', 
             'Fondi a scadenza pred. altre valute' : 'OPP', 'Obblig. Euro a scadenza' : 'OPP', 'F.a garanz. o a formul. altr valu.' : 'OPP', 
-            }
+        }
         RIPA_dict = {
             'Monetari Euro' : 'LIQ', 
             'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 
@@ -398,7 +406,7 @@ class Completo():
             'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB', 
             'Obblig. altre valute' : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB', 'Obblig. Convertib. Glob.' : 'OBB_GLOB', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 
-            'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 
+            'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Asia Local Ccy' : 'OBB_EM', 
             'Obblig. Dollaro US breve term.' : 'OBB_USA', 'Obblig. USD medio-lungo term.' : 'OBB_USA', 
             'Obblig. Dollaro US corporate' : 'OBB_USA', 'Obblig. Dollaro US all mat' : 'OBB_USA', 
             "Obblig. Indicizz. all'inflaz. USD" : 'OBB_USA', 
@@ -438,7 +446,36 @@ class Completo():
             'Bilanc. Equil. Global' : 'ND', 'Bilanc. Equil. altre valute' : 'ND', 'Bilanc. aggress. Dollaro US' : 'ND', 
             'Bilanc. Aggress. altre valute' : 'ND', 'Bilanc. Aggress. Global' : 'ND', 'Fondi a scadenza pred. Euro' : 'ND', 
             'Obblig. paesi emerg. Asia' : 'ND', 'Altri' : 'ND', 
-            }
+        }
+        RAI_dict = {
+            'Monetari Euro' : 'LIQ',
+            'Monetari Dollaro USA' : 'LIQ_FOR', 'Monetari altre valute europ' : 'LIQ_FOR', 
+            'Obblig. Euro breve term.' : 'OBB_BT', 
+            'Obblig. Euro all maturities' : 'OBB_MLT', 'Obblig. Euro gov.' : 'OBB_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 
+            'Obblig. Euro medio term.' : 'OBB_MLT', 'Obblig. Convertib. Europa' : 'OBB_MLT', 'Obblig. Euro a scadenza' : 'OBB_MLT', 
+            'Obblig. Euro corporate' : 'OBB_CORP', 
+            'Obblig. Franco svizzero' : 'OBB_EUR', 
+            'Obblig. Dollaro US all mat' : 'OBB_USA', 
+            'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB', 
+            'Obblig. Convertib. Glob.' : 'OBB_GLOB', 'Obblig. Asia' : 'OBB_GLOB', 
+            'Obblig. Euro high yield' : 'OBB_GLOB_HY', 'Obblig. Dollaro US high yield' : 'OBB_GLOB_HY', 'Obblig. globale high yield' : 'OBB_GLOB_HY', 
+            'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
+            'Az. Europa' : 'AZ_EUR', 'Az. Area Euro' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 'Az. Europa Value' : 'AZ_EUR', 
+            'Az. paesi nordici' : 'AZ_EUR', 'Az. Svizzera' : 'AZ_EUR', 'Az.Svizzera small cap' : 'AZ_EUR', 
+            'Az. USA' : 'AZ_NA',  'Az. USA Value' : 'AZ_NA',  'Az. USA Growth' : 'AZ_NA', 'Az. USA small cap' : 'AZ_NA', 
+            'Az. Pacifico' : 'AZ_PAC', 'Az. Asia Pacifico ex Giapp.' : 'AZ_PAC', 'Az. Giappone' : 'AZ_PAC', 'Az. Giappone small cap' : 'AZ_PAC', 
+            'Az. paesi emerg. Mondo' : 'AZ_EM', 'Az. paesi emerg. America Latina' : 'AZ_EM', 'Az. paesi emerg. Asia' : 'AZ_EM', 'Az. Altri paesi emerg.' : 'AZ_EM', 
+            'Az. Paesi Emerg. Europa e Russia' : 'AZ_EM', 'Az. Brasile' : 'AZ_EM', 'Az. Grande Cina' : 'AZ_EM', 'Az. India' : 'AZ_EM', 'Az. Russia' : 'AZ_EM', 
+            'Az. Cina' : 'AZ_EM', 
+            'Az. globale' : 'AZ_GLOB', 'Az. globale Value' : 'AZ_GLOB', 'Az. globale Growth' : 'AZ_GLOB', 
+            'Bilanc. Prud. Dollaro US' : 'BIL', 'Bilanc. Prud. Global' : 'BIL', 'Bilanc. Prud. altre valute' : 'BIL', 
+            'Bilanc. Equilib. Europa' : 'BIL', 'Bilanc. Equil. Dollaro US' : 'BIL', 'Bilanc. Equil. Global' : 'BIL', 'Bilanc. Equil. altre valute' : 'BIL', 
+            'Bilanc. Aggress. Global' : 'BIL', 'Bilanc. Aggress. altre valute' : 'BIL', 
+            'Flessibili prudenti globale' : 'FLEX', 'Fless. Global' : 'FLEX', 
+            'Az. Servizi di pubblica utilita' : 'OPP', 'Az. ambiente' : 'OPP', 'Az. beni di consumo' : 'OPP', 'Az. tecnologia' : 'OPP',
+            'Az. real estate Europa' : 'OPP', 'Az. salute - farmaceutico' : 'OPP', 'Az. energia materie prime oro' : 'OPP', 'Az. real estate Mondo' : 'OPP', 
+            'Commodities' : 'OPP', 'Fondi  a garanzia o a formula Euro' : 'OPP', 'Perf. assoluta multi-strategia' : 'OPP', 'Perf. assoluta tassi' : 'OPP', 
+        }
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         if self.intermediario == 'BPPB':
             df['macro_categoria'] = df['Categoria Quantalys'].map(BPPB_dict)
@@ -451,6 +488,8 @@ class Completo():
             # Nel caso di Ripa solo le micro categorie appartenenti ad una macro nella sezione asset allocation vengono analizzate, 
             # mentre le altre vengono scartate. Assegno dunque tutte le micro categorie senza macro ad una macro fittizzia 'ND', 
             # che mi tornerà utile per scartare interamente questa macro dall'analisi.
+        elif self.intermediario == 'RAI':
+            df['macro_categoria'] = df['Categoria Quantalys'].map(RAI_dict)
         print(f"Ci sono {df['macro_categoria'].isnull().sum()} fondi a cui non è stata assegnata una macro categoria.")
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
@@ -583,6 +622,8 @@ class Completo():
             quit()
         elif self.intermediario == 'RIPA':
             macro_micro = self.classi_a_benchmark_RIPA_metodo_doppio
+        elif self.intermediario == 'RAI':
+            macro_micro = self.classi_a_benchmark_RAI_metodo_doppio
 
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
@@ -605,6 +646,7 @@ class Completo():
         """
         Metodo singolo
         1. Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
+
         Metodo doppio
         1. Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
         2. Calcola l'indicatore B&S a 1 anno, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
@@ -612,6 +654,10 @@ class Completo():
         Formula v2 = (IR * TEV - (fee / anni_detenzione)) / TEV
         Le colonne considerate ai fini del calcolo sono: 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese',
         'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'commissione'
+
+        N.B. Raiffeisen non ha fornito un dato riassuntivo sugli anni di detenzione medi dei fondi.
+             Nel loro caso sono costretto a portarmi dietro la colonna 'anni_detenzione' che indica gli anni di
+             detenzione per singolo fondo.
         """
         if self.intermediario == 'BPPB':
             anni_detenzione = 3
@@ -626,6 +672,9 @@ class Completo():
         elif self.intermediario == 'RIPA':
             anni_detenzione = 3
             macro_micro = self.classi_a_benchmark_RIPA_metodo_doppio
+        elif self.intermediario == 'RAI':
+            anni_detenzione = None
+            macro_micro = self.classi_a_benchmark_RAI_metodo_doppio
 
         t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
         t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
@@ -635,8 +684,12 @@ class Completo():
             df.loc[(df['macro_categoria'].isin(classi)) & (df['fund_incept_dt'] < t0_3Y), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
         elif self.metodo == 'doppio':
             df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
-            df.loc[(df['macro_categoria'].isin(list(macro_micro.keys()))) & (df['fund_incept_dt'] < t0_3Y), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
-            df.loc[(df['macro_categoria'].isin(list(macro_micro.keys()))) & (df['fund_incept_dt'] < t0_1Y), 'BS_1_anno'] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 1 anno fine mese'])
+            if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+                df.loc[(df['macro_categoria'].isin(list(macro_micro.keys()))) & (df['fund_incept_dt'] < t0_3Y), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 3 anni") fine mese'])
+                df.loc[(df['macro_categoria'].isin(list(macro_micro.keys()))) & (df['fund_incept_dt'] < t0_1Y), 'BS_1_anno'] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (int(anni_detenzione) * df['Alpha 1 anno fine mese'])
+            elif self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per singolo fondo
+                df.loc[(df['macro_categoria'].isin(list(macro_micro.keys()))) & (df['fund_incept_dt'] < t0_3Y), 'BS_3_anni'] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (df['anni_detenzione'] * df['Alpha 3 anni") fine mese'])
+                df.loc[(df['macro_categoria'].isin(list(macro_micro.keys()))) & (df['fund_incept_dt'] < t0_1Y), 'BS_1_anno'] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (df['anni_detenzione'] * df['Alpha 1 anno fine mese'])
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def calcolo_best_worst(self):
@@ -672,6 +725,8 @@ class Completo():
             quit()
         elif self.intermediario == 'RIPA':
             macro_micro = self.classi_a_benchmark_RIPA_metodo_doppio
+        elif self.intermediario == 'RAI':
+            macro_micro = self.classi_a_benchmark_RAI_metodo_doppio
 
         if self.metodo == 'singolo':
             for macro in classi:
@@ -801,7 +856,7 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='RIPA', t1='31/08/2022', metodo='doppio')
+    _ = Completo(intermediario='RAI', t1='30/11/2022', metodo='doppio')
     # _.concatenazione_liste_complete()
     # _.concatenazione_sfdr()
     # _.concatenazione_completo_sfdr()
@@ -817,9 +872,9 @@ if __name__ == '__main__':
     # _.correzione_alfa_IR_nulli()
     # _.attività()
     # _.indicatore_BS()
-    # _.calcolo_best_worst()
-    _.discriminazione_flessibili()
-    _.seleziona_e_rinomina_colonne()
+    _.calcolo_best_worst()
+    # _.discriminazione_flessibili()
+    # _.seleziona_e_rinomina_colonne()
     # _.creazione_liste_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
