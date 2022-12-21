@@ -52,7 +52,9 @@ class Catalogo():
     
     def rinomina_colonne(self):
         """Rinomina le colonne del file catalogo con nomi standard."""
-        etichette = {'isin' : 'isin', 'nome' : 'nome', 'descrizione' : 'nome', 'name' : 'nome', 'valuta' : 'valuta', 'divisa' : 'valuta', 'currency' : 'valuta', 'commissione' : 'commissione', 'commissioni' : 'commissione', 'oneri' : 'commissione', 'finestra' : 'fondo_a_finestra'}
+        etichette = {'isin' : 'isin', 'nome' : 'nome', 'descrizione' : 'nome', 'name' : 'nome', 'valuta' : 'valuta', 'divisa' : 'valuta', 
+            'currency' : 'valuta', 'commissione' : 'commissione', 'commissioni' : 'commissione', 'oneri' : 'commissione', 
+            'finestra' : 'fondo_a_finestra', 'arco_temporale_in_anni' : 'anni_detenzione'}
         df = pd.read_excel(self.file_catalogo)
         print(f"\nColonne originali del file 'catalogo_fondi': {df.columns.values}")
         df.columns = [column.lower() for column in df.columns.values]
@@ -191,14 +193,14 @@ class Catalogo():
 if __name__ == '__main__':
     start = time.perf_counter()
     _ = Catalogo()
-    # _.rimuovi_testoacapo_e_spazi_da_intestazione()
-    # _.rinomina_colonne()
+    _.rimuovi_testoacapo_e_spazi_da_intestazione()
+    _.rinomina_colonne()
     # _.rimuovi_spazi('isin', 'valuta')
     # _.rimuovi_duplicati('isin')
     # _.tronca_valore(3, 'valuta')
     # _.letter_case('upper', 'valuta')
     # _.string_percentage_to_float('commissione')
     # _.fix_fee(fee_column='commissione', commissione_massima=0.0575)
-    _.creazione_liste_complete_input()
+    # _.creazione_liste_complete_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
