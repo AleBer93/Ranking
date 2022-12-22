@@ -288,6 +288,14 @@ class Ranking():
             SOR_DSR = ['COMM', 'FLEX', 'PERF_ASS']
             SHA_VOL = []
             PER_VOL = ['LIQ']
+        elif self.intermediario == 'RAI':
+            IR_TEV = [
+                'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_USA', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY', 
+                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 
+            ]
+            SOR_DSR = ['BIL', 'FLEX']
+            SHA_VOL = ['OPP']
+            PER_VOL = ['LIQ', 'LIQ_FOR']
         # Aggiunge gli indici delle liste al file completo 
         for filename in os.listdir(self.directory_output_liste):
             if filename[:-9] in IR_TEV:
@@ -1690,8 +1698,8 @@ class Ranking():
 if __name__ == '__main__':
     start = time.perf_counter()
     _ = Ranking(intermediario='RAI', t1='30/11/2022')
-    _.ranking_per_grado('doppio')
-    # _.merge_completo_liste()
+    # _.ranking_per_grado('doppio')
+    _.merge_completo_liste()
     # _.discriminazione_flessibili_e_bilanciati() #TODO: aggiungi dettaglio per RAI
     # _.rank('doppio')
     # _.aggiunta_colonne() # TODO: testa per intermediari diversi da CRV 'fondo_a_finestra' se BPPB, 'fondo_equivalente' se RIPA.
