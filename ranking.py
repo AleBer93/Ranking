@@ -411,20 +411,40 @@ class Ranking():
         df = pd.read_excel(self.file_ranking, index_col=None)
         if self.intermediario == 'BPPB':
             print("\nsto discriminando i flessibili in base alla loro volatilità...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['categoria_flessibili'].map({'bassa_vola' : 'FLEX_BVOL', 'media_alta_vola' : 'FLEX_MAVOL'}, na_action='ignore')
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['categoria_flessibili'].map({'bassa_vola' : 'FLEX_BVOL', 
+                'media_alta_vola' : 'FLEX_MAVOL'}, na_action='ignore')
         elif self.intermediario == 'BPL':
             print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({'Flessibili prudenti globale' : 'FLEX_PR', 'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN', 'Flessibili Dollaro US' : 'FLEX_DIN', 'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',}, na_action='ignore')
-            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({'Bilanc. Prud. Europa' : 'BIL_MBVOL', 'Bilanc. Prud. Dollaro US' : 'BIL_MBVOL', 'Bilanc. Prud. Global Euro' : 'BIL_MBVOL', 'Bilanc. Prud. Global' : 'BIL_MBVOL', 'Bilanc. Prud. altre valute' : 'BIL_MBVOL',  'Bilanc. Equilib. Europa' : 'BIL_MBVOL', 'Bilanc. Equil. Dollaro US' : 'BIL_MBVOL', 'Bilanc. Equil. Global Euro' : 'BIL_MBVOL', 'Bilanc. Equil. Global' : 'BIL_MBVOL', 'Bilanc. Equil. altre valute' : 'BIL_MBVOL', 'Bilanc. Aggress. Europa' : 'BIL_AVOL', 'Bilanc. aggress. Dollaro US' : 'BIL_AVOL', 'Bilanc. Aggress. Global Euro' : 'BIL_AVOL', 'Bilanc. Aggress. Global' : 'BIL_AVOL', 'Bilanc. Aggress. altre valute' : 'BIL_AVOL'}, na_action='ignore')
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({'Flessibili prudenti globale' : 'FLEX_PR', 
+                'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN', 'Flessibili Dollaro US' : 'FLEX_DIN', 
+                'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',}, na_action='ignore')
+            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({'Bilanc. Prud. Europa' : 'BIL_MBVOL', 
+                'Bilanc. Prud. Dollaro US' : 'BIL_MBVOL', 'Bilanc. Prud. Global Euro' : 'BIL_MBVOL', 'Bilanc. Prud. Global' : 'BIL_MBVOL', 
+                'Bilanc. Prud. altre valute' : 'BIL_MBVOL',  'Bilanc. Equilib. Europa' : 'BIL_MBVOL', 'Bilanc. Equil. Dollaro US' : 'BIL_MBVOL', 
+                'Bilanc. Equil. Global Euro' : 'BIL_MBVOL', 'Bilanc. Equil. Global' : 'BIL_MBVOL', 'Bilanc. Equil. altre valute' : 'BIL_MBVOL', 
+                'Bilanc. Aggress. Europa' : 'BIL_AVOL', 'Bilanc. aggress. Dollaro US' : 'BIL_AVOL', 'Bilanc. Aggress. Global Euro' : 'BIL_AVOL', 
+                'Bilanc. Aggress. Global' : 'BIL_AVOL', 'Bilanc. Aggress. altre valute' : 'BIL_AVOL'}, na_action='ignore')
         elif self.intermediario == 'CRV':
             print("\nsto discriminando i flessibili in base alla loro volatilità...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['categoria_flessibili'].map({'bassa_vola' : 'FLEX_PR', 'media_alta_vola' : 'FLEX_DIN'}, na_action='ignore')
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['categoria_flessibili'].map({'bassa_vola' : 'FLEX_PR', 
+                'media_alta_vola' : 'FLEX_DIN'}, na_action='ignore')
         elif self.intermediario == 'RIPA':
-            print("\nsto discriminando i flessibili in base alla loro volatilità...")
+            print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
             df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({
                 'Flessibili prudenti globale' : 'FLEX_PR', 'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN', 
                 'Flessibili Dollaro US' : 'FLEX_DIN', 'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',
                 }, na_action='ignore')
+        elif self.intermediario == 'RAI':
+            print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({'Flessibili prudenti globale' : 'FLEX_PR', 
+                'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN', 'Flessibili Dollaro US' : 'FLEX_DIN', 
+                'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',}, na_action='ignore')
+            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({'Bilanc. Prud. Europa' : 'BIL_BVOL', 
+                'Bilanc. Prud. Dollaro US' : 'BIL_BVOL', 'Bilanc. Prud. Global Euro' : 'BIL_BVOL', 'Bilanc. Prud. Global' : 'BIL_BVOL', 
+                'Bilanc. Prud. altre valute' : 'BIL_BVOL',  'Bilanc. Equilib. Europa' : 'BIL_MVOL', 'Bilanc. Equil. Dollaro US' : 'BIL_MVOL', 
+                'Bilanc. Equil. Global Euro' : 'BIL_MVOL', 'Bilanc. Equil. Global' : 'BIL_MVOL', 'Bilanc. Equil. altre valute' : 'BIL_MVOL', 
+                'Bilanc. Aggress. Europa' : 'BIL_AVOL', 'Bilanc. aggress. Dollaro US' : 'BIL_AVOL', 'Bilanc. Aggress. Global Euro' : 'BIL_AVOL', 
+                'Bilanc. Aggress. Global' : 'BIL_AVOL', 'Bilanc. Aggress. altre valute' : 'BIL_AVOL'}, na_action='ignore')
         df.to_excel(self.file_ranking, index=False)
 
     def rank(self, metodo=''):
@@ -510,11 +530,25 @@ class Ranking():
                     'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear', 
                 }
             soluzioni = self.soluzioni_RIPA
+        elif self.intermediario =='RAI':
+            # anni_detenzione = None
+            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 
+                'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
+            SOR_DSR = ['BIL_BVOL', 'BIL_MVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN'] # Ora i flessibili e i bilanciati sono discriminati
+            SHA_VOL = ['OPP']
+            PER_VOL = ['LIQ', 'LIQ_FOR']
+            if metodo == 'doppio':
+                micro_blend_classi_a_benchmark = {
+                    'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
+                    'AZ_GLOB' : 'Az. globale', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 
+                    'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
+                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'LIQ' : 'Monetari Euro'}
+            soluzioni = self.soluzioni_RAI
         for macro in df.loc[:, 'macro_categoria'].unique():
             # Crea un foglio per ogni macro categoria
             foglio = df.loc[df['macro_categoria'] == macro].copy()
             if macro in IR_TEV:
-                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA': # metodo best-worst
+                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI': # metodo best-worst
                     if metodo == 'singolo':
                         # Rank IR_1Y
                         foglio['ranking_IR_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Information_Ratio_1Y'].notnull()), 'Information_Ratio_1Y'].rank(method='first', na_option='bottom', ascending=False)
@@ -557,8 +591,12 @@ class Ranking():
                 
                     elif metodo == 'doppio':
                         # Creazione IR_corretto_3Y
-                        foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_3Y'] / 100)
-                        foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_1Y'] / 100)
+                        if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
+                            foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['TEV_3Y'] / 100)
+                            foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['TEV_1Y'] / 100)
+                        else:
+                            foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_3Y'] / 100)
+                            foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_1Y'] / 100)
                         # Note
                         foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & foglio['Best_Worst_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Information_Ratio_1Y'].notnull(), 'note'] = 'Non ha 1 anno, ma possiede dati a un anno.' Nota fuorviante
@@ -785,10 +823,16 @@ class Ranking():
                             'grado_gestione_3Y', 'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 
                             'ranking_finale', 'Information_Ratio_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 
                             'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']]
+                elif self.intermediario == 'RAI':
+                    if metodo == 'doppio':
+                        foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 
+                            'grado_gestione_3Y', 'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 
+                            'ranking_finale', 'Information_Ratio_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 
+                            'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']]
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
                 # Ordinamento finale
-                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     foglio.sort_values('ranking_finale', ascending=True, inplace=True)
                 elif self.intermediario == 'CRV':
                     foglio.sort_values('ranking_finale', ascending=False, inplace=True)
@@ -803,7 +847,7 @@ class Ranking():
                 foglio.to_excel(writer, sheet_name=macro)
 
             elif macro in SOR_DSR:
-                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     # Rank SO_1Y
                     foglio['ranking_SO_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sortino_1Y'].notnull()), 'Sortino_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SO_1Y
@@ -811,7 +855,10 @@ class Ranking():
                     # Terzile SO_1Y
                     foglio['terzile_SO_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sortino_1Y'].notnull()), 'Sortino_1Y'].apply(lambda x: 'best' if x > foglio['Sortino_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     # Creazione SO_corretto_1Y
-                    foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['DSR_1Y'] / 100)
+                    if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
+                        foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['DSR_1Y'] / 100)
+                    else:
+                        foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['DSR_1Y'] / 100)
                     # Rank SO_corretto_1Y
                     foglio['ranking_SO_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SO_1Y corretto
@@ -827,7 +874,10 @@ class Ranking():
                     # Terzile SO_3Y
                     foglio['terzile_SO_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sortino_3Y'].notnull()), 'Sortino_3Y'].apply(lambda x: 'best' if x > foglio['Sortino_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     # Creazione SO_corretto_3Y
-                    foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['DSR_3Y'] / 100)
+                    if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
+                        foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['DSR_3Y'] / 100)
+                    else:    
+                        foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['DSR_3Y'] / 100)
                     # Rank SO_corretto_3Y
                     foglio['ranking_SO_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SO_3Y corretto
@@ -895,11 +945,16 @@ class Ranking():
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sortino_3Y', 'DSR_3Y', 'commissione', 
                             'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 
                             'ranking_SO_1Y_corretto', 'note']]
+                elif self.intermediario == 'RAI':
+                    if metodo == 'doppio':
+                        foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sortino_3Y', 'DSR_3Y', 'commissione', 
+                            'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 
+                            'ranking_SO_1Y_corretto', 'note']]
                 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
                 # Ordinamento finale
-                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     foglio.sort_values('ranking_SO_3Y_corretto', ascending=True, inplace=True)
                 elif self.intermediario == 'CRV':
                     foglio.sort_values('ranking_finale', ascending=False, inplace=True)
@@ -914,7 +969,7 @@ class Ranking():
                 foglio.to_excel(writer, sheet_name=macro)
             
             elif macro in SHA_VOL:
-                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     # Rank SH_1Y
                     foglio['ranking_SH_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sharpe_1Y'].notnull()), 'Sharpe_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SH_1Y
@@ -922,7 +977,10 @@ class Ranking():
                     # Terzile SH_1Y
                     foglio['terzile_SH_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sharpe_1Y'].notnull()), 'Sharpe_1Y'].apply(lambda x: 'best' if x > foglio['Sharpe_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     # Creazione SH_corretto_1Y
-                    foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_1Y'] / 100)
+                    if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
+                        foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['Vol_1Y'] / 100)
+                    else:
+                        foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_1Y'] / 100)
                     # Rank SH_corretto_1Y
                     foglio['ranking_SH_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SH_1Y corretto
@@ -937,7 +995,10 @@ class Ranking():
                     # Terzile SH_3Y
                     foglio['terzile_SH_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sharpe_3Y'].notnull()), 'Sharpe_3Y'].apply(lambda x: 'best' if x > foglio['Sharpe_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     # Creazione SH_corretto_3Y
-                    foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_3Y'] / 100)
+                    if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
+                        foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['Vol_3Y'] / 100)
+                    else:
+                        foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_3Y'] / 100)
                     # Rank SH_corretto_3Y
                     foglio['ranking_SH_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SH_3Y corretto
@@ -1005,11 +1066,16 @@ class Ranking():
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 
                             'ranking_SH_3Y_corretto', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
                             'note']]
+                elif self.intermediario == 'RAI':
+                    if metodo == 'doppio':
+                        foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 
+                            'ranking_SH_3Y_corretto', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
+                            'note']]
                 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
                 # Ordinamento finale
-                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     foglio.sort_values('ranking_SH_3Y_corretto', ascending=True, inplace=True)
                 elif self.intermediario == 'CRV':
                     foglio.sort_values('ranking_finale', ascending=False, inplace=True)
@@ -1024,7 +1090,7 @@ class Ranking():
                 foglio.to_excel(writer, sheet_name=macro)
 
             elif macro in PER_VOL:
-                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     if metodo == 'singolo' or (metodo == 'doppio' and macro == 'LIQ_FOR'):
                         # Rank PERF_1Y
                         foglio['ranking_PERF_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Perf_1Y'].notnull()), 'Perf_1Y'].rank(method='first', na_option='bottom', ascending=False)
@@ -1033,7 +1099,10 @@ class Ranking():
                         # Terzile PERF_1Y
                         foglio['terzile_PERF_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Perf_1Y'].notnull()), 'Perf_1Y'].apply(lambda x: 'best' if x > foglio['Perf_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                         # Creazione PERF_corretto_1Y
-                        foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / anni_detenzione)
+                        if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
+                            foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / df['anni_detenzione'])
+                        else:
+                            foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / anni_detenzione)
                         # Rank PERF_corretto_1Y
                         foglio['ranking_PERF_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile PERF_1Y corretto
@@ -1051,7 +1120,10 @@ class Ranking():
                         # Terzile PERF_3Y
                         foglio['terzile_PERF_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Perf_3Y'].notnull()), 'Perf_3Y'].apply(lambda x: 'best' if x > foglio['Perf_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                         # Creazione PERF_corretto_3Y (la volatilità è già in percentuale)
-                        foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / anni_detenzione)
+                        if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
+                            foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / df['anni_detenzione'])
+                        else:
+                            foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / anni_detenzione)
                         # Rank PERF_corretto_3Y
                         foglio['ranking_PERF_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile PERF_3Y corretto
@@ -1061,8 +1133,12 @@ class Ranking():
                     
                     elif metodo == 'doppio':
                         # Creazione PERF_corretto_3Y
-                        foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / anni_detenzione)
-                        foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / anni_detenzione)
+                        if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
+                            foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / df['anni_detenzione'])
+                            foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / df['anni_detenzione'])
+                        else:
+                            foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / anni_detenzione)
+                            foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / anni_detenzione)
                         # Note
                         foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & foglio['Best_Worst_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Perf_1Y'].notnull(), 'note'] = 'Non ha 1 anno, ma possiede dati a un anno.' Nota fuorviante
@@ -1293,11 +1369,19 @@ class Ranking():
                             'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 
                             'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 
                             'note']]
+                elif self.intermediario == 'RAI':
+                    if metodo == 'doppio' and macro == 'LIQ_FOR':
+                        foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 
+                            'ranking_PERF_3Y_corretto', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'ranking_PERF_1Y_corretto', 'note']]
+                    elif metodo == 'doppio' and macro != 'LIQ_FOR':
+                        foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 
+                            'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Perf_3Y', 'Vol_3Y', 'commissione', 
+                            'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']]
 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
                 # Ordinamento finale
-                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     if metodo == 'singolo' or (metodo == 'doppio' and macro == 'LIQ_FOR'):
                         foglio.sort_values('ranking_PERF_3Y_corretto', ascending=True, inplace=True)
                     elif metodo == 'doppio':
@@ -1699,13 +1783,13 @@ if __name__ == '__main__':
     start = time.perf_counter()
     _ = Ranking(intermediario='RAI', t1='30/11/2022')
     # _.ranking_per_grado('doppio')
-    _.merge_completo_liste()
-    # _.discriminazione_flessibili_e_bilanciati() #TODO: aggiungi dettaglio per RAI
+    # _.merge_completo_liste()
+    # _.discriminazione_flessibili_e_bilanciati()
     # _.rank('doppio')
     # _.aggiunta_colonne() # TODO: testa per intermediari diversi da CRV 'fondo_a_finestra' se BPPB, 'fondo_equivalente' se RIPA.
     # _.rank_formatted('doppio')
     # _.aggiunta_prodotti_non_presenti()
-    # _.autofit()
+    _.autofit()
     # _.creazione_liste_best_input()
     # _.zip_file()
     end = time.perf_counter()
