@@ -1480,9 +1480,14 @@ class Ranking():
                     'AZ_SAL' : 'Az. salute - farmaceutico', 'AZ_SPU' : 'Az. Servizi di pubblica utilita', 'AZ_TEC' : 'Az. tecnologia', 
                     'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear',
                 }
-
+        elif self.intermediario == 'RAI':
+            if metodo == 'doppio':
+                micro_blend_classi_a_benchmark = {'LIQ' : 'Monetari Euro', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
+                    'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'OBB_BT' : 'Obblig. Euro breve term.', 
+                    'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
+                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield'}
         for sheet in wb.sheetnames: 
-            if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+            if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                 if metodo == 'singolo':
                     if sheet in micro_blend_classi_a_benchmark.keys():
                         foglio = wb[sheet] # attiva foglio
@@ -1702,6 +1707,10 @@ class Ranking():
                 'COMM', 'FLEX_PR', 'FLEX_DIN', 'PERF_ASS', 'LIQ', 
             ]
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
+        elif self.intermediario == 'RAI':
+            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_EUR', 'OBB_USA', 'OBB_GLOB', 
+                'OBB_EM', 'OBB_GLOB_HY', 'BIL_BVOL', 'BIL_MVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ', 'LIQ_FOR']
+            wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
 
         wb.save(self.file_ranking)
 
@@ -1726,7 +1735,7 @@ class Ranking():
             min_width {list} = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe non superare (usa None se non serve su una data colonna)
             max_width {list} = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe superare (usa None se non serve su una data colonna)
         """
-        if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+        if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
             columns = range(1, 32)
         elif self.intermediario == 'CRV':
             columns = range(1, 21)
@@ -1789,7 +1798,7 @@ if __name__ == '__main__':
     # _.aggiunta_colonne() # TODO: testa per intermediari diversi da CRV 'fondo_a_finestra' se BPPB, 'fondo_equivalente' se RIPA.
     # _.rank_formatted('doppio')
     # _.aggiunta_prodotti_non_presenti()
-    _.autofit()
+    # _.autofit()
     # _.creazione_liste_best_input()
     # _.zip_file()
     end = time.perf_counter()
