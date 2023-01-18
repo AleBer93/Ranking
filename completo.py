@@ -17,7 +17,7 @@ class Completo():
     BPL è passata da metodo singolo a metodo doppio
     CRV usa il metodo lineare
     RIPA usa il metodo doppio
-    RAI ...
+    RAI usa il metodo doppio
     """
 
     def __str__(self):
@@ -49,9 +49,9 @@ class Completo():
         self.directory_input_liste = self.directory.joinpath('docs', 'import_liste_into_Q')
         self.file_completo = 'completo.csv'
         self.soglie = {
-            'LIQ' : [0.0015, 0.01], 'OBB_BT' : [0.0075, 0.02], 'OBB_MLT' : [0.0125, 0.035], 'OBB_EUR' : [0.035, 0.065], 
-            'OBB_USA' : [0.035, 0.055], 'OBB_JAP' : [0.035, 0.06], 'OBB_CORP' : [0.01, 0.0275], 'OBB_GLOB' : [0.03, 0.06], 
-            'OBB_EM' : [0.045, 0.07], 'OBB_GLOB_HY' : [0.04, 0.065], 'AZ_EUR' : [0.055, 0.10], 'AZ_NA' : [0.055, 0.10], 
+            'LIQ' : [0.0015, 0.01], 'OBB_EUR_BT' : [0.0075, 0.02], 'OBB_EUR_MLT' : [0.0125, 0.035], 'OBB_EUR' : [0.035, 0.065], 
+            'OBB_USA' : [0.035, 0.055], 'OBB_JAP' : [0.035, 0.06], 'OBB_EUR_CORP' : [0.01, 0.0275], 'OBB_GLOB' : [0.03, 0.06], 
+            'OBB_EM' : [0.045, 0.07], 'OBB_HY' : [0.04, 0.065], 'AZ_EUR' : [0.055, 0.10], 'AZ_NA' : [0.055, 0.10], 
             'AZ_PAC' : [0.08, 0.12], 'AZ_EM' : [0.06, 0.14], 'AZ_GLOB' : [0.055, 0.10], 'AZ_BIO' : [0.08, 0.15], 'AZ_BDC' : [0.08, 0.13], 
             'AZ_FIN' : [0.055, 0.12], 'AZ_AMB' : [0.08, 0.12], 'AZ_IMM' : [0.06, 0.10], 'AZ_IND' : [0.055, 0.12], 'AZ_ECO' : [0.08, 0.14], 
             'AZ_SAL' : [0.055, 0.11], 'AZ_SPU' : [0.06, 0.12], 'AZ_TEC' : [0.06, 0.14], 'AZ_TEL' : [0.05, 0.15], 'AZ_ORO' : [0.08, 0.15], 
@@ -59,27 +59,28 @@ class Completo():
         }
         # Classi a benchmark per il metodo singolo
         self.classi_a_benchmark_BPPB_metodo_singolo = [
-            'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+            'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
         self.classi_a_benchmark_BPL_metodo_singolo = [
-            'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 
-            'OBB_GLOB_HY']
+            'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 
+            'OBB_HY']
         # Classi a benchmark per il metodo doppio
         self.classi_a_benchmark_BPPB_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
-            'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-            'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
+            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+            'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+            'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
             'AZ_EM' : 'Az. paesi emerg. Mondo'}
         self.classi_a_benchmark_BPL_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
-            'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
-            'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 
+            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+            'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+            'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 
             'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-            'AZ_GLOB' : 'Az. globale'}
+            'AZ_GLOB' : 'Az. globale'
+        }
         self.classi_a_benchmark_RIPA_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
-            'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+            'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
             'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_JAP' : 'Obblig. Yen', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-            'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
+            'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
             'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'AZ_BIO' : 'Az. Biotech', 
             'AZ_BDC' : 'Az. beni di consumo', 'AZ_FIN' : 'Az. servizi finanziari', 'AZ_AMB' : 'Az. ambiente', 
             'AZ_IMM' : 'Az. real estate Mondo', 'AZ_IND' : 'Az. industria', 'AZ_ECO' : 'Az. energia materie prime oro', 
@@ -87,9 +88,9 @@ class Completo():
             'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear',
         }
         self.classi_a_benchmark_RAI_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
-            'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_EUR' : 'Obblig. Europa', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
-            'OBB_GLOB' : 'Obblig. globale', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+            'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_EUR' : 'Obblig. Europa', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
+            'OBB_GLOB' : 'Obblig. globale', 'OBB_HY' : 'Obblig. globale high yield', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
             'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
             'AZ_GLOB' : 'Az. globale', 
         }
@@ -212,12 +213,12 @@ class Completo():
         BPPB_dict = {
             'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ', 
             'Monetari altre valute europ' : 'LIQ', 
-            'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 'Obblig. Euro a scadenza' : 'OBB_BT', 
-            'Obblig. Euro gov. medio termine' : 'OBB_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_MLT', 
-            'Obblig. Euro lungo termine' : 'OBB_MLT', 'Obblig. Euro medio term.' : 'OBB_MLT', 'Obblig. Euro gov.' : 'OBB_MLT', 
-            'Obblig. Euro all maturities' : 'OBB_MLT', 'Obblig. Europa' : 'OBB_MLT', 'Obblig. Sterlina inglese' : 'OBB_MLT', 
-            'Obblig. Franco svizzero' : 'OBB_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 
-            'Obblig. Euro corporate' : 'OBB_CORP', 
+            'Obblig. euro gov. breve termine' : 'OBB_EUR_BT', 'Obblig. Euro breve term.' : 'OBB_EUR_BT', 'Obblig. Euro a scadenza' : 'OBB_EUR_BT', 
+            'Obblig. Euro gov. medio termine' : 'OBB_EUR_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_EUR_MLT', 
+            'Obblig. Euro lungo termine' : 'OBB_EUR_MLT', 'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 'Obblig. Euro gov.' : 'OBB_EUR_MLT', 
+            'Obblig. Euro all maturities' : 'OBB_EUR_MLT', 'Obblig. Europa' : 'OBB_EUR_MLT', 'Obblig. Sterlina inglese' : 'OBB_EUR_MLT', 
+            'Obblig. Franco svizzero' : 'OBB_EUR_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_EUR_MLT', 
+            'Obblig. Euro corporate' : 'OBB_EUR_CORP', 
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 
             'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 
@@ -230,8 +231,8 @@ class Completo():
             "Obblig. Indicizz. all'inflaz. USD" : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB', 
             'Monetari Dollaro USA' : 'OBB_GLOB', 'Monet. ex Europa altre valute' : 'OBB_GLOB', 
             'Monetari ex Europa altre valute' : 'OBB_GLOB', 
-            'Obblig. Euro high yield' : 'OBB_GLOB_HY', 'Obblig. Europa High Yield' : 'OBB_GLOB_HY', 
-            'Obblig. Dollaro US high yield' : 'OBB_GLOB_HY', 'Obblig. globale high yield' : 'OBB_GLOB_HY', 
+            'Obblig. Euro high yield' : 'OBB_HY', 'Obblig. Europa High Yield' : 'OBB_HY', 
+            'Obblig. Dollaro US high yield' : 'OBB_HY', 'Obblig. globale high yield' : 'OBB_HY', 
             'Az. Europa' : 'AZ_EUR', 'Az. Area Euro' : 'AZ_EUR', 'Az. Area Euro small cap' : 'AZ_EUR', 'Az. Area Euro Growth' : 'AZ_EUR', 
             'Az. Area Euro Value' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 
             'Az. Europa Value' : 'AZ_EUR', 'Az. Belgio' : 'AZ_EUR', 'Az. Francia' : 'AZ_EUR', 'Az. Francia small cap' : 'AZ_EUR', 
@@ -273,15 +274,15 @@ class Completo():
             'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 
             'Monet. ex Europa altre valute' : 'LIQ_FOR', 'Monetari ex Europa altre valute' : 'LIQ_FOR', 
             'Monet. altre valute europee' : 'LIQ_FOR', 'Monetari altre valute europ' : 'LIQ_FOR', 'Monetari Dollaro USA' : 'LIQ_FOR', 
-            'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 
-            'Obblig. Euro gov. medio termine' : 'OBB_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_MLT', 
-            'Obblig. Euro lungo termine' : 'OBB_MLT', 'Obblig. Euro medio term.' : 'OBB_MLT', 'Obblig. Euro gov.' : 'OBB_MLT', 
-            'Obblig. Euro all maturities' : 'OBB_MLT',  'Obblig. Euro a scadenza' : 'OBB_MLT', 
-            'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 'Obblig. Convertib. Euro' : 'OBB_MLT', 
-            'Fondi a scadenza pred. Euro' : 'OBB_MLT', 
+            'Obblig. euro gov. breve termine' : 'OBB_EUR_BT', 'Obblig. Euro breve term.' : 'OBB_EUR_BT', 
+            'Obblig. Euro gov. medio termine' : 'OBB_EUR_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_EUR_MLT', 
+            'Obblig. Euro lungo termine' : 'OBB_EUR_MLT', 'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 'Obblig. Euro gov.' : 'OBB_EUR_MLT', 
+            'Obblig. Euro all maturities' : 'OBB_EUR_MLT',  'Obblig. Euro a scadenza' : 'OBB_EUR_MLT', 
+            'Obblig. Indicizz. Inflation Linked' : 'OBB_EUR_MLT', 'Obblig. Convertib. Euro' : 'OBB_EUR_MLT', 
+            'Fondi a scadenza pred. Euro' : 'OBB_EUR_MLT', 
             'Obblig. Europa' : 'OBB_EUR', 'Obblig. Sterlina inglese' : 'OBB_EUR', 'Obblig. Franco svizzero' : 'OBB_EUR', 
             'Obblig. Convertib. Europa' : 'OBB_EUR', 
-            'Obblig. Euro corporate' : 'OBB_CORP', 
+            'Obblig. Euro corporate' : 'OBB_EUR_CORP', 
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM',  'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 
             'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 
@@ -294,8 +295,8 @@ class Completo():
             'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB', 
             'Obblig. Yen' : 'OBB_GLOB', 'Obblig. altre valute' : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB', 
             'Obblig. Convertib. Glob.' : 'OBB_GLOB', 'Fondi a scadenza pred. altre valute' : 'OBB_GLOB', 
-            'Obblig. Euro high yield' : 'OBB_GLOB_HY', 'Obblig. Europa High Yield' : 'OBB_GLOB_HY', 
-            'Obblig. Dollaro US high yield' : 'OBB_GLOB_HY', 'Obblig. globale high yield' : 'OBB_GLOB_HY', 
+            'Obblig. Euro high yield' : 'OBB_HY', 'Obblig. Europa High Yield' : 'OBB_HY', 
+            'Obblig. Dollaro US high yield' : 'OBB_HY', 'Obblig. globale high yield' : 'OBB_HY', 
             'Az. Europa' : 'AZ_EUR', 'Az. Area Euro' : 'AZ_EUR', 'Az. Area Euro small cap' : 'AZ_EUR', 'Az. Area Euro Growth' : 'AZ_EUR', 
             'Az. Area Euro Value' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 
             'Az. Europa Value' : 'AZ_EUR', 'Az. Belgio' : 'AZ_EUR', 'Az. Francia' : 'AZ_EUR', 'Az. Francia small cap' : 'AZ_EUR', 
@@ -335,12 +336,12 @@ class Completo():
         CRV_dict = {
             'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ', 
             'Monetari altre valute    europ' : 'LIQ', 
-            'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 
-            'Obblig. Euro gov. medio termine' : 'OBB_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_MLT', 
-            'Obblig. Euro lungo termine' : 'OBB_MLT', 'Obblig. Euro medio term.' : 'OBB_MLT', 'Obblig. Euro gov.' : 'OBB_MLT', 
-            'Obblig. Euro all maturities' : 'OBB_MLT', 'Obblig. Europa' : 'OBB_MLT', 'Obblig. Sterlina inglese' : 'OBB_MLT', 
-            'Obblig. Franco svizzero' : 'OBB_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 
-            'Obblig. Euro corporate' : 'OBB_CORP',
+            'Obblig. euro gov. breve termine' : 'OBB_EUR_BT', 'Obblig. Euro breve term.' : 'OBB_EUR_BT', 
+            'Obblig. Euro gov. medio termine' : 'OBB_EUR_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_EUR_MLT', 
+            'Obblig. Euro lungo termine' : 'OBB_EUR_MLT', 'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 'Obblig. Euro gov.' : 'OBB_EUR_MLT', 
+            'Obblig. Euro all maturities' : 'OBB_EUR_MLT', 'Obblig. Europa' : 'OBB_EUR_MLT', 'Obblig. Sterlina inglese' : 'OBB_EUR_MLT', 
+            'Obblig. Franco svizzero' : 'OBB_EUR_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_EUR_MLT', 
+            'Obblig. Euro corporate' : 'OBB_EUR_CORP',
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 
             'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 
@@ -353,8 +354,8 @@ class Completo():
             "Obblig. Indicizz. all'inflaz. USD" : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB', 
             'Monetari Dollaro USA' : 'OBB_GLOB', 'Monet. ex Europa altre valute' : 'OBB_GLOB', 
             'Monetari ex Europa altre valute' : 'OBB_GLOB', 
-            'Obblig. Euro high yield' : 'OBB_GLOB_HY', 'Obblig. Europa High Yield' : 'OBB_GLOB_HY', 
-            'Obblig. Dollaro US high yield' : 'OBB_GLOB_HY', 'Obblig. globale high yield' : 'OBB_GLOB_HY',
+            'Obblig. Euro high yield' : 'OBB_HY', 'Obblig. Europa High Yield' : 'OBB_HY', 
+            'Obblig. Dollaro US high yield' : 'OBB_HY', 'Obblig. globale high yield' : 'OBB_HY',
             'Az. Europa' : 'AZ_EUR', 'Az. Area Euro' : 'AZ_EUR', 'Az. Area Euro small cap' : 'AZ_EUR', 'Az. Area Euro Growth' : 'AZ_EUR', 
             'Az. Area Euro Value' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 
             'Az. Europa Value' : 'AZ_EUR', 'Az. Belgio' : 'AZ_EUR', 'Az. Francia' : 'AZ_EUR', 'Az. Francia small cap' : 'AZ_EUR', 
@@ -395,12 +396,12 @@ class Completo():
         }
         RIPA_dict = {
             'Monetari Euro' : 'LIQ', 
-            'Obblig. euro gov. breve termine' : 'OBB_BT', 'Obblig. Euro breve term.' : 'OBB_BT', 
-            'Obblig. Euro gov. medio termine' : 'OBB_MLT', 'Obblig. Euro lungo termine' : 'OBB_MLT', 
-            'Obblig. Euro medio term.' : 'OBB_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_MLT', 'Obblig. Euro gov.' : 'OBB_MLT', 
-            'Obblig. Euro all maturities' : 'OBB_MLT', 'Obblig. Euro a scadenza' : 'OBB_MLT', 
-            'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 'Obblig. Convertib. Euro' : 'OBB_MLT', 
-            'Obblig. Euro corporate' : 'OBB_CORP', 
+            'Obblig. euro gov. breve termine' : 'OBB_EUR_BT', 'Obblig. Euro breve term.' : 'OBB_EUR_BT', 
+            'Obblig. Euro gov. medio termine' : 'OBB_EUR_MLT', 'Obblig. Euro lungo termine' : 'OBB_EUR_MLT', 
+            'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_EUR_MLT', 'Obblig. Euro gov.' : 'OBB_EUR_MLT', 
+            'Obblig. Euro all maturities' : 'OBB_EUR_MLT', 'Obblig. Euro a scadenza' : 'OBB_EUR_MLT', 
+            'Obblig. Indicizz. Inflation Linked' : 'OBB_EUR_MLT', 'Obblig. Convertib. Euro' : 'OBB_EUR_MLT', 
+            'Obblig. Euro corporate' : 'OBB_EUR_CORP', 
             'Obblig. Europa' : 'OBB_EUR', 'Obblig. Sterlina inglese' : 'OBB_EUR', 'Obblig. Franco svizzero' : 'OBB_EUR', 
             'Obblig. Convertib. Europa' : 'OBB_EUR', 
             'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB', 
@@ -411,8 +412,8 @@ class Completo():
             'Obblig. Dollaro US corporate' : 'OBB_USA', 'Obblig. Dollaro US all mat' : 'OBB_USA', 
             "Obblig. Indicizz. all'inflaz. USD" : 'OBB_USA', 
             'Obblig. Yen' : 'OBB_JAP', 
-            'Obblig. Euro high yield' : 'OBB_GLOB_HY', 'Obblig. Europa High Yield' : 'OBB_GLOB_HY', 
-            'Obblig. Dollaro US high yield' : 'OBB_GLOB_HY', 'Obblig. globale high yield' : 'OBB_GLOB_HY', 
+            'Obblig. Euro high yield' : 'OBB_HY', 'Obblig. Europa High Yield' : 'OBB_HY', 
+            'Obblig. Dollaro US high yield' : 'OBB_HY', 'Obblig. globale high yield' : 'OBB_HY', 
             'Az. Area Euro' : 'AZ_EUR', 'Az. Area Euro small cap' : 'AZ_EUR', 'Az. Area Euro Growth' : 'AZ_EUR', 
             'Az. Area Euro Value' : 'AZ_EUR', 'Az. Europa' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 
             'Az. Europa Value' : 'AZ_EUR', 'Az. Belgio' : 'AZ_EUR', 'Az. Francia' : 'AZ_EUR', 'Az. Francia small cap' : 'AZ_EUR', 
@@ -450,15 +451,15 @@ class Completo():
         RAI_dict = {
             'Monetari Euro' : 'LIQ',
             'Monetari Dollaro USA' : 'LIQ_FOR', 'Monetari altre valute europ' : 'LIQ_FOR', 
-            'Obblig. Euro breve term.' : 'OBB_BT', 
-            'Obblig. Euro all maturities' : 'OBB_MLT', 'Obblig. Euro gov.' : 'OBB_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_MLT', 
-            'Obblig. Euro medio term.' : 'OBB_MLT', 'Obblig. Convertib. Europa' : 'OBB_MLT', 'Obblig. Euro a scadenza' : 'OBB_MLT', 
-            'Obblig. Euro corporate' : 'OBB_CORP', 
+            'Obblig. Euro breve term.' : 'OBB_EUR_BT', 
+            'Obblig. Euro all maturities' : 'OBB_EUR_MLT', 'Obblig. Euro gov.' : 'OBB_EUR_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_EUR_MLT', 
+            'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 'Obblig. Convertib. Europa' : 'OBB_EUR_MLT', 'Obblig. Euro a scadenza' : 'OBB_EUR_MLT', 
+            'Obblig. Euro corporate' : 'OBB_EUR_CORP', 
             'Obblig. Franco svizzero' : 'OBB_EUR', 
             'Obblig. Dollaro US all mat' : 'OBB_USA', 
             'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB', 
             'Obblig. Convertib. Glob.' : 'OBB_GLOB', 'Obblig. Asia' : 'OBB_GLOB', 
-            'Obblig. Euro high yield' : 'OBB_GLOB_HY', 'Obblig. Dollaro US high yield' : 'OBB_GLOB_HY', 'Obblig. globale high yield' : 'OBB_GLOB_HY', 
+            'Obblig. Euro high yield' : 'OBB_HY', 'Obblig. Dollaro US high yield' : 'OBB_HY', 'Obblig. globale high yield' : 'OBB_HY', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
             'Az. Europa' : 'AZ_EUR', 'Az. Area Euro' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 'Az. Europa Value' : 'AZ_EUR', 
             'Az. paesi nordici' : 'AZ_EUR', 'Az. Svizzera' : 'AZ_EUR', 'Az.Svizzera small cap' : 'AZ_EUR', 
@@ -484,10 +485,10 @@ class Completo():
         elif self.intermediario == 'CRV':
             df['macro_categoria'] = df['Categoria Quantalys'].map(CRV_dict)
         elif self.intermediario == 'RIPA':
-            df['macro_categoria'] = df['Categoria Quantalys'].map(RIPA_dict)
             # Nel caso di Ripa solo le micro categorie appartenenti ad una macro nella sezione asset allocation vengono analizzate, 
             # mentre le altre vengono scartate. Assegno dunque tutte le micro categorie senza macro ad una macro fittizzia 'ND', 
             # che mi tornerà utile per scartare interamente questa macro dall'analisi.
+            df['macro_categoria'] = df['Categoria Quantalys'].map(RIPA_dict)
         elif self.intermediario == 'RAI':
             df['macro_categoria'] = df['Categoria Quantalys'].map(RAI_dict)
         print(f"Ci sono {df['macro_categoria'].isnull().sum()} fondi a cui non è stata assegnata una macro categoria.")
@@ -516,8 +517,8 @@ class Completo():
         """Sconta le commissioni dei fondi in base alla loro macro categoria"""
         if self.intermediario == 'CRV':
             df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-            sconti = {'LIQ' : 0.85, 'OBB_BT' : 0.35, 'OBB_MLT' : 0.35, 'OBB_CORP' : 0.35, 'OBB_EM' : 0.35, 'OBB_GLOB' : 0.35,
-                'OBB_GLOB_HY' : 0.35, 'AZ_EUR' : 0.30, 'AZ_NA' : 0.30, 'AZ_PAC' : 0.30, 'AZ_EM' : 0.30, 'AZ_GLOB' : 0.30, 'FLEX' : 0.60,
+            sconti = {'LIQ' : 0.85, 'OBB_EUR_BT' : 0.35, 'OBB_EUR_MLT' : 0.35, 'OBB_EUR_CORP' : 0.35, 'OBB_EM' : 0.35, 'OBB_GLOB' : 0.35,
+                'OBB_HY' : 0.35, 'AZ_EUR' : 0.30, 'AZ_NA' : 0.30, 'AZ_PAC' : 0.30, 'AZ_EM' : 0.30, 'AZ_GLOB' : 0.30, 'FLEX' : 0.60,
                 'OPP' : 0.50}
             df['commissione'] = df['commissione']*df['macro_categoria'].apply(lambda x : sconti[x])
             df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
@@ -789,9 +790,7 @@ class Completo():
             df.loc[df['categoria_flessibili'].isnull(), 'categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['SRRI'].notnull()), 'SRRI'].apply(lambda x: 'bassa_vola' if x < 3 else 'media_alta_vola')
             print(f"\nI seguenti fondi flessibili non sono stati classificati:\n {df.loc[(df['macro_categoria'] == 'FLEX') & (df['categoria_flessibili'].isnull()), ['Codice ISIN', 'Nome del fondo', 'Categoria Quantalys']]}\n---Gli verrà assegnata la categoria bassa_volatilità.\n")
             df.loc[(df['macro_categoria'] == 'FLEX') & (df['categoria_flessibili'].isnull()), 'categoria_flessibili'] = 'bassa_vola'
-        elif self.intermediario == 'BPL':
-            pass
-        elif self.intermediario == 'RIPA':
+        elif self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
             pass
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
     
@@ -867,7 +866,7 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='RAI', t1='30/11/2022', metodo='doppio')
+    _ = Completo(intermediario='CRV', t1='30/11/2022', metodo='doppio')
     # _.concatenazione_liste_complete()
     # _.concatenazione_sfdr()
     # _.concatenazione_completo_sfdr()
@@ -885,7 +884,7 @@ if __name__ == '__main__':
     # _.indicatore_BS()
     # _.calcolo_best_worst()
     # _.discriminazione_flessibili()
-    _.seleziona_e_rinomina_colonne()
-    # _.creazione_liste_input()
+    # _.seleziona_e_rinomina_colonne()
+    _.creazione_liste_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')

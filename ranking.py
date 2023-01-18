@@ -43,22 +43,22 @@ class Ranking():
         self.file_ranking = 'ranking.xlsx'
         self.file_zip = 'rank.zip'
         self.soluzioni_BPPB = {
-            'LIQ' : 1, 'OBB_BT' : 1, 'OBB_MLT' : 1, 'OBB_CORP' : 1, 'OBB_GLOB' : 1, 'OBB_EM' : 1, 'OBB_GLOB_HY' : 1, 
+            'LIQ' : 1, 'OBB_EUR_BT' : 1, 'OBB_EUR_MLT' : 1, 'OBB_EUR_CORP' : 1, 'OBB_GLOB' : 1, 'OBB_EM' : 1, 'OBB_HY' : 1, 
             'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3, 
         }
         self.soluzioni_BPL = {
-            'LIQ' : 3, 'OBB_BT' : 3, 'OBB_MLT' : 3, 'OBB_EUR' : 3, 'OBB_CORP' : 3, 'OBB_GLOB' : 3, 'OBB_USA' : 3, 
-            'OBB_EM' : 3, 'OBB_GLOB_HY' : 3, 'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3, 'AZ_GLOB' : 3, 
+            'LIQ' : 3, 'OBB_EUR_BT' : 3, 'OBB_EUR_MLT' : 3, 'OBB_EUR' : 3, 'OBB_EUR_CORP' : 3, 'OBB_GLOB' : 3, 'OBB_USA' : 3, 
+            'OBB_EM' : 3, 'OBB_HY' : 3, 'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3, 'AZ_GLOB' : 3, 
         }
         self.soluzioni_RIPA = {
-            'LIQ' : 4, 'OBB_BT' : 4, 'OBB_MLT' : 4, 'OBB_EUR' : 4, 'OBB_CORP' : 4, 'OBB_GLOB' : 4, 'OBB_USA' : 4, 'OBB_JAP' : 4, 
-            'OBB_EM' : 4, 'OBB_GLOB_HY' : 4, 'AZ_EUR' : 4, 'AZ_NA' : 4, 'AZ_PAC' : 4, 'AZ_EM' : 4, 'AZ_GLOB' : 4, 'AZ_BIO' : 4, 
+            'LIQ' : 4, 'OBB_EUR_BT' : 4, 'OBB_EUR_MLT' : 4, 'OBB_EUR' : 4, 'OBB_EUR_CORP' : 4, 'OBB_GLOB' : 4, 'OBB_USA' : 4, 'OBB_JAP' : 4, 
+            'OBB_EM' : 4, 'OBB_HY' : 4, 'AZ_EUR' : 4, 'AZ_NA' : 4, 'AZ_PAC' : 4, 'AZ_EM' : 4, 'AZ_GLOB' : 4, 'AZ_BIO' : 4, 
             'AZ_BDC' : 4, 'AZ_FIN' : 4, 'AZ_AMB' : 4, 'AZ_IMM' : 4, 'AZ_IND' : 4, 'AZ_ECO' : 4, 'AZ_SAL' : 4, 'AZ_SPU' : 4, 'AZ_TEC' : 4, 
             'AZ_TEL' : 4, 'AZ_ORO' : 4, 'AZ_BEAR' : 4, 
         }
         self.soluzioni_RAI = {
-            'LIQ' : 4, 'OBB_BT' : 4, 'OBB_MLT' : 4, 'OBB_CORP' : 4, 'OBB_EUR' : 4, 'OBB_USA' : 4, 'OBB_GLOB' : 4, 'OBB_EM' : 4, 
-            'OBB_GLOB_HY' : 4, 'AZ_EUR' : 4, 'AZ_NA' : 4, 'AZ_PAC' : 4, 'AZ_EM' : 4, 'AZ_GLOB' : 4, 
+            'LIQ' : 4, 'OBB_EUR_BT' : 4, 'OBB_EUR_MLT' : 4, 'OBB_EUR_CORP' : 4, 'OBB_EUR' : 4, 'OBB_USA' : 4, 'OBB_GLOB' : 4, 'OBB_EM' : 4, 
+            'OBB_HY' : 4, 'AZ_EUR' : 4, 'AZ_NA' : 4, 'AZ_PAC' : 4, 'AZ_EM' : 4, 'AZ_GLOB' : 4, 
         }
 
     def ranking_per_grado(self, metodo):
@@ -72,23 +72,23 @@ class Ranking():
         Soluzione 4: attivo, semi-attivo, molto attivo;
         """
         classi_a_benchmark_BPPB_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
-            'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
-            'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
+            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 
+            'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+            'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
             'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
         }
         classi_a_benchmark_BPL_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 
-            'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 
+            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 
+            'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 
             'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-            'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
+            'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
             'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 
         }
         classi_a_benchmark_RIPA_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
-            'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+            'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
             'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_JAP' : 'Obblig. Yen', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-            'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
+            'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
             'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'AZ_BIO' : 'Az. Biotech', 
             'AZ_BDC' : 'Az. beni di consumo', 'AZ_FIN' : 'Az. servizi finanziari', 'AZ_AMB' : 'Az. ambiente', 
             'AZ_IMM' : 'Az. real estate Mondo', 'AZ_IND' : 'Az. industria', 'AZ_ECO' : 'Az. energia materie prime oro', 
@@ -96,9 +96,9 @@ class Ranking():
             'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear', 
         }
         classi_a_benchmark_RAI_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
-            'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_EUR' : 'Obblig. Europa', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
-            'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 
+            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+            'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_EUR' : 'Obblig. Europa', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
+            'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 
             'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
             'AZ_GLOB' : 'Az. globale', 
         }
@@ -265,23 +265,23 @@ class Ranking():
         df['Sharpe_1Y'] = np.nan
 
         if self.intermediario == 'BPPB':
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
             SOR_DSR = ['FLEX']
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ']
         elif self.intermediario == 'BPL':
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
+            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY']
             SOR_DSR = ['BIL', 'FLEX']
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ', 'LIQ_FOR']
         elif self.intermediario == 'CRV':
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
             SOR_DSR = ['FLEX']
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ']
         elif self.intermediario == 'RIPA':
             IR_TEV = [
-                'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_GLOB_HY', 
+                'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_HY', 
                 'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'AZ_BIO', 'AZ_BDC', 'AZ_FIN', 'AZ_AMB', 'AZ_IMM', 'AZ_IND', 
                 'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR',
             ]
@@ -290,7 +290,7 @@ class Ranking():
             PER_VOL = ['LIQ']
         elif self.intermediario == 'RAI':
             IR_TEV = [
-                'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_USA', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY', 
+                'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_USA', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY', 
                 'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 
             ]
             SOR_DSR = ['BIL', 'FLEX']
@@ -439,12 +439,12 @@ class Ranking():
             df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({'Flessibili prudenti globale' : 'FLEX_PR', 
                 'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN', 'Flessibili Dollaro US' : 'FLEX_DIN', 
                 'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',}, na_action='ignore')
-            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({'Bilanc. Prud. Europa' : 'BIL_BVOL', 
-                'Bilanc. Prud. Dollaro US' : 'BIL_BVOL', 'Bilanc. Prud. Global Euro' : 'BIL_BVOL', 'Bilanc. Prud. Global' : 'BIL_BVOL', 
-                'Bilanc. Prud. altre valute' : 'BIL_BVOL',  'Bilanc. Equilib. Europa' : 'BIL_MVOL', 'Bilanc. Equil. Dollaro US' : 'BIL_MVOL', 
-                'Bilanc. Equil. Global Euro' : 'BIL_MVOL', 'Bilanc. Equil. Global' : 'BIL_MVOL', 'Bilanc. Equil. altre valute' : 'BIL_MVOL', 
-                'Bilanc. Aggress. Europa' : 'BIL_AVOL', 'Bilanc. aggress. Dollaro US' : 'BIL_AVOL', 'Bilanc. Aggress. Global Euro' : 'BIL_AVOL', 
-                'Bilanc. Aggress. Global' : 'BIL_AVOL', 'Bilanc. Aggress. altre valute' : 'BIL_AVOL'}, na_action='ignore')
+            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({'Bilanc. Prud. Europa' : 'BIL_PR', 
+                'Bilanc. Prud. Dollaro US' : 'BIL_PR', 'Bilanc. Prud. Global Euro' : 'BIL_PR', 'Bilanc. Prud. Global' : 'BIL_PR', 
+                'Bilanc. Prud. altre valute' : 'BIL_PR',  'Bilanc. Equilib. Europa' : 'BIL_EQ', 'Bilanc. Equil. Dollaro US' : 'BIL_EQ', 
+                'Bilanc. Equil. Global Euro' : 'BIL_EQ', 'Bilanc. Equil. Global' : 'BIL_EQ', 'Bilanc. Equil. altre valute' : 'BIL_EQ', 
+                'Bilanc. Aggress. Europa' : 'BIL_AGG', 'Bilanc. aggress. Dollaro US' : 'BIL_AGG', 'Bilanc. Aggress. Global Euro' : 'BIL_AGG', 
+                'Bilanc. Aggress. Global' : 'BIL_AGG', 'Bilanc. Aggress. altre valute' : 'BIL_AGG'}, na_action='ignore')
         df.to_excel(self.file_ranking, index=False)
 
     def rank(self, metodo=''):
@@ -465,52 +465,52 @@ class Ranking():
         
         if self.intermediario == 'BPPB':
             anni_detenzione = 3
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
             SOR_DSR = ['FLEX_BVOL', 'FLEX_MAVOL'] # Ora i flessibili sono discriminati
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ']
             if metodo == 'singolo':
                 micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 
-                    'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield'}
+                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 
+                    'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
             elif metodo == 'doppio':
                 micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 
-                    'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'LIQ' : 'Monetari Euro'}
+                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 
+                    'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 'LIQ' : 'Monetari Euro'}
             soluzioni = self.soluzioni_BPPB
         elif self.intermediario =='BPL':
             anni_detenzione = 5
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
+            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY']
             SOR_DSR = ['BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN'] # Ora i flessibili e i bilanciati sono discriminati
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ', 'LIQ_FOR']
             if metodo == 'singolo':
                 micro_blend_classi_a_benchmark = {
                     'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'AZ_GLOB' : 'Az. globale', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 
-                    'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
-                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield'}
+                    'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 
+                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
+                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
             elif metodo == 'doppio':
                 micro_blend_classi_a_benchmark = {
                     'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'AZ_GLOB' : 'Az. globale', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 
-                    'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
-                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'LIQ' : 'Monetari Euro'}
+                    'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 
+                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
+                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 'LIQ' : 'Monetari Euro'}
             soluzioni = self.soluzioni_BPL
         elif self.intermediario =='CRV':
             anni_detenzione = 3
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
             SOR_DSR = ['FLEX_PR', 'FLEX_DIN'] # Ora i flessibili sono discriminati
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ']
             micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                'AZ_GLOB' : 'Az. globale', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
-                'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-                'OBB_GLOB_HY' : 'Obblig. globale high yield'}
+                'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+                'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+                'OBB_HY' : 'Obblig. globale high yield'}
         elif self.intermediario == 'RIPA':
             anni_detenzione = 3
             IR_TEV = [
-                'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_GLOB_HY', 
+                'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_HY', 
                 'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'AZ_BIO', 'AZ_BDC', 'AZ_FIN', 'AZ_AMB', 'AZ_IMM', 'AZ_IND', 
                 'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR', 
             ]
@@ -519,10 +519,10 @@ class Ranking():
             PER_VOL = ['LIQ']
             if metodo == 'doppio':
                 micro_blend_classi_a_benchmark = {
-                    'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
-                    'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+                    'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+                    'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
                     'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_JAP' : 'Obblig. Yen', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-                    'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
+                    'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
                     'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'AZ_BIO' : 'Az. Biotech', 
                     'AZ_BDC' : 'Az. beni di consumo', 'AZ_FIN' : 'Az. servizi finanziari', 'AZ_AMB' : 'Az. ambiente', 
                     'AZ_IMM' : 'Az. real estate Mondo', 'AZ_IND' : 'Az. industria', 'AZ_ECO' : 'Az. energia materie prime oro', 
@@ -532,17 +532,17 @@ class Ranking():
             soluzioni = self.soluzioni_RIPA
         elif self.intermediario =='RAI':
             # anni_detenzione = None
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 
-                'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
-            SOR_DSR = ['BIL_BVOL', 'BIL_MVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN'] # Ora i flessibili e i bilanciati sono discriminati
+            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 
+                'OBB_USA', 'OBB_EM', 'OBB_HY']
+            SOR_DSR = ['BIL_PR', 'BIL_EQ', 'BIL_AGG', 'FLEX_PR', 'FLEX_DIN'] # Ora i flessibili e i bilanciati sono discriminati
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ', 'LIQ_FOR']
             if metodo == 'doppio':
                 micro_blend_classi_a_benchmark = {
                     'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'AZ_GLOB' : 'Az. globale', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 
-                    'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
-                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield', 'LIQ' : 'Monetari Euro'}
+                    'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 
+                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
+                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 'LIQ' : 'Monetari Euro'}
             soluzioni = self.soluzioni_RAI
         for macro in df.loc[:, 'macro_categoria'].unique():
             # Crea un foglio per ogni macro categoria
@@ -1444,36 +1444,36 @@ class Ranking():
         if self.intermediario == 'BPPB':
             if metodo == 'singolo':
                 micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
-                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield'}
+                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
                 micro_blend_classi_non_a_benchmark = ['FLEX_BVOL', 'FLEX_MAVOL', 'OPP', 'LIQ']
             elif metodo == 'doppio':
                 micro_blend_classi_a_benchmark = {'LIQ' : 'Monetari Euro', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
-                    'AZ_EM' : 'Az. paesi emerg. Mondo', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
-                    'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',  'OBB_EM' : 'Obblig. Paesi Emerg.', 
-                    'OBB_GLOB_HY' : 'Obblig. globale high yield'}
+                    'AZ_EM' : 'Az. paesi emerg. Mondo', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',  'OBB_EM' : 'Obblig. Paesi Emerg.', 
+                    'OBB_HY' : 'Obblig. globale high yield'}
         elif self.intermediario == 'BPL':
             if metodo == 'singolo':
                 micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale',
-                    'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
-                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield'}
+                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
+                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
                 micro_blend_classi_non_a_benchmark = ['BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ', 'LIQ_FOR']
             elif metodo == 'doppio':
                 micro_blend_classi_a_benchmark = {'LIQ' : 'Monetari Euro', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale',
-                    'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
-                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield'}
+                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
+                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
         elif self.intermediario == 'CRV':
             micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale',
-                'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
-                'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield'}
+                'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
+                'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
             micro_blend_classi_non_a_benchmark = ['FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ']
         elif self.intermediario == 'RIPA':
             if metodo == 'doppio':
                 micro_blend_classi_a_benchmark = {
-                    'LIQ' : 'Monetari Euro', 'OBB_BT' : 'Obblig. Euro breve term.', 'OBB_MLT' : 'Obblig. Euro all maturities', 
-                    'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+                    'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+                    'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
                     'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_JAP' : 'Obblig. Yen', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-                    'OBB_GLOB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
+                    'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
                     'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'AZ_BIO' : 'Az. Biotech', 
                     'AZ_BDC' : 'Az. beni di consumo', 'AZ_FIN' : 'Az. servizi finanziari', 'AZ_AMB' : 'Az. ambiente', 
                     'AZ_IMM' : 'Az. real estate Mondo', 'AZ_IND' : 'Az. industria', 'AZ_ECO' : 'Az. energia materie prime oro', 
@@ -1483,9 +1483,9 @@ class Ranking():
         elif self.intermediario == 'RAI':
             if metodo == 'doppio':
                 micro_blend_classi_a_benchmark = {'LIQ' : 'Monetari Euro', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
-                    'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'OBB_BT' : 'Obblig. Euro breve term.', 
-                    'OBB_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
-                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_GLOB_HY' : 'Obblig. globale high yield'}
+                    'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 
+                    'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
+                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
         for sheet in wb.sheetnames: 
             if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                 if metodo == 'singolo':
@@ -1686,30 +1686,30 @@ class Ranking():
         
         # Ordina fogli
         if self.intermediario == 'BPPB':
-            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_EM', 'OBB_GLOB', 'OBB_GLOB_HY',
+            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_EM', 'OBB_GLOB', 'OBB_HY',
                 'FLEX_BVOL', 'FLEX_MAVOL', 'OPP', 'LIQ']
             # for _ in wb._sheets:
             #     print(str(_)[12:-2])
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
         elif self.intermediario == 'BPL':
-            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 
-                'OBB_EM', 'OBB_GLOB_HY', 'BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ', 'LIQ_FOR']
+            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 
+                'OBB_EM', 'OBB_HY', 'BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ', 'LIQ_FOR']
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
         elif self.intermediario == 'CRV':
-            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_EM', 'OBB_GLOB', 
-                'OBB_GLOB_HY', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ']
+            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_EM', 'OBB_GLOB', 
+                'OBB_HY', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ']
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
         elif self.intermediario == 'RIPA':
             ordine = [
                 'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'AZ_BIO', 'AZ_BDC', 'AZ_FIN', 'AZ_AMB', 'AZ_IMM', 'AZ_IND', 
                 'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR', 
-                'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_GLOB_HY', 
+                'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_HY', 
                 'COMM', 'FLEX_PR', 'FLEX_DIN', 'PERF_ASS', 'LIQ', 
             ]
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
         elif self.intermediario == 'RAI':
-            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_EUR', 'OBB_USA', 'OBB_GLOB', 
-                'OBB_EM', 'OBB_GLOB_HY', 'BIL_BVOL', 'BIL_MVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ', 'LIQ_FOR']
+            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_EUR', 'OBB_USA', 'OBB_GLOB', 
+                'OBB_EM', 'OBB_HY', 'BIL_PR', 'BIL_EQ', 'BIL_AGG', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ', 'LIQ_FOR']
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
 
         wb.save(self.file_ranking)
@@ -1760,9 +1760,9 @@ class Ranking():
         Directory in cui vengono salvati i file : './docs/import_liste_best_into_Q'
         """
         df_rank = pd.read_excel(self.file_ranking, index_col=None, sheet_name=1)
-        classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM']
-        classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_EUR', 'OBB_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_GLOB_HY']
-        classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_BT', 'OBB_MLT', 'OBB_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_GLOB_HY']
+        classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM']
+        classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY']
+        classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
         if self.intermediario == 'BPL':
             classi_a_benchmark = classi_a_benchmark_BPL
             # per ora solo per BPL
@@ -1790,7 +1790,7 @@ class Ranking():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Ranking(intermediario='RAI', t1='30/11/2022')
+    _ = Ranking(intermediario='CRV', t1='30/11/2022')
     # _.ranking_per_grado('doppio')
     # _.merge_completo_liste()
     # _.discriminazione_flessibili_e_bilanciati()
