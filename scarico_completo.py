@@ -6,21 +6,22 @@ from pathlib import Path
 
 import pandas as pd
 from selenium import webdriver
-from selenium.common.exceptions import (ElementNotInteractableException,
-                                        NoSuchElementException,
+from selenium.common.exceptions import (NoSuchElementException,
                                         TimeoutException)
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import Select, WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
+
+from classes.quantalys import Quantalys
 
 
 class ScaricoCompleto():
 
-    def __str__(self):
+    def __repr__(self):
         return "Importa le liste complete e scarica i dati da Quantalys.it"
 
     def __init__(self, username='AVicario', password='AVicario123'):
@@ -130,6 +131,13 @@ class ScaricoCompleto():
         Carica le liste in quantalys.it ed esporta un file csv completo.
         Rinomina il file con nomi in successione.
         """
+        q = Quantalys()
+
+        # Accesso a Quantalys
+        q.connessione(self.driver)
+        
+        # Log in
+        q.login(self.driver, 'Avicario', 'AVicario123')
         # Il processo parte se la cartella di download è vuota
         while len(os.listdir(self.directory_output_liste_complete)) != 0:
             print(f"\nCi sono dei file presenti nella cartella di download: {glob.glob(self.directory_output_liste_complete.__str__()+'/*')}\n")
@@ -139,11 +147,12 @@ class ScaricoCompleto():
             file_totali = len(os.listdir(self.directory_output_liste_complete))
             if filename.startswith('lista_completa'):
                 print(f'caricamento {filename}...')
+
                 # Logo quantalys
-                # try:
-                #     WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="position-menu-quantalys"]/div/div[1]/a/img')))
-                # except TimeoutException:
-                #     pass
+                try:
+                    WebDriverWait(self.driver, 15).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="position-menu-quantalys"]/div/div[1]/a/img')))
+                except TimeoutException:
+                    pass
                 # Liste
                 try:
                     liste = self.driver.find_element(by=By.PARTIAL_LINK_TEXT, value='Liste')
