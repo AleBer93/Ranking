@@ -1,10 +1,13 @@
-import time
 import re
+import time
+
+import pandas as pd
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+
 
 class Quantalys():
 
@@ -200,14 +203,14 @@ class Quantalys():
             input_value["listModules"].append(key_value_item)
         driver.execute_script(f"let input = document.getElementById('{INPUT_ID}'); input.value = JSON.stringify({input_value});")
 
-    def to_liste(self, driver, list_name, directory_input_liste, list_file):
+    def carica_lista(self, driver, list_name, directory_input_liste, list_file):
         """
         Raggiungi https://www.quantalys.it/Listes da ovunque e crea una lista
         con il nome 'list_name' e i prodotti all'interno di 'list_file'.
 
         Arguments:
             list_name {str} = nome da assegnare alla lista
-            directory_input_liste {str} = percorso in cui trovare il file con la lista
+            directory_input_liste {Path} = percorso in cui trovare il file con la lista
             list_file {str} = nome del file da cercare in self.directory_input_liste
 
         Return:
@@ -275,6 +278,45 @@ class Quantalys():
         numero_fondi = mo.group()
 
         return id_lista, numero_fondi
+
+    def get_data_from_table(self, driver, table, num_pages):
+        """
+        Ricava i dati da una tabella html contenuta in pagine multiple
+
+        Arguments:
+            driver {str} = driver che inietta il codice nel browser
+            table {url} = indirizzo url che porta alla tabella (full x-path)
+            num_pages {int} =  numero di pagine in cui è divisa la tabella
+
+        Return
+            df {dataframe} = Dataframe contenente i dati estratti
+        """
+        element = driver.find_element(By.XPATH, table).get_attribute('outerHTML')
+        df = pd.read_html(element)[0]
+        for page in range(2, num_pages+1):
+            # Individua il nome del primo elemento
+            nome_primo_fondo = driver.find_element(
+                by=By.XPATH, value='/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table/tbody/tr[1]/td[2]'
+            ).text
+            # Quantalys non mette tutti gli li. Li aggiunge alla mano
+            # a = driver.find_element(by=By.CSS_SELECTOR, value=list_class+' li:nth-child('+str(page)+') a')
+            # L'unico modo di individuare l'anchor link che mi serve è selezionare l'anchor link in base al numero progressivo corrispondente alla pagina
+            num_pagina = driver.find_element(by=By.LINK_TEXT, value=str(page))
+            num_pagina.click()
+            # Attendi che il tag li abbia l'attributo active (non funziona per il motivo nel commento sopra)
+            # WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.CSS_SELECTOR, list_class+' li:nth-child('+str(page)+')'))).get_attribute('active')
+            # Attendi che il nome del primo elemento della nuova tabella sia diverso dal nome del primo elemento della tabella aggiornata
+            WebDriverWait(driver, 20).until_not(
+                EC.text_to_be_present_in_element(
+                    (By.XPATH, '/html/body/div[1]/div[3]/div[3]/div[2]/div[2]/div/div/div[2]/table/tbody/tr[1]/td[2]'), nome_primo_fondo
+                )
+            )
+            # Scarica il nuovo dataframe
+            element2 = driver.find_element(By.XPATH, table).get_attribute('outerHTML')
+            df2 = pd.read_html(element2)[0]
+            # Allegalo in coda al primo (df)
+            df = pd.concat([df, df2], ignore_index=True)
+        return df
 
     def to_confronto(self, driver, id_lista):
         """
