@@ -5,8 +5,9 @@ import time
 from pathlib import Path
 
 import dateutil.relativedelta
+from classes.quantalys import Quantalys
 from selenium import webdriver
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
@@ -15,12 +16,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
 
-from classes.quantalys import Quantalys
-
 
 class Scarico():
-    # TODO: aggiungi doppio click anche all'aggiornamento date
-    # TODO: tutti gli aggiornamenti portali anche su scarico_completo.py
 
     def __repr__(self):
         return "Importa le liste complete e scarica i dati da Quantalys.it"
@@ -118,8 +115,8 @@ class Scarico():
             start = time.perf_counter()
             print(f"\nCaricamento lista {filename}...\n")
             
-            # Lista
-            id_lista, numero_fondi = q.to_liste(self.driver, filename[:-4], self.directory_input_liste, filename)
+            # Carica lista
+            id_lista, numero_fondi = q.carica_lista(self.driver, filename[:-4], self.directory_input_liste, filename)
 
             # Confronto
             NUM_MAX_FONDI_CONFRONTO_DIRETTO = 1 # 2000
@@ -141,104 +138,83 @@ class Scarico():
                 )
             )
             self.driver.find_element(by=By.TAG_NAME, value='body').send_keys(Keys.PAGE_DOWN)
-            time.sleep(0.5) # altrimenti non c'entra il doppio click su 'aggiorna'
+            time.sleep(0.5) # altrimenti non centra il doppio click su 'aggiorna'
             if filename.startswith('AZ') or filename.startswith('OBB'):
-                self.aggiungi_indicatori_v2('Codice ISIN', 'Nome', 'Valuta', 'Information ratio da data a data', 'TEV da data a data')
+                q.aggiungi_indicatori_v2(
+                    self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Information ratio da data a data', 'TEV da data a data'
+                )
             elif filename.startswith('FLEX') or filename.startswith('BIL') or filename.startswith('COMM') or filename.startswith('PERF'):
-                self.aggiungi_indicatori_v2('Codice ISIN', 'Nome', 'Valuta', 'Sortino ratio da data a data', 'DSR da data a data')
+                q.aggiungi_indicatori_v2(
+                    self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Sortino ratio da data a data', 'DSR da data a data'
+                )
             elif filename.startswith('OPP'):
-                self.aggiungi_indicatori_v2('Codice ISIN', 'Nome', 'Valuta', 'Sharpe ratio da data a data', 'Volatilità da data a data')
+                q.aggiungi_indicatori_v2(
+                    self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Sharpe ratio da data a data', 'Volatilità da data a data'
+                )
             elif filename.startswith('LIQ'):
-                self.aggiungi_indicatori_v2('Codice ISIN', 'Nome', 'Valuta', 'Perf Ann. da data a data', 'Volatilità da data a data')
+                q.aggiungi_indicatori_v2(
+                    self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Perf Ann. da data a data', 'Volatilità da data a data'
+                )
 
             # Aggiungi benchmark
             if filename[:-6] in self.classi_a_benchmark.keys():
-                self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_rdIndiceRefTousFonds"]').click()
-                select = Select(self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_cmbIndiceRef_Comp"]'))
+                self.driver.find_element(by=By.ID, value='Contenu_Contenu_rdIndiceRefTousFonds').click()
+                select = Select(self.driver.find_element(by=By.ID, value='Contenu_Contenu_cmbIndiceRef_Comp'))
                 select.select_by_value(self.classi_a_benchmark[filename[:-6]])
                 # time.sleep(1.5) # troppo veloce
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_bntProPlusRafraichir"]'))) # Aggiorna benchmark
-                element = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_bntProPlusRafraichir"]')
-                ActionChains(self.driver).double_click(on_element=element).perform()
-                # self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_bntProPlusRafraichir"]').click()
-            else:
-                # time.sleep(1.5) # troppo veloce
-                WebDriverWait(self.driver, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_bntProPlusRafraichir"]'))) # Aggiorna benchmark
-                element = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_bntProPlusRafraichir"]')
-                ActionChains(self.driver).double_click(on_element=element).perform()
-                # self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_bntProPlusRafraichir"]').click()
+            
+            # Aggiorna indicatori / benchmark lista personalizzato
+            element = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_bntProPlusRafraichir'))
+            )
+            ActionChains(self.driver).double_click(on_element=element).perform()
             try:
-                loading_img = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_loader_imgLoad"]')
-                WebDriverWait(self.driver, 5).until(EC.visibility_of(loading_img)) # da 10 a 5 perché se la lista è piccola lo devo mandare avanti a mano
-            except:
-                input('premi enter se ha caricato')
-
-            # Aggiorna date a 3 anni
-            # La rotellina di caricamento non viene intercettata da selenium quando i fondi sono pochi, perché compare solo per qualche istante.
-            # È necessario aspettare alcuni secondi quando la lista è breve piuttosto che affidarsi alla rotellina.
-            else:
-                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
-            finally:
-                data_di_avvio_3_anni = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_dtDebut_txtDatePicker"]')
-                data_di_avvio_3_anni.clear()
-                data_di_avvio_3_anni.send_keys(self.t0_3Y) 
-                data_di_fine = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_dtFin_txtDatePicker"]')
-                data_di_fine.clear()
-                data_di_fine.send_keys(self.t1)
-                self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_lnkRefresh"]').click() # Aggiorna date
-            try:
-                loading_img = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_loader_imgLoad"]')
-                WebDriverWait(self.driver, 5).until(EC.visibility_of(loading_img)) # da 10 a 5 perché se la lista è piccola lo devo mandare avanti a mano
-            except:
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+                # Codice vecchio
+                # loading_img = self.driver.find_element(by=By.ID, value='Contenu_Contenu_loader_imgLoad')
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                # WebDriverWait(self.driver, 5).until(EC.visibility_of(loading_img)) 
+            except TimeoutException:
                 input('premi enter se ha caricato')
             else:
-                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
-            finally:
-                WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
-                self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_btnExportCSV"]').click()
-                try:
-                    loading_img = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_loader_imgLoad"]')
-                    WebDriverWait(self.driver, 5).until(EC.visibility_of(loading_img)) # da 10 a 5 perché se la lista è piccola lo devo mandare avanti a mano
-                except:
-                    input('premi enter se ha caricato')
-                else:
-                    WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
-                    # time.sleep(1)
-                
-            # try:
-            #     WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
-            # except TimeoutException:
-            #     pass
-            # finally:
-            #     data_di_avvio_3_anni = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_dtDebut_txtDatePicker"]')
-            #     data_di_avvio_3_anni.clear()
-            #     data_di_avvio_3_anni.send_keys(self.t0_3Y) 
-            #     data_di_fine = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_dtFin_txtDatePicker"]')
-            #     data_di_fine.clear()
-            #     data_di_fine.send_keys(self.t1)
-            #     self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_lnkRefresh"]').click() # Aggiorna date
-            #     loading_img = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_loader_imgLoad"]')
-            #     WebDriverWait(self.driver, 10).until(EC.visibility_of(loading_img))
+                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
 
+            # Cambia date a 3 anni
+            data_di_avvio_3_anni = self.driver.find_element(by=By.ID, value='Contenu_Contenu_dtDebut_txtDatePicker')
+            data_di_avvio_3_anni.clear()
+            data_di_avvio_3_anni.send_keys(self.t0_3Y) 
+            data_di_fine = self.driver.find_element(by=By.ID, value='Contenu_Contenu_dtFin_txtDatePicker')
+            data_di_fine.clear()
+            data_di_fine.send_keys(self.t1)
 
-            # Salva il file con nome a tre anni
-            # try:
-            #     WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
-            # except TimeoutException:
-            #     pass
-            # finally:
-            #     WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
-            #     self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_btnExportCSV"]').click()
-            #     try:
-            #         loading_img = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_loader_imgLoad"]')
-            #         WebDriverWait(self.driver, 600).until(EC.visibility_of(loading_img))
-            #     except TimeoutException:
-            #         pass
-            #     finally:
-            #         WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
-            #         time.sleep(1)
+            # Aggiorna date
+            element = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_lnkRefresh'))
+            )
+            ActionChains(self.driver).double_click(on_element=element).perform()
+            try:
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            except TimeoutException:
+                input('premi enter se ha caricato')
+            else:
+                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
 
-            # Rinomina file
+            # Esporta CSV
+            element = WebDriverWait(self.driver, 600).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_btnExportCSV'))
+            )
+            ActionChains(self.driver).double_click(on_element=element).perform()
+            try:
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            except TimeoutException:
+                input('premi enter se ha caricato')
+            else:
+                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+
+            # Rinomina file a 3 anni
             while len(os.listdir(self.directory_output_liste)) == file_scaricati:
                 time.sleep(1)
             time.sleep(1.5)
@@ -246,52 +222,38 @@ class Scarico():
             latest_file = max(list_of_files, key=os.path.getctime)
             os.rename(latest_file, self.directory_output_liste.joinpath(filename[:-4]+'_3Y.csv'))
 
-            # Aggiorna date 1 anno
+            # Cambia date a 1 anno
+            data_di_avvio_1_anno = self.driver.find_element(by=By.ID, value='Contenu_Contenu_dtDebut_txtDatePicker')
+            data_di_avvio_1_anno.clear()
+            data_di_avvio_1_anno.send_keys(self.t0_1Y)
+
+            # Aggiorna date
+            element = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_lnkRefresh'))
+            )
+            ActionChains(self.driver).double_click(on_element=element).perform()
             try:
-                WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_dtDebut_txtDatePicker"]')))
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
             except TimeoutException:
-                pass
-            finally:
-                data_di_avvio_1_anno = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_dtDebut_txtDatePicker"]')
-                data_di_avvio_1_anno.clear()
-                data_di_avvio_1_anno.send_keys(self.t0_1Y)
-                self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_lnkRefresh"]').click() # Aggiorna date
-            try:
-                loading_img = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_loader_imgLoad"]')
-                WebDriverWait(self.driver, 5).until(EC.visibility_of(loading_img)) # da 10 a 5 perché se la lista è piccola lo devo mandare avanti a mano
-            except:
                 input('premi enter se ha caricato')
             else:
-                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
-            finally:
-                WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
-                self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_btnExportCSV"]').click()
-                try:
-                    loading_img = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_loader_imgLoad"]')
-                    WebDriverWait(self.driver, 5).until(EC.visibility_of(loading_img)) # da 10 a 5 perché se la lista è piccola lo devo mandare avanti a mano
-                except:
-                    input('premi enter se ha caricato')
-                else:
-                    WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
-
-            # Salva il file con nome ad un anno
-            # try:
-            #     WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
-            # except TimeoutException:
-            #     pass
-            # finally:
-            #     WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_btnExportCSV"]')))
-            #     self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_btnExportCSV"]').send_keys(Keys.ENTER)
-            #     try:
-            #         loading_img = self.driver.find_element(by=By.XPATH, value='//*[@id="Contenu_Contenu_loader_imgLoad"]')
-            #         WebDriverWait(self.driver, 600).until(EC.visibility_of(loading_img))
-            #     except TimeoutException:
-            #         pass
-            #     finally:
-            #         WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.XPATH, '//*[@id="Contenu_Contenu_loader_imgLoad"]')))
-            #         time.sleep(1)
+                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
             
-            # Rinomina file
+            # Esporta CSV
+            element = WebDriverWait(self.driver, 600).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_btnExportCSV'))
+            )
+            ActionChains(self.driver).double_click(on_element=element).perform()
+            try:
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(self.driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            except TimeoutException:
+                input('premi enter se ha caricato')
+            else:
+                WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            
+            # Rinomina file ad 1 anno
             while len(os.listdir(self.directory_output_liste)) == file_scaricati:
                 time.sleep(1)
             time.sleep(1.5)
@@ -299,12 +261,16 @@ class Scarico():
             latest_file = max(list_of_files, key=os.path.getctime)
             os.rename(latest_file, self.directory_output_liste.joinpath(filename[:-4]+'_1Y.csv'))
 
+            # Contatori tempo trascorso
             end = time.perf_counter()
             elapsed_time.append(end - start)
-            print(f"Elapsed time for {filename}: ", end - start, 'seconds')
-            print(f"\nAverage elapsed time: {sum(elapsed_time)/len(elapsed_time)}.")
+            average_elapsed_time = sum(elapsed_time)/len(elapsed_time)
             liste_completate += 1
-            print(f"\nTempo previsto alla fine: {datetime.timedelta(seconds=(sum(elapsed_time)/len(elapsed_time))*(file_totali-liste_completate))}")
+            file_rimanenti = file_totali-liste_completate
+            if file_rimanenti != 0:
+                print(f"Tempo trascorso per {filename}: ", round(end - start, 2), 'secondi')
+                print(f"\nTempo medio trascorso per lista: {round(average_elapsed_time, 2)}.")
+                print(f"\nTempo previsto alla fine: {datetime.timedelta(seconds=(average_elapsed_time)*(file_rimanenti))}")
         
         self.driver.close()
 
@@ -312,8 +278,6 @@ class Scarico():
 if __name__ == '__main__':
     start = time.perf_counter()
     _ = Scarico(intermediario='RAI', t1='31/12/2022')
-    # _.accesso_a_quantalys()
-    # _.login()
     _.export()
     end = time.perf_counter()
     print("Elapsed time: ", end - start, 'seconds')
