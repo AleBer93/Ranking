@@ -46,6 +46,7 @@ class Completo():
         self.directory = directory
         self.directory_output_liste_complete = self.directory.joinpath('docs', 'export_liste_complete_from_Q')
         self.directory_sfdr = self.directory.joinpath('docs', 'sfdr')
+        self.directory_liste_sfdr = self.directory.joinpath('docs', 'sfdr', 'liste_sfdr')
         self.directory_input_liste = self.directory.joinpath('docs', 'import_liste_into_Q')
         self.file_completo = 'completo.csv'
         self.soglie = {
@@ -109,9 +110,9 @@ class Completo():
         Concatena i file sfdr all'interno della directory_sfdr l'uno sotto l'altro.
         Salva il risultato con il nome sfdr.csv
         """
-        df = pd.concat((pd.read_csv(self.directory_sfdr.joinpath(filename), sep = ';', decimal=',', engine='python', 
-            encoding = "unicode_escape") for filename in os.listdir(self.directory_sfdr)), ignore_index=True)
-        df.to_csv(self.directory_sfdr.joinpath('sfdr.csv'), sep=";", decimal=',', index=False)
+        df = pd.concat((pd.read_csv(self.directory_liste_sfdr.joinpath(filename), sep = ';', decimal=',', engine='python', 
+            encoding = "unicode_escape") for filename in os.listdir(self.directory_liste_sfdr)), ignore_index=True)
+        df.to_csv(self.directory_sfdr.joinpath('sfdr.csv'), sep=";", mode='w', index=False, decimal=',')
     
     def concatenazione_completo_sfdr(self):
         """
@@ -173,17 +174,13 @@ class Completo():
         Arguments:
             colonne {tuple} = tuple di colonne da estrarre dal file
         """
-        if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RAI':
+        if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RAI' or self.intermediario == 'RIPA':
             colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese',
                 'Rischio 3 anni") fine mese', 'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'Info 3 anni") fine mese',
                 'Alpha 3 anni") fine mese', 'SRRI', 'SFDR']
         elif self.intermediario == 'CRV':
             colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese',
                 'Rischio 3 anni") fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI']
-        elif self.intermediario == 'RIPA':
-            colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese',
-                'Rischio 3 anni") fine mese', 'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'Info 3 anni") fine mese',
-                'Alpha 3 anni") fine mese', 'SRRI', 'SFDR']
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df = df.loc[:, colonne]
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
@@ -213,7 +210,8 @@ class Completo():
         BPPB_dict = {
             'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ', 
             'Monetari altre valute europ' : 'LIQ', 
-            'Obblig. euro gov. breve termine' : 'OBB_EUR_BT', 'Obblig. Euro breve term.' : 'OBB_EUR_BT', 'Obblig. Euro a scadenza' : 'OBB_EUR_BT', 
+            'Obblig. euro gov. breve termine' : 'OBB_EUR_BT', 'Obblig. Euro breve term.' : 'OBB_EUR_BT', 
+            'Obblig. Euro a scadenza' : 'OBB_EUR_BT', 
             'Obblig. Euro gov. medio termine' : 'OBB_EUR_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_EUR_MLT', 
             'Obblig. Euro lungo termine' : 'OBB_EUR_MLT', 'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 'Obblig. Euro gov.' : 'OBB_EUR_MLT', 
             'Obblig. Euro all maturities' : 'OBB_EUR_MLT', 'Obblig. Europa' : 'OBB_EUR_MLT', 'Obblig. Sterlina inglese' : 'OBB_EUR_MLT', 
@@ -398,8 +396,8 @@ class Completo():
             'Monetari Euro' : 'LIQ', 
             'Obblig. euro gov. breve termine' : 'OBB_EUR_BT', 'Obblig. Euro breve term.' : 'OBB_EUR_BT', 
             'Obblig. Euro gov. medio termine' : 'OBB_EUR_MLT', 'Obblig. Euro lungo termine' : 'OBB_EUR_MLT', 
-            'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_EUR_MLT', 'Obblig. Euro gov.' : 'OBB_EUR_MLT', 
-            'Obblig. Euro all maturities' : 'OBB_EUR_MLT', 'Obblig. Euro a scadenza' : 'OBB_EUR_MLT', 
+            'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_EUR_MLT', 
+            'Obblig. Euro gov.' : 'OBB_EUR_MLT', 'Obblig. Euro all maturities' : 'OBB_EUR_MLT', 'Obblig. Euro a scadenza' : 'OBB_EUR_MLT', 
             'Obblig. Indicizz. Inflation Linked' : 'OBB_EUR_MLT', 'Obblig. Convertib. Euro' : 'OBB_EUR_MLT', 
             'Obblig. Euro corporate' : 'OBB_EUR_CORP', 
             'Obblig. Europa' : 'OBB_EUR', 'Obblig. Sterlina inglese' : 'OBB_EUR', 'Obblig. Franco svizzero' : 'OBB_EUR', 
@@ -451,31 +449,45 @@ class Completo():
         RAI_dict = {
             'Monetari Euro' : 'LIQ',
             'Monetari Dollaro USA' : 'LIQ_FOR', 'Monetari altre valute europ' : 'LIQ_FOR', 
-            'Obblig. Euro breve term.' : 'OBB_EUR_BT', 
-            'Obblig. Euro all maturities' : 'OBB_EUR_MLT', 'Obblig. Euro gov.' : 'OBB_EUR_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_EUR_MLT', 
-            'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 'Obblig. Convertib. Europa' : 'OBB_EUR_MLT', 'Obblig. Euro a scadenza' : 'OBB_EUR_MLT', 
+            'Obblig. Euro breve term.' : 'OBB_EUR_BT', 'Obblig. euro gov. breve termine' : 'OBB_EUR_BT', 
+            'Obblig. Euro all maturities' : 'OBB_EUR_MLT', 
+            'Obblig. Euro gov.' : 'OBB_EUR_MLT', 'Obblig. Euro a scadenza' : 'OBB_EUR_MLT', 'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 
+            'Obblig. Euro lungo termine' : 'OBB_EUR_MLT', 'Obblig. Euro gov. medio termine' : 'OBB_EUR_MLT', 
+            'Obblig. Euro gov. lungo termine' : 'OBB_EUR_MLT', 'Obblig. Indicizz. Inflation Linked' : 'OBB_EUR_MLT', 
+            'Obblig. Convertib. Europa' : 'OBB_EUR_MLT', 
             'Obblig. Euro corporate' : 'OBB_EUR_CORP', 
-            'Obblig. Franco svizzero' : 'OBB_EUR', 
-            'Obblig. Dollaro US all mat' : 'OBB_USA', 
+            'Obblig. Europa' : 'OBB_EUR', 'Obblig. Franco svizzero' : 'OBB_EUR', 'Obblig. Sterlina inglese' : 'OBB_EUR',
+            'Obblig. Dollaro US all mat' : 'OBB_USA', 'Obblig. Dollaro US breve term.' : 'OBB_USA', 
+            'Obblig. Dollaro US corporate' : 'OBB_USA', 
             'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB', 
-            'Obblig. Convertib. Glob.' : 'OBB_GLOB', 'Obblig. Asia' : 'OBB_GLOB', 
-            'Obblig. Euro high yield' : 'OBB_HY', 'Obblig. Dollaro US high yield' : 'OBB_HY', 'Obblig. globale high yield' : 'OBB_HY', 
-            'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
-            'Az. Europa' : 'AZ_EUR', 'Az. Area Euro' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 'Az. Europa Value' : 'AZ_EUR', 
-            'Az. paesi nordici' : 'AZ_EUR', 'Az. Svizzera' : 'AZ_EUR', 'Az.Svizzera small cap' : 'AZ_EUR', 
+            'Obblig. Convertib. Glob.' : 'OBB_GLOB', 'Obblig. Asia' : 'OBB_GLOB', 'Obblig. altre valute' : 'OBB_GLOB', 
+            'Obblig. Euro high yield' : 'OBB_HY', 'Obblig. Europa High Yield' : 'OBB_HY', 'Obblig. Dollaro US high yield' : 'OBB_HY', 
+            'Obblig. globale high yield' : 'OBB_HY', 
+            'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 'Obblig. paesi emerg. Asia' : 'OBB_EM', 
+            'Az. Europa' : 'AZ_EUR', 'Az. Area Euro' : 'AZ_EUR', 'Az. Europa Growth' : 'AZ_EUR', 'Az. Europa small cap' : 'AZ_EUR', 
+            'Az. Europa Value' : 'AZ_EUR', 'Az. paesi nordici' : 'AZ_EUR', 'Az. Svizzera' : 'AZ_EUR', 'Az.Svizzera small cap' : 'AZ_EUR', 
+            'Az. Area Euro small cap' : 'AZ_EUR', 'Az. Germania' : 'AZ_EUR', 'Az. Italia' : 'AZ_EUR', 'Az. Spagna' : 'AZ_EUR', 
+            'Az. UK' : 'AZ_EUR', 
             'Az. USA' : 'AZ_NA',  'Az. USA Value' : 'AZ_NA',  'Az. USA Growth' : 'AZ_NA', 'Az. USA small cap' : 'AZ_NA', 
-            'Az. Pacifico' : 'AZ_PAC', 'Az. Asia Pacifico ex Giapp.' : 'AZ_PAC', 'Az. Giappone' : 'AZ_PAC', 'Az. Giappone small cap' : 'AZ_PAC', 
-            'Az. paesi emerg. Mondo' : 'AZ_EM', 'Az. paesi emerg. America Latina' : 'AZ_EM', 'Az. paesi emerg. Asia' : 'AZ_EM', 'Az. Altri paesi emerg.' : 'AZ_EM', 
-            'Az. Paesi Emerg. Europa e Russia' : 'AZ_EM', 'Az. Brasile' : 'AZ_EM', 'Az. Grande Cina' : 'AZ_EM', 'Az. India' : 'AZ_EM', 'Az. Russia' : 'AZ_EM', 
-            'Az. Cina' : 'AZ_EM', 
+            'Az. Pacifico' : 'AZ_PAC', 'Az. Asia Pacifico ex Giapp.' : 'AZ_PAC', 'Az. Giappone' : 'AZ_PAC', 
+            'Az. Giappone small cap' : 'AZ_PAC', 
+            'Az. paesi emerg. Mondo' : 'AZ_EM', 'Az. paesi emerg. America Latina' : 'AZ_EM', 'Az. paesi emerg. Asia' : 'AZ_EM', 
+            'Az. Altri paesi emerg.' : 'AZ_EM', 'Az. Paesi Emerg. Europa e Russia' : 'AZ_EM', 'Az. paesi emerg. altre zone' : 'AZ_EM', 
+            'Az. Brasile' : 'AZ_EM', 'Az. Grande Cina' : 'AZ_EM', 'Az. India' : 'AZ_EM', 'Az. Russia' : 'AZ_EM', 'Az. Cina' : 'AZ_EM', 
             'Az. globale' : 'AZ_GLOB', 'Az. globale Value' : 'AZ_GLOB', 'Az. globale Growth' : 'AZ_GLOB', 
-            'Bilanc. Prud. Dollaro US' : 'BIL', 'Bilanc. Prud. Global' : 'BIL', 'Bilanc. Prud. altre valute' : 'BIL', 
-            'Bilanc. Equilib. Europa' : 'BIL', 'Bilanc. Equil. Dollaro US' : 'BIL', 'Bilanc. Equil. Global' : 'BIL', 'Bilanc. Equil. altre valute' : 'BIL', 
-            'Bilanc. Aggress. Global' : 'BIL', 'Bilanc. Aggress. altre valute' : 'BIL', 
-            'Flessibili prudenti globale' : 'FLEX', 'Fless. Global' : 'FLEX', 
+            'Az. globale small cap' : 'AZ_GLOB', 
+            'Bilanc. Prud. Europa' : 'BIL', 'Bilanc. Prud. Dollaro US' : 'BIL', 'Bilanc. Prud. Global' : 'BIL', 
+            'Bilanc. Prud. altre valute' : 'BIL', 
+            'Bilanc. Equilib. Europa' : 'BIL', 'Bilanc. Equil. Dollaro US' : 'BIL', 'Bilanc. Equil. Global' : 'BIL', 
+            'Bilanc. Equil. altre valute' : 'BIL', 'Bilanc. Aggress. Global' : 'BIL', 'Bilanc. Aggress. altre valute' : 'BIL', 
+            'Flessibili prudenti Europa' : 'FLEX', 'Flessibili prudenti globale' : 'FLEX', 'Flessibili Europa' : 'FLEX', 'Flessibili Dollaro US' : 'FLEX', 'Fless. Global' : 'FLEX', 
             'Az. Servizi di pubblica utilita' : 'OPP', 'Az. ambiente' : 'OPP', 'Az. beni di consumo' : 'OPP', 'Az. tecnologia' : 'OPP',
-            'Az. real estate Europa' : 'OPP', 'Az. salute - farmaceutico' : 'OPP', 'Az. energia materie prime oro' : 'OPP', 'Az. real estate Mondo' : 'OPP', 
-            'Commodities' : 'OPP', 'Fondi  a garanzia o a formula Euro' : 'OPP', 'Perf. assoluta multi-strategia' : 'OPP', 'Perf. assoluta tassi' : 'OPP', 
+            'Az. real estate Europa' : 'OPP', 'Az. salute - farmaceutico' : 'OPP', 'Az. energia materie prime oro' : 'OPP', 
+            'Az. industria' : 'OPP', 'Az. Oro' : 'OPP', 'Az. servizi finanziari' : 'OPP', 'Az. telecomunicazioni' : 'OPP', 
+            'Az. real estate Mondo' : 'OPP', 'Commodities' : 'OPP', 'Fondi  a garanzia o a formula Euro' : 'OPP', 
+            'Perf. assoluta multi-strategia' : 'OPP', 'Perf. assoluta tassi' : 'OPP', 'Perf. assoluta Market Neutral Euro' : 'OPP', 
+            'Perf. assoluta strategia valute' : 'OPP', 'Perf. assoluta volatilita' : 'OPP', 'Perf. ass. USD' : 'OPP', 
+            'Perf. ass. Long/Short eq.' : 'OPP', 'Altri' : 'OPP', 'Fondi a scadenza pred. Euro' : 'OPP', 
         }
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         if self.intermediario == 'BPPB':
@@ -523,33 +535,9 @@ class Completo():
             df['commissione'] = df['commissione']*df['macro_categoria'].apply(lambda x : sconti[x])
             df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
         else:
-            pass
+            return None
 
     def scarico_datadiavvio(self):
-        # TODO : SCARICA DA SQL LA DATA DI AVVIO E DA BLOOMBERG LE RIMANENTI. AGGIORNA QUELLE NON PRESENTI SU SQL
-        # """ scarica da SQL il dataframe con tutte le date di avvio disponibili, e fai un merge con il file completo, poi """
-        # from sqlalchemy import create_engine, MetaData, Table
-        # from sqlalchemy.types import Float, DateTime
-        # DATABASE_URL = 'postgres+psycopg2://postgres:bloomberg893@localhost:5432/ranking'
-        # engine = create_engine(DATABASE_URL)
-        # connection = engine.connect()
-        # df_id = pd.read_sql("SELECT * FROM inception_date", connection)
-        # print("\nSto scaricando le dati di avvio dei fondi da Bloomberg...")
-        # df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        # df_merge_id = pd.merge(df, df_id, how='left', left_on='Codice ISIN', right_on='isin_code')
-        # fondi_non_presenti = df_merge_id.loc[df_merge_id['fund_incept_dt'].isna(), ['Codice ISIN', 'valuta']]
-        # print(fondi_non_presenti)
-        # df_bl = blp.bdp('/isin/LU0048578792' + fondi_non_presenti['Codice ISIN'], flds="fund_incept_dt") #/isin/IT0001029823
-        # print(df_bl)
-        # df_bl.reset_index(inplace=True)
-        # df_bl['isin_code'] = df_bl['index'].str[6:]
-        # df_bl.reset_index(drop=True, inplace=True)
-        # print(df_bl)
-        # df_merged = pd.merge(df_merge_id, df_bl, left_on='Codice ISIN', right_on='isin_code', how='left')
-        # df_merged.to_csv(self.file_completo, sep=";")
-        # df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        # df.to_sql('persone_fisiche', con=engine, if_exists='replace', index=False, dtype={'data_questionario' : DateTime()})
-
         """
         Scarica la data di avvio dei fondi nel file_bloomberg utilizzando la libreria di Bloomberg.
         Aggiungi la data di avvio al file completo.
@@ -611,8 +599,8 @@ class Completo():
 
     def attività(self):
         """
-        Crea la colonna TEV ottenuta come rapporto tr alpha e IR, sia a 3 anni che ad 1 anno.
-        Assegna ai fondi appartenenti alle classi direzionali più la liquidità un grado di attività tra semiattivo, attivo, molto attivo.
+        Crea la colonna TEV ottenuta come rapporto tra alpha e IR, sia a 3 anni che ad 1 anno.
+        Assegna ai fondi appartenenti alle classi direzionali, più la liquidità, un grado di attività tra semiattivo, attivo, molto attivo.
         L'etichetta verrà assegnata in base al superamento o meno di determinate soglie presenti nella variabile self.soglie.
         """
         if self.intermediario == 'BPPB':
@@ -677,8 +665,10 @@ class Completo():
             anni_detenzione = None
             macro_micro = self.classi_a_benchmark_RAI_metodo_doppio
 
-        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
-        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
+        # data iniziale tre anni fa
+        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y')
+        # data iniziale un anno fa
+        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y')
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         if self.metodo == 'singolo':
             df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True)
@@ -774,7 +764,7 @@ class Completo():
         # df_merged["sfdr_classification"].replace(0, '', inplace=True)
         # print('scaricate!')
         # df_merged.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-        """close"""
+        return None
 
     def discriminazione_flessibili(self):
         """
@@ -784,6 +774,7 @@ class Completo():
         altrimenti assegna l'etichetta 'bassa_vola' ai fondi senza dati sul rischio.
         """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        # discrimina in base alla volatilità
         if self.intermediario == 'BPPB' or self.intermediario == 'CRV':
             df['categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['Rischio 3 anni") fine mese'].notnull()), 'Rischio 3 anni") fine mese'].apply(lambda x: 'bassa_vola' if x < 0.05 else 'media_alta_vola')
             df.loc[df['categoria_flessibili'].isnull(), 'categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['Rischio 1 anno fine mese'].notnull()), 'Rischio 1 anno fine mese'].apply(lambda x: 'bassa_vola' if x < 0.05 else 'media_alta_vola')
@@ -802,16 +793,16 @@ class Completo():
         if self.intermediario == 'BPPB':
             if self.metodo == 'singolo':
                 col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                    'commissione', 'Best_Worst_3Y', 'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
+                    'commissione', 'Best_Worst_3Y', 'SFDR', 'categoria_flessibili']
                 col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 
-                    'commissione', 'Best_Worst', 'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
+                    'commissione', 'Best_Worst', 'SFDR', 'categoria_flessibili']
             elif self.metodo == 'doppio':
                 col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
                     'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y', 
-                    'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
+                    'SFDR', 'categoria_flessibili']
                 col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
                     'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y', 
-                    'SFDR', 'categoria_flessibili', 'fondo_a_finestra']
+                    'SFDR', 'categoria_flessibili']
         elif self.intermediario == 'BPL':
             if self.metodo == 'singolo':
                 col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
@@ -866,9 +857,9 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='CRV', t1='30/11/2022', metodo='doppio')
+    _ = Completo(intermediario='RAI', t1='31/12/2022', metodo='doppio')
     # _.concatenazione_liste_complete()
-    # _.concatenazione_sfdr()
+    _.concatenazione_sfdr()
     # _.concatenazione_completo_sfdr()
     # _.fondi_non_presenti()
     # _.correzione_micro_russe()
@@ -885,6 +876,6 @@ if __name__ == '__main__':
     # _.calcolo_best_worst()
     # _.discriminazione_flessibili()
     # _.seleziona_e_rinomina_colonne()
-    _.creazione_liste_input()
+    # _.creazione_liste_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
