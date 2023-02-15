@@ -1,4 +1,5 @@
 import datetime
+import glob
 import os
 import time
 from pathlib import Path
@@ -6,6 +7,16 @@ from pathlib import Path
 import dateutil.relativedelta
 import numpy as np
 import pandas as pd
+from classes.quantalys import Quantalys
+from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select, WebDriverWait
+from webdriver_manager.chrome import ChromeDriverManager
 # with os.add_dll_directory('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\_blpapi'):
 #     import blpapi
 from xbbg import blp
@@ -36,6 +47,12 @@ class Completo():
         """
         self.intermediario = intermediario
         self.t1 = t1
+        self.t0_3Y = (
+            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+3)
+        ).strftime("%d/%m/%Y") # data iniziale tre anni fa
+        self.t0_1Y = (
+            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)
+        ).strftime("%d/%m/%Y") # data iniziale un anno fa
         # CRV è l'unica controparte a non adottare il metodo di ranking best / worst
         if self.intermediario != 'CRV':
             if metodo not in ['singolo', 'doppio']:
@@ -48,6 +65,9 @@ class Completo():
         self.directory_sfdr = self.directory.joinpath('docs', 'sfdr')
         self.directory_liste_sfdr = self.directory.joinpath('docs', 'sfdr', 'liste_sfdr')
         self.directory_input_liste = self.directory.joinpath('docs', 'import_liste_into_Q')
+        self.directory_alfa_nulli = self.directory.joinpath('docs', 'alfa_nulli')
+        if not os.path.exists(self.directory_alfa_nulli):
+            os.makedirs(self.directory_alfa_nulli)
         self.file_completo = 'completo.csv'
         self.soglie = {
             'LIQ' : [0.0015, 0.01], 'OBB_EUR_BT' : [0.0075, 0.02], 'OBB_EUR_MLT' : [0.0125, 0.035], 'OBB_EUR' : [0.035, 0.065], 
@@ -137,24 +157,6 @@ class Completo():
         print(f'I prodotti non presenti nella piattaforma sono i seguenti:\n{prodotti_non_presenti}')
         prodotti_non_presenti.to_csv(self.directory.joinpath('docs', 'prodotti_non_presenti.csv'), sep=';', decimal=',', index=False)
 
-    def correzione_micro_russe(self):
-        """
-        Corregge le righe delle microcategorie Az. Paesi Emerg. Europa e Russia & Az. Paesi Emerg. Europa ex Russia
-        perchè vanno a capo dalla sesta colonna in poi.
-        """
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        indexes_to_drop = []
-        for row in range(len(df)):
-            if df.loc[row, 'Categoria Quantalys'] == 'Az. Paesi Emerg. Europa e Russia' or df.loc[row, 'Categoria Quantalys'] == 'Az. Paesi Emerg. Europa ex Russia':
-                if all(df.iloc[row, 5:len(df.columns)+1].isnull()): # solo se tutte le celle successive sono vuote
-                    df.iloc[row, 5:len(df.columns)+1] = df.iloc[row+1, 1:len(df.columns)-4].values # sia values che tolist() le copia come stringhe
-                    indexes_to_drop.append(row+1)
-        df.drop(df.index[indexes_to_drop], inplace=True)
-        if indexes_to_drop:
-            print(f"\nLe righe da eliminare dopo aver copiato il loro contenuto in quella sopra sono: {indexes_to_drop}")
-        df.reset_index(drop=True, inplace=True)
-        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-
     def change_datatype(self, **colonne):
         """
         Cambia il tipo di dato alle colonne selezionate del file completo.
@@ -183,6 +185,227 @@ class Completo():
                 'Rischio 3 anni") fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI']
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df = df.loc[:, colonne]
+        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+
+    def correzione_micro_russe(self):
+        """
+        Corregge le righe delle microcategorie Az. Paesi Emerg. Europa e Russia & Az. Paesi Emerg. Europa ex Russia
+        perchè vanno a capo dalla sesta colonna in poi.
+        """
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        indexes_to_drop = []
+        for row in range(len(df)):
+            if df.loc[row, 'Categoria Quantalys'] == 'Az. Paesi Emerg. Europa e Russia' or df.loc[row, 'Categoria Quantalys'] == 'Az. Paesi Emerg. Europa ex Russia':
+                if all(df.iloc[row, 5:len(df.columns)+1].isnull()): # solo se tutte le celle successive sono vuote
+                    df.iloc[row, 5:len(df.columns)+1] = df.iloc[row+1, 1:len(df.columns)-4].values # sia values che tolist() le copia come stringhe
+                    indexes_to_drop.append(row+1)
+        df.drop(df.index[indexes_to_drop], inplace=True)
+        if indexes_to_drop:
+            print(f"\nLe righe da eliminare dopo aver copiato il loro contenuto in quella sopra sono: {indexes_to_drop}")
+        df.reset_index(drop=True, inplace=True)
+        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+
+    def correzione_alfa_IR_nulli(self):
+        # TODO : fai uno scarico da quantalys con benchmark di default per tutti quei fondi che hanno alpha o IR pari a 0. 
+        # L'alfa scaricato da quantalys è in percentuale...
+        # quantalys assegna un valore pari a 0 all'information ratio se l'alpha è un numero del tipo 0.00*
+        # Purtroppo quantalys potrebbe scaricare di nuovo un IR pari a 0. E' conveniente scaricare anche la TEV e nel caso l'IR fosse 0
+        # anche nel nuovo scarico, ricavarlo come alpha / TEV.
+        """
+        Quantalys calcola l'alfa fino alla quarta cifra dopo la virgola,
+        se le prime quatto cifre sono 0, l'alfa sarà 0, e così anche l'IR.
+        Un valore di alfa e IR pari a 0 inficia i due metodi successivi in cui viene calcolata la TEV e viene calcolato 
+        l'indicatore corretto.
+        Sostiuisci i valori di alfa e IR 0 con i valori corretti.
+        """
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        # Correzione indicatore corretto a 3 anni #
+        while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
+            print("Ci sono dei fondi con alpha 3 anni o information ratio 3 anni uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+            
+            # Individua i fondi che hanno un alfa a 3Y e un IR a 3Y pari a 0.
+            alfa_nulli_3Y = df.loc[(df['Alpha 3 anni") fine mese']==0) | (df['Info 3 anni") fine mese']==0)]
+            print(alfa_nulli_3Y['Codice ISIN'].to_list())
+            
+            # Export
+            file_scaricati = len(os.listdir(self.directory_alfa_nulli))
+
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_experimental_option(
+                "prefs", {"download.default_directory" : self.directory_alfa_nulli.__str__(),"download.directory_upgrade" : True}
+            )
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            q = Quantalys()
+            # Accesso a Quantalys
+            q.connessione(driver)
+            # Log in
+            q.login(driver, 'Avicario', 'AVicario123')
+            # passa da fondi confronto e incolla i pochi isin
+            q.confronta_isin(driver, *[isin for isin in alfa_nulli_3Y['Codice ISIN'].to_list()])
+            
+            # Personalizzato
+            WebDriverWait(driver, 360).until(EC.presence_of_element_located((By.LINK_TEXT, 'Personalizzato'))).click()
+            
+            # Seleziona indicatori
+            WebDriverWait(driver, 180).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, '//*[@id="SelectableItemsWrapper"]/div[3]/div/div/ol/li[1]')
+                )
+            )
+            driver.find_element(by=By.TAG_NAME, value='body').send_keys(Keys.PAGE_DOWN)
+            time.sleep(0.5) # altrimenti non centra il doppio click su 'aggiorna'
+            q.aggiungi_indicatori_v2(
+                driver, 'Codice ISIN', 'Nome', 'Valuta', 'Information ratio da data a data',
+                'Alfa da data a data', 'TEV da data a data'
+            )
+
+            # Seleziona benchmark di default
+            WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.ID, 'Contenu_Contenu_rdIndiceRefFonds'))).click()
+            
+            # Aggiorna indicatori / benchmark lista personalizzato
+            element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_bntProPlusRafraichir'))
+            )
+            ActionChains(driver).double_click(on_element=element).perform()
+            try:
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            except TimeoutException:
+                input('premi enter se ha caricato')
+            else:
+                WebDriverWait(driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+        
+            # Cambia date a 3 anni
+            data_di_avvio_3_anni = driver.find_element(by=By.ID, value='Contenu_Contenu_dtDebut_txtDatePicker')
+            data_di_avvio_3_anni.clear()
+            data_di_avvio_3_anni.send_keys(self.t0_3Y) 
+            data_di_fine = driver.find_element(by=By.ID, value='Contenu_Contenu_dtFin_txtDatePicker')
+            data_di_fine.clear()
+            data_di_fine.send_keys(self.t1)
+
+            # Aggiorna date
+            element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_lnkRefresh'))
+            )
+            ActionChains(driver).double_click(on_element=element).perform()
+            try:
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            except TimeoutException:
+                input('premi enter se ha caricato')
+            else:
+                WebDriverWait(driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+
+            # Esporta CSV
+            element = WebDriverWait(driver, 600).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_btnExportCSV'))
+            )
+            ActionChains(driver).double_click(on_element=element).perform()
+            try:
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            except TimeoutException:
+                input('premi enter se ha caricato')
+            else:
+                WebDriverWait(driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+
+            # Rinomina file a 3 anni
+            while len(os.listdir(self.directory_alfa_nulli)) == file_scaricati:
+                time.sleep(1)
+            time.sleep(1.5)
+            list_of_files = glob.glob(self.directory_alfa_nulli.__str__() + '/*')
+            latest_file = max(list_of_files, key=os.path.getctime)
+            os.rename(latest_file, self.directory_alfa_nulli.joinpath('alfa_nulli_3Y.csv'))
+
+            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
+            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+
+        # Correzione indicatore corretto ad 1 anno #
+        while any(df['Info 1 anno fine mese']==0) or any(df['Alpha 1 anno fine mese']==0):
+            print("Ci sono dei fondi con alpha 1 anno o information ratio 1 anno uguale a 0, è necessario aggiornarli per l'analisi successiva,")
+                
+            # Individua i fondi che hanno un alfa a 1Y e un IR a 1Y pari a 0.
+            alfa_nulli_1Y = df.loc[(df['Info 1 anno fine mese']==0) & (df['Alpha 1 anno fine mese']==0)]
+            print(alfa_nulli_1Y['Codice ISIN'].to_list())
+
+            # passa da fondi confronto e incolla i pochi isin
+            q.confronta_isin(driver, *[isin for isin in alfa_nulli_1Y['Codice ISIN'].to_list()])
+
+            # Personalizzato
+            WebDriverWait(driver, 360).until(EC.presence_of_element_located((By.LINK_TEXT, 'Personalizzato'))).click()
+            
+            # Seleziona indicatori
+            WebDriverWait(driver, 180).until(
+                EC.presence_of_element_located(
+                    (By.XPATH, '//*[@id="SelectableItemsWrapper"]/div[3]/div/div/ol/li[1]')
+                )
+            )
+            driver.find_element(by=By.TAG_NAME, value='body').send_keys(Keys.PAGE_DOWN)
+            time.sleep(0.5) # altrimenti non centra il doppio click su 'aggiorna'
+            q.aggiungi_indicatori_v2(
+                driver, 'Codice ISIN', 'Nome', 'Valuta', 'Information ratio da data a data',
+                'Alfa da data a data', 'TEV da data a data'
+            )
+
+            # Seleziona benchmark di default
+            WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.ID, 'Contenu_Contenu_rdIndiceRefFonds'))).click()
+            
+            # Aggiorna indicatori / benchmark lista personalizzato
+            element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_bntProPlusRafraichir'))
+            )
+            ActionChains(driver).double_click(on_element=element).perform()
+            try:
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            except TimeoutException:
+                input('premi enter se ha caricato')
+            else:
+                WebDriverWait(driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+
+            # Cambia date a 1 anno
+            data_di_avvio_1_anno = driver.find_element(by=By.ID, value='Contenu_Contenu_dtDebut_txtDatePicker')
+            data_di_avvio_1_anno.clear()
+            data_di_avvio_1_anno.send_keys(self.t0_1Y)
+
+            # Aggiorna date
+            element = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_lnkRefresh'))
+            )
+            ActionChains(driver).double_click(on_element=element).perform()
+            try:
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            except TimeoutException:
+                input('premi enter se ha caricato')
+            else:
+                WebDriverWait(driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            
+            # Esporta CSV
+            element = WebDriverWait(driver, 600).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_btnExportCSV'))
+            )
+            ActionChains(driver).double_click(on_element=element).perform()
+            try:
+                # solo 5 perché se la lista è piccola devo mandare avanti il processo a mano
+                WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            except TimeoutException:
+                input('premi enter se ha caricato')
+            else:
+                WebDriverWait(driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
+            
+            # Rinomina file ad 1 anno
+            while len(os.listdir(self.directory_alfa_nulli)) == file_scaricati:
+                time.sleep(1)
+            time.sleep(1.5)
+            list_of_files = glob.glob(self.directory_alfa_nulli.__str__() + '/*')
+            latest_file = max(list_of_files, key=os.path.getctime)
+            os.rename(latest_file, self.directory_alfa_nulli.joinpath('alfa_nulli_1Y.csv'))
+
+            _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
+            df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
+
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def merge_files(self, file_excel='catalogo_fondi.xlsx', left_on='Codice ISIN', right_on='isin', merge='left'):
@@ -560,43 +783,6 @@ class Completo():
             _ = input(f'apri il file {self.file_completo}, aggiungi le date, poi premi enter\n')
             df_merged = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
 
-    def correzione_alfa_IR_nulli(self):
-        # TODO : fai uno scarico da quantalys con benchmark di default per tutti quei fondi che hanno alpha o IR pari a 0. 
-        # L'alfa scaricato da quantalys è in percentuale...
-        # quantalys assegna un valore pari a 0 all'information ratio se l'alpha è un numero del tipo 0.00*
-        # Purtroppo quantalys potrebbe scaricare di nuovo un IR pari a 0. E' conveniente scaricare anche la TEV e nel caso l'IR fosse 0
-        # anche nel nuovo scarico, ricavarlo come alpha / TEV. 
-        """
-        Quantalys calcola l'alfa fino alla quarta cifra dopo la virgola. Se le prime quatto cifre sono 0, l'alfa sarà 0, e così anche l'IR.
-        Un valore di alfa e IR pari a 0 inficia i due metodi successivi in cui viene calcolata la TEV e viene calcolato 
-        l'indicatore corretto.
-        Sostiuisci i valori di alfa e IR 0 con i valori corretti.
-        """
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        if self.intermediario == 'CRV':
-            quit()
-        if self.metodo == 'singolo':
-            # Indicatore corretto a 3 anni
-            while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
-                print("Ci sono dei fondi con alpha 3 anni o information ratio 3 anni uguale a 0, è necessario aggiornarli per \
-                l'analisi successiva,")
-                _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
-                df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
-        elif self.metodo == 'doppio':
-            # Indicatore corretto a 3 anni
-            while any(df['Info 3 anni") fine mese']==0) or any(df['Alpha 3 anni") fine mese']==0):
-                print("Ci sono dei fondi con alpha 3 anni o information ratio 3 anni uguale a 0, è necessario aggiornarli per \
-                l'analisi successiva,")
-                _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
-                df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
-            # Indicatore corretto ad 1 anno
-            while any(df['Info 1 anno fine mese']==0) or any(df['Alpha 1 anno fine mese']==0):
-                print("Ci sono dei fondi con alpha 1 anno o information ratio 1 anno uguale a 0, è necessario aggiornarli per \
-                l'analisi successiva,")
-                _ = input(f'apri il file {self.file_completo}, aggiorna i dati, poi premi enter\n')
-                df = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
-        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-
     def attività(self):
         """
         Crea la colonna TEV ottenuta come rapporto tra alpha e IR, sia a 3 anni che ad 1 anno.
@@ -749,7 +935,6 @@ class Completo():
 
     def sfdr(self):
         """Troppo dispendioso in termini di dati scaricabili mensilmente"""
-        # # TODO : SCARICA DA SQL L'ARTICOLO SFDR E DA BLOOMBERG LE RIMANENTI. AGGIORNA QUELLE NON PRESENTI SU SQL
         # """Scarica il numero dell'articolo della disciplina europea SFDR"""
         # print("\nSto scaricando l'articolo della disciplina SFDR...")
         # df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
@@ -840,7 +1025,7 @@ class Completo():
 
     def creazione_liste_input(self):
         """
-        Crea file csv, con dimensioni massime pari a ???199 elementi, da importare in Quantalys.it.
+        Crea file csv, con dimensioni massime pari a 1999 elementi, da importare in Quantalys.it.
         Directory in cui vengono salvati i file : '.docs/import_liste_into_Q/'
         """
         df_com = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
@@ -859,18 +1044,18 @@ if __name__ == '__main__':
     start = time.perf_counter()
     _ = Completo(intermediario='RAI', t1='31/12/2022', metodo='doppio')
     # _.concatenazione_liste_complete()
-    _.concatenazione_sfdr()
+    # _.concatenazione_sfdr()
     # _.concatenazione_completo_sfdr()
     # _.fondi_non_presenti()
-    # _.correzione_micro_russe()
     # _.change_datatype(SRRI = float)
     # _.seleziona_colonne()
+    # _.correzione_micro_russe()
+    _.correzione_alfa_IR_nulli()
     # _.merge_files()
     # _.assegna_macro()
     # _.cancella_macro()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
-    # _.correzione_alfa_IR_nulli()
     # _.attività()
     # _.indicatore_BS()
     # _.calcolo_best_worst()
