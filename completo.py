@@ -134,7 +134,7 @@ class Completo():
             encoding = "unicode_escape") for filename in os.listdir(self.directory_liste_sfdr)), ignore_index=True)
         df.to_csv(self.directory_sfdr.joinpath('sfdr.csv'), sep=";", mode='w', index=False, decimal=',')
     
-    def concatenazione_completo_sfdr(self):
+    def merge_completo_sfdr(self):
         """
         Concatena orizzontalmente i file completo.csv e sfdr.csv
         Controlla che i nomi dei due file uniti siano identici, tolti ad entrambi gli spazi bianchi.
@@ -179,10 +179,10 @@ class Completo():
         if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RAI' or self.intermediario == 'RIPA':
             colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese',
                 'Rischio 3 anni") fine mese', 'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'Info 3 anni") fine mese',
-                'Alpha 3 anni") fine mese', 'SRRI', 'SFDR']
+                'Alpha 3 anni") fine mese', 'SRI', 'SFDR']
         elif self.intermediario == 'CRV':
             colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese',
-                'Rischio 3 anni") fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRRI']
+                'Rischio 3 anni") fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRI']
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df = df.loc[:, colonne]
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
@@ -329,6 +329,23 @@ class Completo():
             alfa_nulli_1Y = df.loc[(df['Info 1 anno fine mese']==0) & (df['Alpha 1 anno fine mese']==0)]
             print(alfa_nulli_1Y['Codice ISIN'].to_list())
 
+            # Export
+            file_scaricati = len(os.listdir(self.directory_alfa_nulli))
+
+            chrome_options = webdriver.ChromeOptions()
+            chrome_options.add_experimental_option(
+                "prefs", {"download.default_directory" : self.directory_alfa_nulli.__str__(),"download.directory_upgrade" : True}
+            )
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            try: # se non ci sono fondi con alfa o IR nullo a 3 anni devo entrare da qui
+                q
+            except UnboundLocalError:
+                q = Quantalys()
+                # Accesso a Quantalys
+                q.connessione(driver)
+                # Log in
+                q.login(driver, 'Avicario', 'AVicario123')
             # passa da fondi confronto e incolla i pochi isin
             q.confronta_isin(driver, *[isin for isin in alfa_nulli_1Y['Codice ISIN'].to_list()])
 
@@ -368,6 +385,9 @@ class Completo():
             data_di_avvio_1_anno = driver.find_element(by=By.ID, value='Contenu_Contenu_dtDebut_txtDatePicker')
             data_di_avvio_1_anno.clear()
             data_di_avvio_1_anno.send_keys(self.t0_1Y)
+            data_di_fine = driver.find_element(by=By.ID, value='Contenu_Contenu_dtFin_txtDatePicker')
+            data_di_fine.clear()
+            data_di_fine.send_keys(self.t1)
 
             # Aggiorna date
             element = WebDriverWait(driver, 10).until(
@@ -712,6 +732,24 @@ class Completo():
             'Perf. assoluta strategia valute' : 'OPP', 'Perf. assoluta volatilita' : 'OPP', 'Perf. ass. USD' : 'OPP', 
             'Perf. ass. Long/Short eq.' : 'OPP', 'Altri' : 'OPP', 'Fondi a scadenza pred. Euro' : 'OPP', 
         }
+        
+        def cancella_macro(dataframe, delete_keyword, path):
+            """
+            Cancella le micro categorie appartenenti alle macrocategorie mappate come delete_keyword.
+            Metodo usato solo da RIPA.
+            """
+            DELETE_KEYWORD = delete_keyword
+            # df = pd.read_csv(file, sep=";", decimal=',', index_col=None)
+            df = dataframe
+            df_to_delete = df[df['macro_categoria'] == DELETE_KEYWORD]
+            if df_to_delete.empty:
+                pass
+            else:
+                print(f'{df_to_delete.shape[0]} fondi sono stati eliminati dal catalogo')
+                df_to_delete.to_csv(path.joinpath('docs', 'prodotti_cancellati.csv'), sep=";", decimal=',', index=False)
+                df = df.loc[df['macro_categoria'] != DELETE_KEYWORD, :]
+            return df
+
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         if self.intermediario == 'BPPB':
             df['macro_categoria'] = df['Categoria Quantalys'].map(BPPB_dict)
@@ -720,33 +758,17 @@ class Completo():
         elif self.intermediario == 'CRV':
             df['macro_categoria'] = df['Categoria Quantalys'].map(CRV_dict)
         elif self.intermediario == 'RIPA':
-            # Nel caso di Ripa solo le micro categorie appartenenti ad una macro nella sezione asset allocation vengono analizzate, 
-            # mentre le altre vengono scartate. Assegno dunque tutte le micro categorie senza macro ad una macro fittizzia 'ND', 
-            # che mi tornerà utile per scartare interamente questa macro dall'analisi.
+            """
+            Nel caso di Ripa, solo le micro categorie appartenenti ad una macro nella sezione asset allocationdi Quantalys
+            vengono analizzate, mentre le altre vengono scartate. Assegno dunque tutte le micro categorie senza macro 
+            ad una macro fittizzia 'ND', che mi tornerà utile per scartare interamente questa macro dall'analisi.
+            """
             df['macro_categoria'] = df['Categoria Quantalys'].map(RIPA_dict)
+            df = cancella_macro(dataframe=df, delete_keyword='ND', path=self.directory)
         elif self.intermediario == 'RAI':
             df['macro_categoria'] = df['Categoria Quantalys'].map(RAI_dict)
         print(f"Ci sono {df['macro_categoria'].isnull().sum()} fondi a cui non è stata assegnata una macro categoria.")
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-
-    def cancella_macro(self):
-        """
-        Cancella le micro categorie appartenenti alle macrocategorie mappate come ND.
-        Metodo usato solo da RIPA.
-        """
-        if self.intermediario == 'RIPA':
-            delete_keyword = 'ND'
-            df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-            df_to_delete = df[df['macro_categoria'] == delete_keyword]
-            if df_to_delete.empty:
-                pass
-            else:
-                print(f'{df_to_delete.shape[0]} fondi sono stati eliminati dal catalogo')
-                df_to_delete.to_csv(self.directory.joinpath('docs', 'prodotti_cancellati.csv'), sep=";", decimal=',', index=False)
-                df = df.loc[df['macro_categoria'] != delete_keyword, :]
-            df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-        else:
-            return None
 
     def sconta_commissioni(self):
         """Sconta le commissioni dei fondi in base alla loro macro categoria"""
@@ -955,7 +977,7 @@ class Completo():
         """
         Assegna l'etichetta 'bassa_vola' se la volatilità a 3 anni è inferiore a 0.05 oppure 'media_alta_vola', ove disponibile,
         altrimenti se la volatilità a 1 anno è inferiore a 0.05 oppure 'media_alta_vola', ove disponibile,
-        altrimenti se l'indicatore SRRI è inferiore a 3 oppure 'media_alta_vola', ove disponbile,
+        altrimenti se l'indicatore SRI è inferiore a 3 oppure 'media_alta_vola', ove disponbile,
         altrimenti assegna l'etichetta 'bassa_vola' ai fondi senza dati sul rischio.
         """
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
@@ -963,7 +985,7 @@ class Completo():
         if self.intermediario == 'BPPB' or self.intermediario == 'CRV':
             df['categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['Rischio 3 anni") fine mese'].notnull()), 'Rischio 3 anni") fine mese'].apply(lambda x: 'bassa_vola' if x < 0.05 else 'media_alta_vola')
             df.loc[df['categoria_flessibili'].isnull(), 'categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['Rischio 1 anno fine mese'].notnull()), 'Rischio 1 anno fine mese'].apply(lambda x: 'bassa_vola' if x < 0.05 else 'media_alta_vola')
-            df.loc[df['categoria_flessibili'].isnull(), 'categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['SRRI'].notnull()), 'SRRI'].apply(lambda x: 'bassa_vola' if x < 3 else 'media_alta_vola')
+            df.loc[df['categoria_flessibili'].isnull(), 'categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['SRI'].notnull()), 'SRI'].apply(lambda x: 'bassa_vola' if x < 3 else 'media_alta_vola')
             print(f"\nI seguenti fondi flessibili non sono stati classificati:\n {df.loc[(df['macro_categoria'] == 'FLEX') & (df['categoria_flessibili'].isnull()), ['Codice ISIN', 'Nome del fondo', 'Categoria Quantalys']]}\n---Gli verrà assegnata la categoria bassa_volatilità.\n")
             df.loc[(df['macro_categoria'] == 'FLEX') & (df['categoria_flessibili'].isnull()), 'categoria_flessibili'] = 'bassa_vola'
         elif self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
@@ -1042,18 +1064,17 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='RAI', t1='31/12/2022', metodo='doppio')
+    _ = Completo(intermediario='RIPA', t1='31/01/2023', metodo='doppio')
     # _.concatenazione_liste_complete()
     # _.concatenazione_sfdr()
-    # _.concatenazione_completo_sfdr()
+    # _.merge_completo_sfdr()
     # _.fondi_non_presenti()
-    # _.change_datatype(SRRI = float)
+    # _.change_datatype(SRI = float)
     # _.seleziona_colonne()
     # _.correzione_micro_russe()
-    _.correzione_alfa_IR_nulli()
+    # _.correzione_alfa_IR_nulli()
     # _.merge_files()
-    # _.assegna_macro()
-    # _.cancella_macro()
+    _.assegna_macro()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
     # _.attività()
