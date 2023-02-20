@@ -3,6 +3,7 @@ import glob
 import os
 import time
 from pathlib import Path
+import math
 
 import dateutil.relativedelta
 import numpy as np
@@ -438,6 +439,7 @@ class Completo():
 
     def assegna_macro(self):
         """Assegna una macrocategoria ad ogni microcategoria."""
+        # TODO: discrimina i bilanciati e i flessibili all'interno dei dizionari
         BPPB_dict = {
             'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ', 
             'Monetari altre valute europ' : 'LIQ', 
@@ -758,8 +760,140 @@ class Completo():
         print(f"Ci sono {df['macro_categoria'].isnull().sum()} fondi a cui non è stata assegnata una macro categoria.")
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
+    def discriminazione_flessibili_e_bilanciati(self):
+        # TODO: testa per intermediari diversi da BPPB.
+        # aggiorna la specificazione di FLEX e BIL all'interno del metodo merge_completo_liste
+        # del file ranking.py. Testa anche il funzionamento di scarico_liste.py.
+        """
+        Discrimina flessibili e bilanciati secondo la loro volatilità oppure le loro micro categorie
+        BPPB: metodo volatilità
+        BPL: metodo etichette
+        CRV: metodo volatilità
+        RIPA: metodo etichette
+        RAI: metodo etichette
+        """
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+
+        def discrimina_per_rischio(row, etichette):
+            """Discrimina i fondi in base alla loro indicatore di volatilità
+            1. Se il fondo possiede il dato del rischio a 3 anni e questo è superiore al 5%,
+            restituisci etichette[0] altrimenti etichette[1].
+            2. Se il fondo non possiede il dato del rischio a 3 anni,
+            ma possiede il dato del rischio a 1 anno e questo è superiore al 5%,
+            restituisci etichette[0] altrimenti etichette[1].
+            3. Se il fondo non possiede il dato del rischio a 3 anni nè ad 1 anno,
+            ma possiede il dato SRI e questo è superiore a 3,
+            restituisci etichette[0] altrimenti etichette[1].
+            4. Se il fondo non possiede il dato del rischio a 3 anni nè ad 1 anno nè l'SRI,
+            restituisci etichette[0].
+
+            Arguments:
+                row {pandas.core.series.Series} -- riga in cui sono presenti i dati relativi
+                    al rischio a 3 anni in prima posizione, al rischio ad 1 anno in seconda,
+                    e al SRI in terza.
+                etichette {list} -- lista contenente un elemento in prima posizione
+                    che identifica i fondi flessibili a bassa volatilità,
+                    ed uno in seconda posizione che identifica quelli a media ed
+                    alta volatilità.
+
+            Returns:
+                string -- valore da applicare alla colonna 'macro_categoria'
+                    al posto di FLEX
+            """
+            if type(etichette) != list or len(etichette) != 2:
+                raise TypeError('etichette deve essere una lista di due elementi')
+            if not math.isnan(row['Rischio 3 anni") fine mese']):
+                if row['Rischio 3 anni") fine mese'] < 0.05:
+                    return etichette[0]
+                else:
+                    return etichette[1]
+            else:
+                if not math.isnan(row['Rischio 1 anno fine mese']):
+                    if row['Rischio 1 anno fine mese'] < 0.05:
+                        return etichette[0]
+                    else:
+                        return etichette[1]
+                else:
+                    if not math.isnan(row['SRI']):
+                        if row['SRI'] < 3:
+                            return etichette[0]
+                        else:
+                            return etichette[1]
+                    else:
+                        return etichette[0]
+        
+        if self.intermediario == 'BPPB':
+            print("\nsto discriminando i flessibili in base alla loro volatilità...")
+            print("I seguenti fondi flessibili non sono stati classificati:\n")
+            df_fondi_senza_rischio = df.loc[
+                (df['macro_categoria'] == 'FLEX') & (df['Rischio 3 anni") fine mese'].isnull()) &
+                (df['Rischio 1 anno fine mese'].isnull()) & (df['SRI'].isnull()),
+                ['Codice ISIN', 'Nome del fondo', 'Categoria Quantalys']
+            ]
+            print(df_fondi_senza_rischio)
+            print('\nGli verrà assegnata la categoria bassa_volatilità.\n')
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df.loc[
+                df['macro_categoria'] == 'FLEX', ['Rischio 3 anni") fine mese', 'Rischio 1 anno fine mese', 'SRI']
+            ].apply(lambda x: discrimina_per_rischio(x, ['FLEX_BVOL', 'FLEX_MAVOL']), axis=1)
+        elif self.intermediario == 'BPL':
+            print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({
+                'Flessibili prudenti globale' : 'FLEX_PR', 'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN',
+                'Flessibili Dollaro US' : 'FLEX_DIN', 'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN'}, na_action='ignore')
+            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({
+                'Bilanc. Prud. Europa' : 'BIL_MBVOL', 'Bilanc. Prud. Dollaro US' : 'BIL_MBVOL', 'Bilanc. Prud. Global Euro' : 'BIL_MBVOL',
+                'Bilanc. Prud. Global' : 'BIL_MBVOL', 'Bilanc. Prud. altre valute' : 'BIL_MBVOL',  'Bilanc. Equilib. Europa' : 'BIL_MBVOL',
+                'Bilanc. Equil. Dollaro US' : 'BIL_MBVOL', 'Bilanc. Equil. Global Euro' : 'BIL_MBVOL',
+                'Bilanc. Equil. Global' : 'BIL_MBVOL', 'Bilanc. Equil. altre valute' : 'BIL_MBVOL', 'Bilanc. Aggress. Europa' : 'BIL_AVOL',
+                'Bilanc. aggress. Dollaro US' : 'BIL_AVOL', 'Bilanc. Aggress. Global Euro' : 'BIL_AVOL',
+                'Bilanc. Aggress. Global' : 'BIL_AVOL', 'Bilanc. Aggress. altre valute' : 'BIL_AVOL'}, na_action='ignore')
+        elif self.intermediario == 'CRV':
+            print("\nsto discriminando i flessibili in base alla loro volatilità...")
+            print("I seguenti fondi flessibili non sono stati classificati:\n")
+            df_fondi_senza_rischio = df.loc[
+                (df['macro_categoria'] == 'FLEX') & (df['Rischio 3 anni") fine mese'].isnull()) &
+                (df['Rischio 1 anno fine mese'].isnull()) & (df['SRI'].isnull()),
+                ['Codice ISIN', 'Nome del fondo', 'Categoria Quantalys']
+            ]
+            print(df_fondi_senza_rischio)
+            print('\nGli verrà assegnata la categoria bassa_volatilità.\n')
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df.loc[
+                df['macro_categoria'] == 'FLEX', ['Rischio 3 anni") fine mese', 'Rischio 1 anno fine mese', 'SRI']
+            ].apply(lambda x: discrimina_per_rischio(x, ['FLEX_PR', 'FLEX_DIN']), axis=1)
+        elif self.intermediario == 'RIPA':
+            print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({
+                'Flessibili prudenti globale' : 'FLEX_PR', 'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN', 
+                'Flessibili Dollaro US' : 'FLEX_DIN', 'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',
+                }, na_action='ignore')
+        elif self.intermediario == 'RAI':
+            print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({
+                'Flessibili prudenti globale' : 'FLEX_PR', 'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN',
+                'Flessibili Dollaro US' : 'FLEX_DIN', 'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',}, na_action='ignore')
+            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({
+                'Bilanc. Prud. Europa' : 'BIL_PR', 'Bilanc. Prud. Dollaro US' : 'BIL_PR', 'Bilanc. Prud. Global Euro' : 'BIL_PR',
+                'Bilanc. Prud. Global' : 'BIL_PR', 'Bilanc. Prud. altre valute' : 'BIL_PR',  'Bilanc. Equilib. Europa' : 'BIL_EQ',
+                'Bilanc. Equil. Dollaro US' : 'BIL_EQ', 'Bilanc. Equil. Global Euro' : 'BIL_EQ', 'Bilanc. Equil. Global' : 'BIL_EQ',
+                'Bilanc. Equil. altre valute' : 'BIL_EQ', 'Bilanc. Aggress. Europa' : 'BIL_AGG', 'Bilanc. aggress. Dollaro US' : 'BIL_AGG',
+                'Bilanc. Aggress. Global Euro' : 'BIL_AGG', 'Bilanc. Aggress. Global' : 'BIL_AGG',
+                'Bilanc. Aggress. altre valute' : 'BIL_AGG'}, na_action='ignore')
+            # Vecchio metodo
+            # df['categoria_flessibili'] = df.loc[
+            #     (df['macro_categoria'] == 'FLEX') & (df['Rischio 3 anni") fine mese'].notnull()), 'Rischio 3 anni") fine mese'
+            # ].apply(lambda x: 'bassa_vola' if x < 0.05 else 'media_alta_vola')
+            # df.loc[df['categoria_flessibili'].isnull(), 'categoria_flessibili'] = df.loc[
+            #     (df['macro_categoria'] == 'FLEX') & (df['Rischio 1 anno fine mese'].notnull()), 'Rischio 1 anno fine mese'
+            # ].apply(lambda x: 'bassa_vola' if x < 0.05 else 'media_alta_vola')
+            # df.loc[df['categoria_flessibili'].isnull(), 'categoria_flessibili'] = df.loc[
+            #     (df['macro_categoria'] == 'FLEX') & (df['SRI'].notnull()), 'SRI'
+            # ].apply(lambda x: 'bassa_vola' if x < 3 else 'media_alta_vola')
+            # df.loc[(df['macro_categoria'] == 'FLEX') & (df['categoria_flessibili'].isnull()), 'categoria_flessibili'] = 'bassa_vola'
+        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+
     def sconta_commissioni(self):
-        """Sconta le commissioni dei fondi in base alla loro macro categoria"""
+        """Sconta le commissioni dei fondi in base alla loro macro categoria
+        Metodo usato solo da CRV"""
         if self.intermediario == 'CRV':
             df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
             sconti = {'LIQ' : 0.85, 'OBB_EUR_BT' : 0.35, 'OBB_EUR_MLT' : 0.35, 'OBB_EUR_CORP' : 0.35, 'OBB_EM' : 0.35, 'OBB_GLOB' : 0.35,
@@ -942,25 +1076,6 @@ class Completo():
                         df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'Best_Worst_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['Categoria Quantalys'] == micro) & (df['fund_incept_dt'] < t0_1Y) & (df['BS_1_anno'].notnull()), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
             # df['Best_Worst'] = df['Best_Worst_3Y'].replace('worst', np.nan).fillna(df['Best_Worst_1Y'])
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-
-    def discriminazione_flessibili(self):
-        """
-        Assegna l'etichetta 'bassa_vola' se la volatilità a 3 anni è inferiore a 0.05 oppure 'media_alta_vola', ove disponibile,
-        altrimenti se la volatilità a 1 anno è inferiore a 0.05 oppure 'media_alta_vola', ove disponibile,
-        altrimenti se l'indicatore SRI è inferiore a 3 oppure 'media_alta_vola', ove disponbile,
-        altrimenti assegna l'etichetta 'bassa_vola' ai fondi senza dati sul rischio.
-        """
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        # discrimina in base alla volatilità
-        if self.intermediario == 'BPPB' or self.intermediario == 'CRV':
-            df['categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['Rischio 3 anni") fine mese'].notnull()), 'Rischio 3 anni") fine mese'].apply(lambda x: 'bassa_vola' if x < 0.05 else 'media_alta_vola')
-            df.loc[df['categoria_flessibili'].isnull(), 'categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['Rischio 1 anno fine mese'].notnull()), 'Rischio 1 anno fine mese'].apply(lambda x: 'bassa_vola' if x < 0.05 else 'media_alta_vola')
-            df.loc[df['categoria_flessibili'].isnull(), 'categoria_flessibili'] = df.loc[(df['macro_categoria'] == 'FLEX') & (df['SRI'].notnull()), 'SRI'].apply(lambda x: 'bassa_vola' if x < 3 else 'media_alta_vola')
-            print(f"\nI seguenti fondi flessibili non sono stati classificati:\n {df.loc[(df['macro_categoria'] == 'FLEX') & (df['categoria_flessibili'].isnull()), ['Codice ISIN', 'Nome del fondo', 'Categoria Quantalys']]}\n---Gli verrà assegnata la categoria bassa_volatilità.\n")
-            df.loc[(df['macro_categoria'] == 'FLEX') & (df['categoria_flessibili'].isnull()), 'categoria_flessibili'] = 'bassa_vola'
-        elif self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
-            pass
-        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
     
     def seleziona_e_rinomina_colonne(self):
         """
@@ -1039,18 +1154,17 @@ if __name__ == '__main__':
     # _.concatenazione_sfdr()
     # _.merge_completo_sfdr()
     # _.fondi_non_presenti()
-    # _.change_datatype(SRI = float)
     # _.seleziona_colonne()
     # _.correzione_micro_russe()
     # _.correzione_alfa_IR_nulli()
     # _.merge_files()
-    # _.assegna_macro()
+    _.assegna_macro()
+    _.discriminazione_flessibili()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
     # _.attività()
     # _.indicatore_BS()
     # _.calcolo_best_worst()
-    _.discriminazione_flessibili()
     # _.seleziona_e_rinomina_colonne()
     # _.creazione_liste_input()
     end = time.perf_counter()
