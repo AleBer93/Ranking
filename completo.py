@@ -157,18 +157,6 @@ class Completo():
         print(f'I prodotti non presenti nella piattaforma sono i seguenti:\n{prodotti_non_presenti}')
         prodotti_non_presenti.to_csv(self.directory.joinpath('docs', 'prodotti_non_presenti.csv'), sep=';', decimal=',', index=False)
 
-    def change_datatype(self, **colonne):
-        """
-        Cambia il tipo di dato alle colonne selezionate del file completo.
-        
-        Arguments:
-            colonne {dict} = dizionario di colonne a cui cambiare il dato. Key=colonna, value=tipo dato(float, int, string)
-        """
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        for key, value in colonne.items():
-            df[key] = df[key].astype(value, errors='ignore')
-        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-
     def seleziona_colonne(self, *colonne):
         """
         Seleziona le colonne desiderate dal file_csv con separatore ";" e decimali ","
@@ -955,24 +943,6 @@ class Completo():
             # df['Best_Worst'] = df['Best_Worst_3Y'].replace('worst', np.nan).fillna(df['Best_Worst_1Y'])
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
-    def sfdr(self):
-        """Troppo dispendioso in termini di dati scaricabili mensilmente"""
-        # """Scarica il numero dell'articolo della disciplina europea SFDR"""
-        # print("\nSto scaricando l'articolo della disciplina SFDR...")
-        # df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        # df_bl = blp.bdp('/isin/' + df['Codice ISIN'], flds="sfdr_classification")
-        # df_bl.reset_index(inplace=True)
-        # df_bl['isin_code'] = df_bl['index'].str[6:]
-        # df_bl.reset_index(drop=True, inplace=True)
-        # df_bl.to_csv(self.directory.joinpath('docs', 'sfdr.csv'), sep=";")
-        # df_merged = pd.merge(df, df_bl, left_on='Codice ISIN', right_on='isin_code', how='left')
-        # df_merged["sfdr_classification"] = df_merged["sfdr_classification"].fillna(0)
-        # df_merged["sfdr_classification"] = pd.to_numeric(df_merged["sfdr_classification"], errors='coerce').astype(int)
-        # df_merged["sfdr_classification"].replace(0, '', inplace=True)
-        # print('scaricate!')
-        # df_merged.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-        return None
-
     def discriminazione_flessibili(self):
         """
         Assegna l'etichetta 'bassa_vola' se la volatilità a 3 anni è inferiore a 0.05 oppure 'media_alta_vola', ove disponibile,
@@ -1064,7 +1034,7 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='RIPA', t1='31/01/2023', metodo='doppio')
+    _ = Completo(intermediario='BPPB', t1='31/12/2022', metodo='doppio')
     # _.concatenazione_liste_complete()
     # _.concatenazione_sfdr()
     # _.merge_completo_sfdr()
@@ -1074,13 +1044,13 @@ if __name__ == '__main__':
     # _.correzione_micro_russe()
     # _.correzione_alfa_IR_nulli()
     # _.merge_files()
-    _.assegna_macro()
+    # _.assegna_macro()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
     # _.attività()
     # _.indicatore_BS()
     # _.calcolo_best_worst()
-    # _.discriminazione_flessibili()
+    _.discriminazione_flessibili()
     # _.seleziona_e_rinomina_colonne()
     # _.creazione_liste_input()
     end = time.perf_counter()
