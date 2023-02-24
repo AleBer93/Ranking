@@ -24,6 +24,17 @@ from xbbg import blp
 
 
 class Completo():
+    # TODO: aggiorna la specificazione di FLEX e BIL all'interno del metodo merge_completo_liste
+    # del file ranking.py. Testa anche il funzionamento di scarico_liste.py.
+    # Nel metodo export di scarico_liste.py tutti gli intermediari condividono gli stessi
+    # benchmark, ovviamente, dunque non ha senso inserire l'intermediario.
+    # Per quanto riguarda la data t1, la posso salvare creando un metodo in completo.py
+    # che derivi dal file ottenuto con l'uso di concatenazione_liste_complete
+    # la 'Data di calcolo fine mese'. Questa deve essere o nulla o uguale per tutte
+    # le volte in cui non lo è. Quel dato lo salvo in un file di testo in docs, da cui
+    # le altre classi possono accedere.
+    # In questo modo scarico_liste.py è indipendete dall'intermediario e da t1.
+    # Da t1 sarà indipendente anche ranking.py
     """
     BPPB è passata da metodo singolo a metodo doppio
     BPL è passata da metodo singolo a metodo doppio
@@ -149,31 +160,28 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def fondi_non_presenti(self):
-        """Identifica i fondi non presenti in piattaforma"""
+        """Identifica i fondi non presenti in piattaforma e salvali nel percorso docs/prodotti_non_presenti.csv"""
         df_1 = pd.read_csv(self.file_completo, sep=';', decimal=',', index_col=None)
         df_2 = pd.read_excel('catalogo_fondi.xlsx')
         df_3 = pd.concat([df_1['Codice ISIN'], df_2['isin']])
         df_4 = df_3.drop_duplicates(keep=False)
         prodotti_non_presenti = df_2.loc[df_2['isin'].isin(df_4), ['isin', 'valuta', 'nome']]
-        print(f'I prodotti non presenti nella piattaforma sono i seguenti:\n{prodotti_non_presenti}')
+        print(f'Ci sono {len(prodotti_non_presenti)} prodotti non presenti nella piattaforma.')
+        # print(f'I prodotti non presenti nella piattaforma sono i seguenti:\n{prodotti_non_presenti}')
         prodotti_non_presenti.to_csv(self.directory.joinpath('docs', 'prodotti_non_presenti.csv'), sep=';', decimal=',', index=False)
 
-    def seleziona_colonne(self, *colonne):
-        """
-        Seleziona le colonne desiderate dal file_csv con separatore ";" e decimali ","
-
-        Arguments:
-            colonne {tuple} = tuple di colonne da estrarre dal file
-        """
-        if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RAI' or self.intermediario == 'RIPA':
-            colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese',
-                'Rischio 3 anni") fine mese', 'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'Info 3 anni") fine mese',
-                'Alpha 3 anni") fine mese', 'SRI', 'SFDR']
-        elif self.intermediario == 'CRV':
-            colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese',
-                'Rischio 3 anni") fine mese', 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese', 'SRI']
+    def seleziona_colonne(self):
+        """Seleziona le colonne desiderate dal file completo.csv"""
+        colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'SRI', 'Rischio 1 anno fine mese',
+            'Rischio 3 anni") fine mese', 'Alpha 1 anno fine mese', 'Info 1 anno fine mese', 'Alpha 3 anni") fine mese',
+            'Info 3 anni") fine mese',
+        ]
+        # colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'Rischio 1 anno fine mese',
+        #     'Rischio 3 anni") fine mese', 'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'Info 3 anni") fine mese',
+        #     'Alpha 3 anni") fine mese', 'SRI', 'SFDR',
+        # ]
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        df = df.loc[:, colonne]
+        df = df[colonne]
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def correzione_micro_russe(self):
@@ -439,7 +447,6 @@ class Completo():
 
     def assegna_macro(self):
         """Assegna una macrocategoria ad ogni microcategoria."""
-        # TODO: discrimina i bilanciati e i flessibili all'interno dei dizionari
         BPPB_dict = {
             'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ', 
             'Monetari altre valute europ' : 'LIQ', 
@@ -761,9 +768,6 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def discriminazione_flessibili_e_bilanciati(self):
-        # TODO: testa per intermediari diversi da BPPB.
-        # aggiorna la specificazione di FLEX e BIL all'interno del metodo merge_completo_liste
-        # del file ranking.py. Testa anche il funzionamento di scarico_liste.py.
         """
         Discrimina flessibili e bilanciati secondo la loro volatilità oppure le loro micro categorie
         BPPB: metodo volatilità
@@ -796,10 +800,16 @@ class Completo():
                     ed uno in seconda posizione che identifica quelli a media ed
                     alta volatilità.
 
+            Raises:
+                TypeError: il primo argomento non è una Series di Pandas
+                TypeError: il secondo argomento non è una lista di due argomenti
+
             Returns:
                 string -- valore da applicare alla colonna 'macro_categoria'
                     al posto di FLEX
             """
+            if type(row) != pd.Series:
+                raise TypeError('row deve essere una Series di Pandas')
             if type(etichette) != list or len(etichette) != 2:
                 raise TypeError('etichette deve essere una lista di due elementi')
             if not math.isnan(row['Rischio 3 anni") fine mese']):
@@ -837,10 +847,10 @@ class Completo():
             ].apply(lambda x: discrimina_per_rischio(x, ['FLEX_BVOL', 'FLEX_MAVOL']), axis=1)
         elif self.intermediario == 'BPL':
             print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['Categoria Quantalys'].map({
                 'Flessibili prudenti globale' : 'FLEX_PR', 'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN',
                 'Flessibili Dollaro US' : 'FLEX_DIN', 'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN'}, na_action='ignore')
-            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({
+            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['Categoria Quantalys'].map({
                 'Bilanc. Prud. Europa' : 'BIL_MBVOL', 'Bilanc. Prud. Dollaro US' : 'BIL_MBVOL', 'Bilanc. Prud. Global Euro' : 'BIL_MBVOL',
                 'Bilanc. Prud. Global' : 'BIL_MBVOL', 'Bilanc. Prud. altre valute' : 'BIL_MBVOL',  'Bilanc. Equilib. Europa' : 'BIL_MBVOL',
                 'Bilanc. Equil. Dollaro US' : 'BIL_MBVOL', 'Bilanc. Equil. Global Euro' : 'BIL_MBVOL',
@@ -862,16 +872,16 @@ class Completo():
             ].apply(lambda x: discrimina_per_rischio(x, ['FLEX_PR', 'FLEX_DIN']), axis=1)
         elif self.intermediario == 'RIPA':
             print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['Categoria Quantalys'].map({
                 'Flessibili prudenti globale' : 'FLEX_PR', 'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN', 
                 'Flessibili Dollaro US' : 'FLEX_DIN', 'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',
                 }, na_action='ignore')
         elif self.intermediario == 'RAI':
             print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({
+            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['Categoria Quantalys'].map({
                 'Flessibili prudenti globale' : 'FLEX_PR', 'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN',
                 'Flessibili Dollaro US' : 'FLEX_DIN', 'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',}, na_action='ignore')
-            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({
+            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['Categoria Quantalys'].map({
                 'Bilanc. Prud. Europa' : 'BIL_PR', 'Bilanc. Prud. Dollaro US' : 'BIL_PR', 'Bilanc. Prud. Global Euro' : 'BIL_PR',
                 'Bilanc. Prud. Global' : 'BIL_PR', 'Bilanc. Prud. altre valute' : 'BIL_PR',  'Bilanc. Equilib. Europa' : 'BIL_EQ',
                 'Bilanc. Equil. Dollaro US' : 'BIL_EQ', 'Bilanc. Equil. Global Euro' : 'BIL_EQ', 'Bilanc. Equil. Global' : 'BIL_EQ',
@@ -896,9 +906,10 @@ class Completo():
         Metodo usato solo da CRV"""
         if self.intermediario == 'CRV':
             df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-            sconti = {'LIQ' : 0.85, 'OBB_EUR_BT' : 0.35, 'OBB_EUR_MLT' : 0.35, 'OBB_EUR_CORP' : 0.35, 'OBB_EM' : 0.35, 'OBB_GLOB' : 0.35,
-                'OBB_HY' : 0.35, 'AZ_EUR' : 0.30, 'AZ_NA' : 0.30, 'AZ_PAC' : 0.30, 'AZ_EM' : 0.30, 'AZ_GLOB' : 0.30, 'FLEX' : 0.60,
-                'OPP' : 0.50}
+            sconti = {'LIQ' : 0.85, 'OBB_EUR_BT' : 0.35, 'OBB_EUR_MLT' : 0.35, 'OBB_EUR_CORP' : 0.35, 'OBB_EM' : 0.35,
+                'OBB_GLOB' : 0.35, 'OBB_HY' : 0.35, 'AZ_EUR' : 0.30, 'AZ_NA' : 0.30, 'AZ_PAC' : 0.30, 'AZ_EM' : 0.30,
+                'AZ_GLOB' : 0.30, 'FLEX_PR' : 0.60, 'FLEX_DIN' : 0.60, 'OPP' : 0.50
+            }
             df['commissione'] = df['commissione']*df['macro_categoria'].apply(lambda x : sconti[x])
             df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
         else:
@@ -1085,16 +1096,16 @@ class Completo():
         if self.intermediario == 'BPPB':
             if self.metodo == 'singolo':
                 col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                    'commissione', 'Best_Worst_3Y', 'SFDR', 'categoria_flessibili']
+                    'commissione', 'Best_Worst_3Y', 'SFDR']
                 col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 
-                    'commissione', 'Best_Worst', 'SFDR', 'categoria_flessibili']
+                    'commissione', 'Best_Worst', 'SFDR']
             elif self.metodo == 'doppio':
                 col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
                     'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y', 
-                    'SFDR', 'categoria_flessibili']
+                    'SFDR']
                 col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
                     'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y', 
-                    'SFDR', 'categoria_flessibili']
+                    'SFDR']
         elif self.intermediario == 'BPL':
             if self.metodo == 'singolo':
                 col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
@@ -1108,9 +1119,8 @@ class Completo():
                     'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
         elif self.intermediario == 'CRV':
             col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                'categoria_flessibili', 'commissione']
-            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 
-                'categoria_flessibili', 'commissione']
+            'commissione']
+            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione']
         elif self.intermediario == 'RIPA':
             if self.metodo == 'doppio':
                 col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
@@ -1122,9 +1132,11 @@ class Completo():
             # 'anni_detenzione' in cui viene specificato l'anno di detenzione di ogni singolo fondo.
             if self.metodo == 'doppio':
                 col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                    'commissione', 'anni_detenzione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
+                    'commissione', 'anni_detenzione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y',
+                    'grado_gestione_1Y']
                 col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
-                    'commissione', 'anni_detenzione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
+                    'commissione', 'anni_detenzione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y',
+                    'grado_gestione_1Y']
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df = df[col_sel]
         df.columns = col_ren
@@ -1149,17 +1161,17 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='BPPB', t1='31/12/2022', metodo='doppio')
+    _ = Completo(intermediario='CRV', t1='30/11/2022', metodo='doppio')
     # _.concatenazione_liste_complete()
+    # _.seleziona_colonne()
     # _.concatenazione_sfdr()
     # _.merge_completo_sfdr()
     # _.fondi_non_presenti()
-    # _.seleziona_colonne()
     # _.correzione_micro_russe()
     # _.correzione_alfa_IR_nulli()
     # _.merge_files()
-    _.assegna_macro()
-    _.discriminazione_flessibili()
+    # _.assegna_macro()
+    # _.discriminazione_flessibili_e_bilanciati()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()
     # _.attività()
