@@ -19,10 +19,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 class Scarico():
 
-    def __repr__(self):
-        return "Importa le liste complete e scarica i dati da Quantalys.it"
-
-    def __init__(self, intermediario, t1):
+    def __init__(self, t1):
         """
         Default download folder : self.directory_output_liste
         Default browser : chromium
@@ -34,11 +31,14 @@ class Scarico():
             directory_output_liste {WindowsPath} = percorso in cui scaricare i dati delle liste
             directory_input_liste {WindowsPath} = percorso in cui trovare i dati delle liste
         """
-        self.intermediario = intermediario
         self.t1 = t1
-        self.t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+3)).strftime("%d/%m/%Y") # data iniziale tre anni fa
+        self.t0_3Y = (
+            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+3)
+        ).strftime("%d/%m/%Y") # data iniziale tre anni fa
         print(f"Tre anni fa : {self.t0_3Y}.")
-        self.t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)).strftime("%d/%m/%Y") # data iniziale un anno fa
+        self.t0_1Y = (
+            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)
+        ).strftime("%d/%m/%Y") # data iniziale un anno fa
         print(f"Un anno fa : {self.t0_1Y}.")
         directory = Path().cwd()
         self.directory = directory
@@ -55,44 +55,26 @@ class Scarico():
         # API dove trovare il chromedriver aggiornato -> https://chromedriver.storage.googleapis.com/index.html
         service = Service(ChromeDriverManager().install())
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
-        classi_a_benchmark_BPPB = {
-            'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 
-            'OBB_EUR_BT': '2265', 'OBB_EUR_MLT': '2264', 'OBB_EUR_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_EM': '2476', 'OBB_HY': '2293'}
-        classi_a_benchmark_BPL = {
+        self.classi_a_benchmark = {
             'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
-            'OBB_EUR_BT': '2265', 'OBB_EUR_MLT': '2264', 'OBB_EUR': '2255', 'OBB_EUR_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_USA': '2490',
-            'OBB_EM': '2476', 'OBB_HY': '2293'}
-        classi_a_benchmark_CRV = {
-            'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
-            'OBB_EUR_BT': '2265', 'OBB_EUR_MLT': '2264', 'OBB_EUR_CORP': '2272', 'OBB_GLOB': '2309', 'OBB_EM': '2476', 'OBB_HY': '2293'}
-        classi_a_benchmark_RIPA = {
-            'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318', 
-            'AZ_BIO' : '2240', 'AZ_BDC' : '2318', 'AZ_FIN' : '2716', 'AZ_AMB' : '2318', 'AZ_IMM' : '2187', 'AZ_IND' : '2175', 
-            'AZ_ECO' : '2174', 'AZ_SAL' : '2178', 'AZ_SPU' : '2181', 'AZ_TEC' : '2179', 'AZ_TEL' : '2180', 'AZ_ORO' : '2318', 
-            'AZ_BEAR' : '2318', 
-            'OBB_EUR_BT': '2265', 'OBB_EUR_MLT': '2264', 'OBB_EUR_CORP': '2272', 'OBB_EUR': '2255', 'OBB_USA': '2490', 'OBB_JAP' : '2309', 
-            'OBB_GLOB': '2309', 'OBB_EM': '2476', 'OBB_HY': '2293'}
-        classi_a_benchmark_RAI = {
-            'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318', 
-            'OBB_EUR_BT': '2265', 'OBB_EUR_MLT': '2264', 'OBB_EUR_CORP': '2272', 'OBB_EUR': '2255', 'OBB_USA': '2490', 
-            'OBB_GLOB': '2309', 'OBB_EM': '2476', 'OBB_HY': '2293'}
-        match self.intermediario:
-            case 'BPPB':
-                self.classi_a_benchmark = classi_a_benchmark_BPPB
-            case 'BPL':
-                self.classi_a_benchmark = classi_a_benchmark_BPL
-            case 'CRV':
-                self.classi_a_benchmark = classi_a_benchmark_CRV
-            case 'RIPA':
-                self.classi_a_benchmark = classi_a_benchmark_RIPA
-            case 'RAI':
-                self.classi_a_benchmark = classi_a_benchmark_RAI
+            'AZ_BIO' : '2240', 'AZ_BDC' : '2318', 'AZ_FIN' : '2716', 'AZ_AMB' : '2318', 'AZ_IMM' : '2187',
+            'AZ_IND' : '2175', 'AZ_ECO' : '2174', 'AZ_SAL' : '2178', 'AZ_SPU' : '2181', 'AZ_TEC' : '2179',
+            'AZ_TEL' : '2180', 'AZ_ORO' : '2318', 'AZ_BEAR' : '2318',
+            'OBB_EUR_BT': '2265', 'OBB_EUR_MLT': '2264', 'OBB_EUR': '2255', 'OBB_EUR_CORP': '2272', 'OBB_GLOB': '2309',
+            'OBB_USA': '2490', 'OBB_JAP' : '2309', 'OBB_EM': '2476', 'OBB_HY': '2293',
+        }
 
     def export(self):
         """
         Carica le liste in quantalys.it, scarica gli indicatori pertinenti ed esporta un file csv.
         Rinomina il file con nomi in successione relativi alla macrocategoria.
         """
+
+        # Il processo parte se la cartella di download è vuota
+        while len(os.listdir(self.directory_output_liste)) != 0:
+            print(f"\nCi sono dei file presenti nella cartella di download: {glob.glob(self.directory_output_liste.__str__()+'/*')}\n")
+            _ = input('cancella i file prima di proseguire, poi premi enter\n')
+        
         q = Quantalys()
 
         # Accesso a Quantalys
@@ -101,16 +83,12 @@ class Scarico():
         # Log in
         q.login(self.driver, 'Avicario', 'AVicario123')
 
-        # Il processo parte se la cartella di download è vuota
-        while len(os.listdir(self.directory_output_liste)) != 0:
-            print(f"\nCi sono dei file presenti nella cartella di download: {glob.glob(self.directory_output_liste.__str__()+'/*')}\n")
-            _ = input('cancella i file prima di proseguire, poi premi enter\n')
-        
-        directory = self.directory_input_liste
+        # Inizializzazione variabili da usare nel ciclo
         elapsed_time = []
         liste_completate = 0
-        file_totali = len(os.listdir(directory))
-        for filename in os.listdir(directory):
+        file_totali = len(os.listdir(self.directory_input_liste))
+
+        for filename in os.listdir(self.directory_input_liste):
             file_scaricati = len(os.listdir(self.directory_output_liste))
             start = time.perf_counter()
             print(f"\nCaricamento lista {filename}...\n")
@@ -119,7 +97,7 @@ class Scarico():
             id_lista, numero_fondi = q.carica_lista(self.driver, filename[:-4], self.directory_input_liste, filename)
 
             # Confronto
-            NUM_MAX_FONDI_CONFRONTO_DIRETTO = 1 # 2000
+            NUM_MAX_FONDI_CONFRONTO_DIRETTO = 1 # in realtà 2000 ma passando dalla scheda lista è tutto confusionario
             # Se il numero di fondi caricati è inferiore a NUM_MAX_FONDI_CONFRONTO_DIRETTO usa l'API nella scheda liste
             if int(numero_fondi) < NUM_MAX_FONDI_CONFRONTO_DIRETTO:
                 self.driver.find_element(by=By.XPATH, value='//*[@id="DataTables_Table_0"]/thead/tr/th[1]/label').click() # Seleziona tutto
@@ -127,7 +105,7 @@ class Scarico():
                 self.driver.find_element(by=By.XPATH, value='//*[@id="quantasearch"]/div[2]/div[3]/div/button[3]').click() # Confronta
             # altrimenti passa da fondi -> confronto
             else:
-                q.to_confronto(self.driver, id_lista)
+                q.confronta_lista(self.driver, id_lista)
             # personalizzato
             WebDriverWait(self.driver, 360).until(EC.presence_of_element_located((By.LINK_TEXT, 'Personalizzato'))).click()
             
@@ -277,7 +255,7 @@ class Scarico():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Scarico(intermediario='RAI', t1='31/12/2022')
+    _ = Scarico(t1='30/11/2022')
     _.export()
     end = time.perf_counter()
     print("Elapsed time: ", end - start, 'seconds')
