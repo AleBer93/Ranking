@@ -223,7 +223,7 @@ class Ranking():
                 ] = df.loc[(df['micro_categoria']==micro), 'TEV_1Y'].apply(
                     lambda x: 'semi_attivo' if x < soglie[macro][0] else 'attivo' if x < soglie[macro][1] else 'molto_attivo')
         df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
-            
+
     def indicatore_BS(self):
         """
         Metodo singolo
@@ -286,7 +286,6 @@ class Ranking():
         """
 
         df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
-        # print(df['fund_incept_dt'].dtypes) # da oggetto
         df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
 
         if self.metodo == 'singolo':
@@ -658,6 +657,10 @@ class Ranking():
         print('\nsto facendo la rankizzazione')
         df = pd.read_excel(self.file_ranking, index_col=None)
         df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
+        df_catalogo = pd.read_excel(self.file_catalogo, index_col=None, usecols=['isin', 'anni_detenzione'])
+        if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per singolo fondo
+            # Merge tra completo e catalogo per aggiungere la colonna anni_detenzione
+            df = pd.merge(left=df, right=df_catalogo, left_on='ISIN', right_on='isin')
         writer = pd.ExcelWriter(self.file_ranking,  engine='xlsxwriter') # pylint: disable=abstract-class-instantiated
 
         for macro in df.loc[:, 'macro_categoria'].unique():
@@ -1515,7 +1518,7 @@ class Ranking():
                 foglio.to_excel(writer, sheet_name=macro)
 
         writer.save()
-            
+
     def aggiunta_colonne(self):
         """Aggiungi eventuali colonne presenti nel file_catalogo alla fine dei fogli del file di ranking
         """
@@ -1840,15 +1843,15 @@ if __name__ == '__main__':
     start = time.perf_counter()
     _ = Ranking(intermediario='RAI')
     # _.attività()
-    _.indicatore_BS()
+    # _.indicatore_BS()
     # _.calcolo_best_worst()
     # _.ranking_per_grado()
     # _.merge_completo_liste()
     # _.rank()
-    # _.aggiunta_colonne() # TODO: testa 'fondo_equivalente' se RIPA.
-    # _.rank_formatted()
-    # _.aggiunta_prodotti_non_presenti()
-    # _.autofit()
+    _.aggiunta_colonne() # TODO: testa 'fondo_equivalente' se RIPA.
+    _.rank_formatted()
+    _.aggiunta_prodotti_non_presenti()
+    _.autofit()
     # _.zip_file()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
