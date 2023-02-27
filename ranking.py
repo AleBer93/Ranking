@@ -1,9 +1,9 @@
 import datetime
+import math
 import os
 import time
 import zipfile
 from pathlib import Path
-import math
 
 import dateutil.relativedelta
 import numpy as np
@@ -11,57 +11,348 @@ import pandas as pd
 import win32com.client
 from openpyxl import load_workbook  # Per caricare un libro
 from openpyxl.styles import numbers  # Per cambiare i formati dei numeri
-from openpyxl.styles import (Alignment, Border, Font,  # Per cambiare lo stile
-                             PatternFill, Side)
+from openpyxl.styles import (Alignment, Font,  # Per cambiare lo stile
+                             PatternFill)
 
 
 class Ranking():
-
-    def __str__(self):
-        return "Ranking dei fondi"
+    # TODO: siccome Raiffeisen non ha dato un numero riassuntivo di anni di detenzione,
+    # devo fare un merge e incollare le date di avvio. Mi servireanno in e in ranking
+    # ricavare l'anno dalla colonna che trovo nel file catalogo.xlsx, e testarlo
+    """
+    BPPB è passata da metodo singolo a metodo doppio
+    BPL è passata da metodo singolo a metodo doppio
+    CRV usa il metodo lineare
+    RIPA usa il metodo doppio
+    RAI usa il metodo doppio
+    """
 
     def __init__(self, intermediario, t1):
         """
         Arguments:
             intermediario {str} = intermediario a cui è destinata l'analisi
             t1 {datetime} = data di calcolo indici alla fine del mese
-            file_catalogo {str} = file formattato
-            file_completo {str} = file da elaborare
-            file_ranking {str} = file in cui fare la rankizzazione
-            directory_output_liste {WindowsPath} = percorso in cui scaricare i dati delle liste
-            directory_input_liste_best {WindowsPath} = percorso in cui scaricare i dati delle liste con i soli best in class
-            file_zip {str} = file zip in cui salvare il file di ranking e le note
+
         """
         self.intermediario = intermediario
         self.t1 = t1
+
+        # Directories
         directory = Path().cwd()
         self.directory = directory
         self.directory_output_liste = self.directory.joinpath('docs', 'export_liste_from_Q')
         self.directory_input_liste_best = self.directory.joinpath('docs', 'import_liste_best_into_Q')
         self.file_catalogo = 'catalogo_fondi.xlsx'
         self.file_completo = 'completo.csv'
+        self.file_ranking_bw = 'ranking_bw.csv'
         self.file_ranking = 'ranking.xlsx'
         self.file_zip = 'rank.zip'
-        self.soluzioni_BPPB = {
-            'LIQ' : 1, 'OBB_EUR_BT' : 1, 'OBB_EUR_MLT' : 1, 'OBB_EUR_CORP' : 1, 'OBB_GLOB' : 1, 'OBB_EM' : 1, 'OBB_HY' : 1, 
-            'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3, 
-        }
-        self.soluzioni_BPL = {
-            'LIQ' : 3, 'OBB_EUR_BT' : 3, 'OBB_EUR_MLT' : 3, 'OBB_EUR' : 3, 'OBB_EUR_CORP' : 3, 'OBB_GLOB' : 3, 'OBB_USA' : 3, 
-            'OBB_EM' : 3, 'OBB_HY' : 3, 'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3, 'AZ_GLOB' : 3, 
-        }
-        self.soluzioni_RIPA = {
-            'LIQ' : 4, 'OBB_EUR_BT' : 4, 'OBB_EUR_MLT' : 4, 'OBB_EUR' : 4, 'OBB_EUR_CORP' : 4, 'OBB_GLOB' : 4, 'OBB_USA' : 4, 'OBB_JAP' : 4, 
-            'OBB_EM' : 4, 'OBB_HY' : 4, 'AZ_EUR' : 4, 'AZ_NA' : 4, 'AZ_PAC' : 4, 'AZ_EM' : 4, 'AZ_GLOB' : 4, 'AZ_BIO' : 4, 
-            'AZ_BDC' : 4, 'AZ_FIN' : 4, 'AZ_AMB' : 4, 'AZ_IMM' : 4, 'AZ_IND' : 4, 'AZ_ECO' : 4, 'AZ_SAL' : 4, 'AZ_SPU' : 4, 'AZ_TEC' : 4, 
-            'AZ_TEL' : 4, 'AZ_ORO' : 4, 'AZ_BEAR' : 4, 
-        }
-        self.soluzioni_RAI = {
-            'LIQ' : 4, 'OBB_EUR_BT' : 4, 'OBB_EUR_MLT' : 4, 'OBB_EUR_CORP' : 4, 'OBB_EUR' : 4, 'OBB_USA' : 4, 'OBB_GLOB' : 4, 'OBB_EM' : 4, 
-            'OBB_HY' : 4, 'AZ_EUR' : 4, 'AZ_NA' : 4, 'AZ_PAC' : 4, 'AZ_EM' : 4, 'AZ_GLOB' : 4, 
+
+        match intermediario:
+            case 'BPPB':
+                self.metodo = 'doppio'
+                self.soluzioni = {
+                    'LIQ' : 1, 'OBB_EUR_BT' : 1, 'OBB_EUR_MLT' : 1, 'OBB_EUR_CORP' : 1, 'OBB_GLOB' : 1, 'OBB_EM' : 1,
+                    'OBB_HY' : 1, 'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3, 
+                }
+                self.classi_metodo_singolo = {
+                    'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo',
+                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities',
+                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.',
+                    'OBB_HY' : 'Obblig. globale high yield'
+                }
+                self.classi_metodo_doppio = {
+                    'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+                    'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
+                    'AZ_EM' : 'Az. paesi emerg. Mondo'
+                }
+                self.anni_detenzione = 3
+                self.IR_TEV = [
+                    'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB',
+                    'OBB_EM', 'OBB_HY'
+                ]
+                self.SOR_DSR = ['FLEX_BVOL, FLEX_MAVOL']
+                self.SHA_VOL = ['OPP']
+                self.PER_VOL = ['LIQ']
+            case 'BPL':
+                self.metodo = 'doppio'
+                self.soluzioni = {
+                    'LIQ' : 3, 'OBB_EUR_BT' : 3, 'OBB_EUR_MLT' : 3, 'OBB_EUR' : 3, 'OBB_EUR_CORP' : 3, 'OBB_GLOB' : 3,
+                    'OBB_USA' : 3, 'OBB_EM' : 3, 'OBB_HY' : 3, 'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3,
+                    'AZ_GLOB' : 3, 
+                }
+                self.classi_metodo_singolo = {
+                    'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
+                    'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.',
+                    'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate',
+                    'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.',
+                    'OBB_HY' : 'Obblig. globale high yield'
+                }
+                self.classi_metodo_doppio = {
+                    'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+                    'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 
+                    'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
+                    'AZ_GLOB' : 'Az. globale'
+                }
+                self.anni_detenzione = 5
+                self.IR_TEV = [
+                    'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP',
+                    'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY'
+                ]
+                self.SOR_DSR = ['BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN']
+                self.SHA_VOL = ['OPP']
+                self.PER_VOL = ['LIQ', 'LIQ_FOR']
+            case 'CRV':
+                self.metodo = None
+                self.soluzioni = None
+                self.classi_metodo_singolo = None
+                self.classi_metodo_doppio = None
+                self.anni_detenzione = 3
+                self.IR_TEV = [
+                    'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB',
+                    'OBB_EM', 'OBB_HY'
+                ]
+                self.SOR_DSR = ['FLEX_PR', 'FLEX_DIN']
+                self.SHA_VOL = ['OPP']
+                self.PER_VOL = ['LIQ']
+            case 'RIPA':
+                self.metodo = 'doppio'
+                self.soluzioni = {
+                    'LIQ' : 4, 'OBB_EUR_BT' : 4, 'OBB_EUR_MLT' : 4, 'OBB_EUR' : 4, 'OBB_EUR_CORP' : 4, 'OBB_GLOB' : 4,
+                    'OBB_USA' : 4, 'OBB_JAP' : 4, 'OBB_EM' : 4, 'OBB_HY' : 4, 'AZ_EUR' : 4, 'AZ_NA' : 4, 'AZ_PAC' : 4,
+                    'AZ_EM' : 4, 'AZ_GLOB' : 4, 'AZ_BIO' : 4, 'AZ_BDC' : 4, 'AZ_FIN' : 4, 'AZ_AMB' : 4, 'AZ_IMM' : 4,
+                    'AZ_IND' : 4, 'AZ_ECO' : 4, 'AZ_SAL' : 4, 'AZ_SPU' : 4, 'AZ_TEC' : 4, 'AZ_TEL' : 4, 'AZ_ORO' : 4,
+                    'AZ_BEAR' : 4, 
+                }
+                self.classi_metodo_singolo = None
+                self.classi_metodo_doppio = {
+                    'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+                    'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
+                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_JAP' : 'Obblig. Yen', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+                    'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
+                    'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'AZ_BIO' : 'Az. Biotech', 
+                    'AZ_BDC' : 'Az. beni di consumo', 'AZ_FIN' : 'Az. servizi finanziari', 'AZ_AMB' : 'Az. ambiente', 
+                    'AZ_IMM' : 'Az. real estate Mondo', 'AZ_IND' : 'Az. industria', 'AZ_ECO' : 'Az. energia materie prime oro', 
+                    'AZ_SAL' : 'Az. salute - farmaceutico', 'AZ_SPU' : 'Az. Servizi di pubblica utilita', 'AZ_TEC' : 'Az. tecnologia', 
+                    'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear',
+                }
+                self.anni_detenzione = 3
+                self.IR_TEV = [
+                    'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_HY', 
+                    'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'AZ_BIO', 'AZ_BDC', 'AZ_FIN', 'AZ_AMB', 'AZ_IMM', 'AZ_IND', 
+                    'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR',
+                ]
+                self.SOR_DSR = ['COMM', 'FLEX_PR', 'FLEX_DIN', 'PERF_ASS']
+                self.SHA_VOL = []
+                self.PER_VOL = ['LIQ']
+            case 'RAI':
+                self.metodo = 'doppio'
+                self.soluzioni = {
+                    'LIQ' : 4, 'OBB_EUR_BT' : 4, 'OBB_EUR_MLT' : 4, 'OBB_EUR_CORP' : 4, 'OBB_EUR' : 4, 'OBB_USA' : 4,
+                    'OBB_GLOB' : 4, 'OBB_EM' : 4, 'OBB_HY' : 4, 'AZ_EUR' : 4, 'AZ_NA' : 4, 'AZ_PAC' : 4, 'AZ_EM' : 4,
+                    'AZ_GLOB' : 4, 
+                }
+                self.classi_metodo_singolo = None
+                self.classi_metodo_doppio = {
+                    'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_EUR' : 'Obblig. Europa', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
+                    'OBB_GLOB' : 'Obblig. globale', 'OBB_HY' : 'Obblig. globale high yield', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
+                    'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
+                    'AZ_GLOB' : 'Az. globale', 
+                }
+                self.anni_detenzione = None
+                self.IR_TEV = [
+                    'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_USA', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY', 
+                    'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 
+                ]
+                self.SOR_DSR = ['BIL_PR', 'BIL_EQ', 'BIL_AGG', 'FLEX_PR', 'FLEX_DIN']
+                self.SHA_VOL = ['OPP']
+                self.PER_VOL = ['LIQ', 'LIQ_FOR']
+            case _:
+                print('specifica un intermediario')
+                quit()
+
+    def attività(self):
+        """
+        Crea la colonna TEV ottenuta come rapporto tra alpha e IR, sia a 3 anni che ad 1 anno.
+        Assegna ai fondi appartenenti alle classi direzionali, più la liquidità,
+        un grado di attività tra semiattivo, attivo, molto attivo.
+        L'etichetta verrà assegnata in base al superamento o meno di determinate soglie presenti nel dizionario soglie,
+        condiviso tra tutti gli intermediari.
+        """
+        soglie = {
+            'LIQ' : [0.0015, 0.01], 'OBB_EUR_BT' : [0.0075, 0.02], 'OBB_EUR_MLT' : [0.0125, 0.035], 'OBB_EUR' : [0.035, 0.065], 
+            'OBB_USA' : [0.035, 0.055], 'OBB_JAP' : [0.035, 0.06], 'OBB_EUR_CORP' : [0.01, 0.0275], 'OBB_GLOB' : [0.03, 0.06], 
+            'OBB_EM' : [0.045, 0.07], 'OBB_HY' : [0.04, 0.065], 'AZ_EUR' : [0.055, 0.10], 'AZ_NA' : [0.055, 0.10], 
+            'AZ_PAC' : [0.08, 0.12], 'AZ_EM' : [0.06, 0.14], 'AZ_GLOB' : [0.055, 0.10], 'AZ_BIO' : [0.08, 0.15], 'AZ_BDC' : [0.08, 0.13], 
+            'AZ_FIN' : [0.055, 0.12], 'AZ_AMB' : [0.08, 0.12], 'AZ_IMM' : [0.06, 0.10], 'AZ_IND' : [0.055, 0.12], 'AZ_ECO' : [0.08, 0.14], 
+            'AZ_SAL' : [0.055, 0.11], 'AZ_SPU' : [0.06, 0.12], 'AZ_TEC' : [0.06, 0.14], 'AZ_TEL' : [0.05, 0.15], 'AZ_ORO' : [0.08, 0.15], 
+            'AZ_BEAR' : [0.08, 0.15], 
         }
 
-    def ranking_per_grado(self, metodo):
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
+        # data iniziale tre anni fa
+        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y')
+        # data iniziale un anno fa
+        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y')
+        if self.metodo == 'singolo':
+            return None
+        elif self.metodo == 'doppio':
+            df.loc[(df['micro_categoria'].isin(list(self.classi_metodo_doppio.values()))) &
+                (df['data_di_avvio'] < t0_3Y) & (df['Alpha 3 anni") fine mese'].notnull()), 'TEV_3Y'
+            ] = df['Alpha 3 anni") fine mese'] / df['Info 3 anni") fine mese']
+            for macro, micro in self.classi_metodo_doppio.items():
+                df.loc[(df['micro_categoria']==micro) & (df['data_di_avvio'] < t0_3Y) &
+                    (df['TEV_3Y'].notnull()), 'grado_gestione_3Y'
+                ] = df.loc[(df['micro_categoria']==micro), 'TEV_3Y'].apply(
+                    lambda x: 'semi_attivo' if x < soglie[macro][0] else 'attivo' if x < soglie[macro][1] else 'molto_attivo')
+            df.loc[(df['micro_categoria'].isin(list(self.classi_metodo_doppio.values()))) &
+                (df['data_di_avvio'] < t0_1Y) & (df['Alpha 1 anno fine mese'].notnull()), 'TEV_1Y'
+            ] = df['Alpha 1 anno fine mese'] / df['Info 1 anno fine mese']
+            for macro, micro in self.classi_metodo_doppio.items():
+                df.loc[(df['micro_categoria']==micro) & (df['data_di_avvio'] < t0_1Y) &
+                    (df['TEV_1Y'].notnull()), 'grado_gestione_1Y'
+                ] = df.loc[(df['micro_categoria']==micro), 'TEV_1Y'].apply(
+                    lambda x: 'semi_attivo' if x < soglie[macro][0] else 'attivo' if x < soglie[macro][1] else 'molto_attivo')
+        df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
+            
+    def indicatore_BS(self):
+        """
+        Metodo singolo
+        1. Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
+
+        Metodo doppio
+        1. Calcola l'indicatore B&S a 3 anni, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
+        2. Calcola l'indicatore B&S a 1 anno, correggendo l'IR per i costi spalmati sugli anni di detenzione medi di un fondo.
+        Formula v1 = IR - (IR * fee) / (anni_detenzione * alpha)
+        Formula v2 = (IR * TEV - (fee / anni_detenzione)) / TEV
+        Le colonne considerate ai fini del calcolo sono: 'Info 3 anni") fine mese', 'Alpha 3 anni") fine mese',
+        'Info 1 anno fine mese', 'Alpha 1 anno fine mese', 'commissione'
+
+        N.B. Raiffeisen non ha fornito un dato riassuntivo sugli anni di detenzione medi dei fondi.
+             Nel loro caso sono costretto a portarmi dietro la colonna 'anni_detenzione' che indica gli anni di
+             detenzione per singolo fondo.
+        """
+
+        # data iniziale tre anni fa
+        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y')
+        # data iniziale un anno fa
+        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y')
+        df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
+        df_catalogo = pd.read_excel(self.file_catalogo, index_col=None)
+        if self.metodo == 'singolo':
+            df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
+            df.loc[
+                (df['macro_categoria'].isin(list(self.classi_metodo_singolo.keys()))) & (df['data_di_avvio'] < t0_3Y), 'BS_3_anni'
+            ] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 3 anni") fine mese'])
+        elif self.metodo == 'doppio':
+            df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
+            if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+                df.loc[
+                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < t0_3Y), 'BS_3_anni'
+                ] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 3 anni") fine mese'])
+                df.loc[
+                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < t0_1Y), 'BS_1_anno'
+                ] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 1 anno fine mese'])
+            elif self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per singolo fondo
+                df.loc[
+                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < t0_3Y), 'BS_3_anni'
+                ] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (df['anni_detenzione'] * df['Alpha 3 anni") fine mese'])
+                df.loc[
+                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < t0_1Y), 'BS_1_anno'
+                ] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (df['anni_detenzione'] * df['Alpha 1 anno fine mese'])
+        df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
+
+    def calcolo_best_worst(self):
+        """
+        Metodo singolo
+        1. Calcolo best e worst per le micro categorie contenute nelle macro categorie a benchmark, per fondi con più di tre anni
+        e con indicatore B&S a tre anni presente, in base alla mediana.
+
+        Metodo doppio
+        1. Calcolo best e worst per le micro categorie contenute nelle macro categorie a benchmark, per fondi con più di tre anni
+        e con indicatore B&S ad un anno presente, rispetto al grado di attività nel caso siano micro categorie direzionali, 
+        in base alla mediana.
+        2. Calcolo best e worst per le micro categorie contenute nelle macro categorie a benchmark, per fondi con più di un anno
+        e con indicatore B&S ad un anno presente, rispetto al grado di attività nel caso siano micro categorie direzionali,
+        in base al primo quartile.
+        3. NON PIU' VALIDO I fondi con più di un anno di vita che sono best a 3 anni o best ad 1 anno, sono best, altrimenti worst.
+        """
+        t0_3Y = (
+            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)
+        ).strftime('%d/%m/%Y') # data iniziale tre anni fa
+        t0_1Y = (
+            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)
+        ).strftime('%d/%m/%Y') # data iniziale un anno fa
+        df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
+        # print(df['fund_incept_dt'].dtypes) # da oggetto
+        df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
+
+        if self.metodo == 'singolo':
+            for macro in list(self.classi_metodo_singolo.keys()):
+                for micro in df.loc[df['macro_categoria'] == macro, 'micro_categoria'].unique():
+                    mediana = df.loc[
+                        (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                        & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
+                    df.loc[
+                        (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                        & (df['BS_3_anni'].notnull()), 'Best_Worst_3Y'
+                    ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['fund_incept_dt'] < t0_3Y) &
+                        (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
+        elif self.metodo == 'doppio':
+            for macro in list(self.classi_metodo_doppio.keys()):
+                for micro in df.loc[df['macro_categoria'] == macro, 'micro_categoria'].unique():
+                    # Ripa, un singolo consulente finanziario, pretende di mescolare i tre diversi gradi di attività in ciascuna micro categoria
+                    # Ogni altro intermediario o consulente finanziario che scelga la soluzione 4, ovvero nessun ordinamento, rendendo inutile il metodo
+                    # doppio, deve essere inserito nella condizione sotto per trattare le micro categorie direzionali alla pari delle altre, senza
+                    # discriminarle per grado di attività. Si tratta di una condizione temporanea; dopo il primo o i primi giri di ranking, le realtà
+                    # sceglieranno un ordinamento tra i tre disponibili.
+                    if micro in list(self.classi_metodo_doppio.values()) and self.intermediario != 'RIPA' and self.intermediario != 'RAI':
+                        for grado in df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro), 'grado_gestione_3Y'].unique():
+                            mediana = df.loc[
+                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'BS_3_anni'].median()
+                            df.loc[
+                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'Best_Worst_3Y'
+                            ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro)
+                                & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull())
+                                & (df['grado_gestione_3Y'] == grado), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
+                        for grado in df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro), 'grado_gestione_1Y'].unique():
+                            primo_quartile = df.loc[
+                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == grado), 'BS_1_anno'
+                            ].quantile(q=0.75, interpolation='linear')
+                            df.loc[
+                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == grado), 'Best_Worst_1Y'
+                            ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro)
+                                & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull())
+                                & (df['grado_gestione_1Y'] == grado), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
+                    else:
+                        mediana = df.loc[
+                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                            & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
+                        df.loc[
+                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                            & (df['BS_3_anni'].notnull()), 'Best_Worst_3Y'
+                        ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                            & (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
+                        primo_quartile = df.loc[
+                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                            & (df['BS_1_anno'].notnull()), 'BS_1_anno'].quantile(q=0.75, interpolation='linear')
+                        df.loc[
+                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                            & (df['BS_1_anno'].notnull()), 'Best_Worst_1Y'
+                        ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                            & (df['BS_1_anno'].notnull()), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
+            # df['Best_Worst'] = df['Best_Worst_3Y'].replace('worst', np.nan).fillna(df['Best_Worst_1Y'])
+        df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
+
+    def ranking_per_grado(self):
         """
         Assegna un punteggio in ordine decrescente ai fondi delle micro categorie direzionali in base al loro indicatore corretto
         a 3 anni e ad 1 anno, discriminando in base al grado di gestione.
@@ -71,66 +362,30 @@ class Ranking():
         Soluzione 3: attivo, semi-attivo; molto attivo;
         Soluzione 4: attivo, semi-attivo, molto attivo;
         """
-        classi_a_benchmark_BPPB_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 
-            'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
-            'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
-            'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-        }
-        classi_a_benchmark_BPL_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 
-            'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 
-            'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-            'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
-            'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 
-        }
-        classi_a_benchmark_RIPA_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
-            'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
-            'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_JAP' : 'Obblig. Yen', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-            'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
-            'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'AZ_BIO' : 'Az. Biotech', 
-            'AZ_BDC' : 'Az. beni di consumo', 'AZ_FIN' : 'Az. servizi finanziari', 'AZ_AMB' : 'Az. ambiente', 
-            'AZ_IMM' : 'Az. real estate Mondo', 'AZ_IND' : 'Az. industria', 'AZ_ECO' : 'Az. energia materie prime oro', 
-            'AZ_SAL' : 'Az. salute - farmaceutico', 'AZ_SPU' : 'Az. Servizi di pubblica utilita', 'AZ_TEC' : 'Az. tecnologia', 
-            'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear', 
-        }
-        classi_a_benchmark_RAI_metodo_doppio = {
-            'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
-            'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_EUR' : 'Obblig. Europa', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
-            'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 
-            'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-            'AZ_GLOB' : 'Az. globale', 
-        }
-        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y') # data iniziale tre anni fa
-        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y') # data iniziale un anno fa
-        if metodo == 'singolo':
+        t0_3Y = (
+            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)
+        ).strftime('%d/%m/%Y') # data iniziale tre anni fa
+        t0_1Y = (
+            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)
+        ).strftime('%d/%m/%Y') # data iniziale un anno fa
+        if self.metodo == 'singolo':
             return None
-        elif metodo == 'doppio':
-            df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        elif self.metodo == 'doppio':
+            df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
             df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
-            if self.intermediario == 'BPPB':
-                macro_micro = classi_a_benchmark_BPPB_metodo_doppio
-                soluzioni = self.soluzioni_BPPB
-            elif self.intermediario == 'BPL':
-                macro_micro = classi_a_benchmark_BPL_metodo_doppio
-                soluzioni = self.soluzioni_BPL
-            elif self.intermediario == 'CRV':
-                return None
-            elif self.intermediario == 'RIPA':
-                macro_micro = classi_a_benchmark_RIPA_metodo_doppio
-                soluzioni = self.soluzioni_RIPA
-            elif self.intermediario == 'RAI':
-                macro_micro = classi_a_benchmark_RAI_metodo_doppio
-                soluzioni = self.soluzioni_RAI
 
-            for macro in list(macro_micro.keys()):
+            for macro in list(self.classi_metodo_doppio.keys()):
                 for micro in df.loc[df['macro_categoria'] == macro, 'micro_categoria'].unique():
-                    if micro in list(macro_micro.values()):
-                        if soluzioni[macro] == 1:
+                    if micro in list(self.classi_metodo_doppio.values()):
+                        if self.soluzioni[macro] == 1:
                             # 3Y
                             for etichetta in ('best', 'worst'):
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                    & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo')
+                                    & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                    & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo')
+                                    & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_3Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
                                                                 (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & 
@@ -138,18 +393,33 @@ class Ranking():
                                                                 (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
                                 # Quando non ci sono fondi semiattivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_3Y): ultimo_elemento_ordinato_3Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                    & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo')
+                                    & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                    & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo')
+                                    & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
-                                ultimo_elemento_ordinato_3Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
-                                                                (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & 
-                                                                (df['grado_gestione_3Y'] == 'attivo') & 
-                                                                (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
+                                ultimo_elemento_ordinato_3Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro)
+                                                                & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull())
+                                                                & (df['grado_gestione_3Y'] == 'attivo')
+                                                                & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
                                 # Quando non ci sono fondi semiattivi e attivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_3Y): ultimo_elemento_ordinato_3Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                    & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo')
+                                    & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                    & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo')
+                                    & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
                             # 1Y
                             for etichetta in ('best', 'worst'):
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                    & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo')
+                                    & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                    & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo')
+                                    & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_1Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
                                                                     (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & 
@@ -157,7 +427,12 @@ class Ranking():
                                                                     (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
                                 # Quando non ci sono fondi semiattivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_1Y): ultimo_elemento_ordinato_1Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                    & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo')
+                                    & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                    & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo')
+                                    & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_1Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
                                                                     (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & 
@@ -165,8 +440,13 @@ class Ranking():
                                                                     (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
                                 # Quando non ci sono fondi attivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_1Y): ultimo_elemento_ordinato_1Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
-                        elif soluzioni[macro] == 2:
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                    & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo')
+                                    & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                    & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo')
+                                    & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
+                        elif self.soluzioni[macro] == 2:
                             # 3Y
                             for etichetta in ('best', 'worst'):
                                 df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
@@ -205,7 +485,7 @@ class Ranking():
                                 # Quando non ci sono fondi semiattivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_1Y): ultimo_elemento_ordinato_1Y = 0
                                 df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
-                        elif soluzioni[macro] == 3:
+                        elif self.soluzioni[macro] == 3:
                             # 3Y
                             for etichetta in ('best', 'worst'):
                                 df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
@@ -228,7 +508,7 @@ class Ranking():
                                 # Quando non ci sono fondi attivi o semiattivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_1Y): ultimo_elemento_ordinato_1Y = 0
                                 df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
-                        elif soluzioni[macro] == 4:
+                        elif self.soluzioni[macro] == 4:
                             # 3Y
                             for etichetta in ('best', 'worst'):
                                 df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
@@ -236,17 +516,22 @@ class Ranking():
                             for etichetta in ('best', 'worst'):
                                 df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
 
-            df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+            df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
 
     def merge_completo_liste(self):
-        """
-        Aggiunge gli indici scaricati da Quantalys.it nel file completo
+        """Aggiunge gli indici scaricati da Quantalys.it nel file completo
         Passando dal percorso Fondi -> Confronto, alcuni fondi estinti o assorbiti vengono eslusi dalla lista caricata.
         Questo porta ad avere i dati di un numero di fondi inferiore a quelli caricati nelle liste.
         # TODO: Devo verificare se i fondi che non sono stati scaricati da Quantalys, non siano stati classificati come best nel processo
         precedente altrimenti sorgerebbe un problema.
         """
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
+        colonne = [
+            'ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione',
+            'SFDR', 'grado_gestione_3Y', 'grado_gestione_1Y', 'Best_Worst_3Y', 'Best_Worst_1Y', 'ranking_per_grado_3Y',
+            'ranking_per_grado_1Y', 
+        ]
+        df = df[colonne]
         print('sto aggiungendo gli indici delle liste al file completo...')
 
         df['Information_Ratio_3Y'] = np.nan
@@ -264,41 +549,8 @@ class Ranking():
         df['Sharpe_3Y'] = np.nan
         df['Sharpe_1Y'] = np.nan
 
-        if self.intermediario == 'BPPB':
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
-            SOR_DSR = ['FLEX']
-            SHA_VOL = ['OPP']
-            PER_VOL = ['LIQ']
-        elif self.intermediario == 'BPL':
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY']
-            SOR_DSR = ['BIL', 'FLEX']
-            SHA_VOL = ['OPP']
-            PER_VOL = ['LIQ', 'LIQ_FOR']
-        elif self.intermediario == 'CRV':
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
-            SOR_DSR = ['FLEX']
-            SHA_VOL = ['OPP']
-            PER_VOL = ['LIQ']
-        elif self.intermediario == 'RIPA':
-            IR_TEV = [
-                'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_HY', 
-                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'AZ_BIO', 'AZ_BDC', 'AZ_FIN', 'AZ_AMB', 'AZ_IMM', 'AZ_IND', 
-                'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR',
-            ]
-            SOR_DSR = ['COMM', 'FLEX', 'PERF_ASS']
-            SHA_VOL = []
-            PER_VOL = ['LIQ']
-        elif self.intermediario == 'RAI':
-            IR_TEV = [
-                'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_USA', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY', 
-                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 
-            ]
-            SOR_DSR = ['BIL', 'FLEX']
-            SHA_VOL = ['OPP']
-            PER_VOL = ['LIQ', 'LIQ_FOR']
-        # Aggiunge gli indici delle liste al file completo 
         for filename in os.listdir(self.directory_output_liste):
-            if filename[:-9] in IR_TEV:
+            if filename[:-9] in self.IR_TEV:
                 i = 10
                 while True:
                     try:
@@ -325,7 +577,7 @@ class Ranking():
                     df['TEV_1Y'] = df['TEV'].fillna(df['TEV_1Y'])
                     df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Information ratio', 'TEV'], axis=1, inplace=True)
                     df = df.astype({'Information_Ratio_1Y' : float, 'TEV_1Y' : float})
-            elif filename[:-9] in SOR_DSR:
+            elif filename[:-9] in self.SOR_DSR:
                 i = 10
                 while True:
                     try:
@@ -350,7 +602,7 @@ class Ranking():
                     df['Sortino_1Y'] = df['Sortino ratio'].fillna(df['Sortino_1Y'])
                     df['DSR_1Y'] = df['DSR'].fillna(df['DSR_1Y'])
                     df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Sortino ratio', 'DSR'], axis=1, inplace=True)
-            elif filename[:-9] in SHA_VOL:
+            elif filename[:-9] in self.SHA_VOL:
                 i = 10
                 while True:
                     try:
@@ -376,7 +628,7 @@ class Ranking():
                     df['Sharpe_1Y'] = df['Sharpe ratio'].fillna(df['Sharpe_1Y'])
                     df['Vol_1Y'] = df['Volatilità'].fillna(df['Vol_1Y'])
                     df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Sharpe ratio', 'Volatilità'], axis=1, inplace=True)
-            elif filename[:-9] in PER_VOL:
+            elif filename[:-9] in self.PER_VOL:
                 i = 10
                 while True:
                     try:
@@ -404,56 +656,10 @@ class Ranking():
                     df.drop(['Codice ISIN', 'Nome', 'Valuta', 'Perf Ann.', 'Volatilità'], axis=1, inplace=True)
         df.to_excel(self.file_ranking, index=False)
 
-    def discriminazione_flessibili_e_bilanciati(self):
-        """
-        Discrimina i flessibili  e i bilanciati in classi diverse a seconda della loro volatilità (maggiore o minore di 0.05), o alla loro appartenenza alle classi.
-        """
-        df = pd.read_excel(self.file_ranking, index_col=None)
-        if self.intermediario == 'BPPB':
-            print("\nsto discriminando i flessibili in base alla loro volatilità...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['categoria_flessibili'].map({'bassa_vola' : 'FLEX_BVOL', 
-                'media_alta_vola' : 'FLEX_MAVOL'}, na_action='ignore')
-        elif self.intermediario == 'BPL':
-            print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({'Flessibili prudenti globale' : 'FLEX_PR', 
-                'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN', 'Flessibili Dollaro US' : 'FLEX_DIN', 
-                'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',}, na_action='ignore')
-            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({'Bilanc. Prud. Europa' : 'BIL_MBVOL', 
-                'Bilanc. Prud. Dollaro US' : 'BIL_MBVOL', 'Bilanc. Prud. Global Euro' : 'BIL_MBVOL', 'Bilanc. Prud. Global' : 'BIL_MBVOL', 
-                'Bilanc. Prud. altre valute' : 'BIL_MBVOL',  'Bilanc. Equilib. Europa' : 'BIL_MBVOL', 'Bilanc. Equil. Dollaro US' : 'BIL_MBVOL', 
-                'Bilanc. Equil. Global Euro' : 'BIL_MBVOL', 'Bilanc. Equil. Global' : 'BIL_MBVOL', 'Bilanc. Equil. altre valute' : 'BIL_MBVOL', 
-                'Bilanc. Aggress. Europa' : 'BIL_AVOL', 'Bilanc. aggress. Dollaro US' : 'BIL_AVOL', 'Bilanc. Aggress. Global Euro' : 'BIL_AVOL', 
-                'Bilanc. Aggress. Global' : 'BIL_AVOL', 'Bilanc. Aggress. altre valute' : 'BIL_AVOL'}, na_action='ignore')
-        elif self.intermediario == 'CRV':
-            print("\nsto discriminando i flessibili in base alla loro volatilità...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['categoria_flessibili'].map({'bassa_vola' : 'FLEX_PR', 
-                'media_alta_vola' : 'FLEX_DIN'}, na_action='ignore')
-        elif self.intermediario == 'RIPA':
-            print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({
-                'Flessibili prudenti globale' : 'FLEX_PR', 'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN', 
-                'Flessibili Dollaro US' : 'FLEX_DIN', 'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',
-                }, na_action='ignore')
-        elif self.intermediario == 'RAI':
-            print("\nsto discriminando i flessibili e i bilanciati in base alla loro classe di appartenenza...")
-            df.loc[df['macro_categoria'] == 'FLEX', 'macro_categoria'] = df['micro_categoria'].map({'Flessibili prudenti globale' : 'FLEX_PR', 
-                'Flessibili prudenti Europa' : 'FLEX_PR', 'Flessibili Europa' : 'FLEX_DIN', 'Flessibili Dollaro US' : 'FLEX_DIN', 
-                'Fless. Global Euro' : 'FLEX_DIN', 'Fless. Global' : 'FLEX_DIN',}, na_action='ignore')
-            df.loc[df['macro_categoria'] == 'BIL', 'macro_categoria'] = df['micro_categoria'].map({'Bilanc. Prud. Europa' : 'BIL_PR', 
-                'Bilanc. Prud. Dollaro US' : 'BIL_PR', 'Bilanc. Prud. Global Euro' : 'BIL_PR', 'Bilanc. Prud. Global' : 'BIL_PR', 
-                'Bilanc. Prud. altre valute' : 'BIL_PR',  'Bilanc. Equilib. Europa' : 'BIL_EQ', 'Bilanc. Equil. Dollaro US' : 'BIL_EQ', 
-                'Bilanc. Equil. Global Euro' : 'BIL_EQ', 'Bilanc. Equil. Global' : 'BIL_EQ', 'Bilanc. Equil. altre valute' : 'BIL_EQ', 
-                'Bilanc. Aggress. Europa' : 'BIL_AGG', 'Bilanc. aggress. Dollaro US' : 'BIL_AGG', 'Bilanc. Aggress. Global Euro' : 'BIL_AGG', 
-                'Bilanc. Aggress. Global' : 'BIL_AGG', 'Bilanc. Aggress. altre valute' : 'BIL_AGG'}, na_action='ignore')
-        df.to_excel(self.file_ranking, index=False)
-
-    def rank(self, metodo=''):
-        # Aggiungi il criterio best/worst ad un anno. Discrimina per attività del fondo, metti gli ESG a fianco, rimuovi colonne inutili.
-
+    def rank(self):
         # TODO : fattorizza per tipo di indicatore
         # TODO : fallo all'interno di un wrapper come il metodo aggiunta_colonne
-        """
-        Crea il file di ranking con tanti fogli quante sono le macro asset class.
+        """Crea il file di ranking con tanti fogli quante sono le macro asset class.
         """
         t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%Y/%m/%d') # data iniziale tre anni fa
         t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime("%Y/%m/%d") # data iniziale un anno fa
@@ -464,92 +670,50 @@ class Ranking():
         writer = pd.ExcelWriter(self.file_ranking,  engine='xlsxwriter') # pylint: disable=abstract-class-instantiated
         
         if self.intermediario == 'BPPB':
-            anni_detenzione = 3
             IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
             SOR_DSR = ['FLEX_BVOL', 'FLEX_MAVOL'] # Ora i flessibili sono discriminati
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ']
-            if metodo == 'singolo':
-                micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 
-                    'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
-            elif metodo == 'doppio':
-                micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 
-                    'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 'LIQ' : 'Monetari Euro'}
-            soluzioni = self.soluzioni_BPPB
         elif self.intermediario =='BPL':
-            anni_detenzione = 5
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY']
+            IR_TEV = [
+                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP',
+                'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY'
+            ]
             SOR_DSR = ['BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN'] # Ora i flessibili e i bilanciati sono discriminati
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ', 'LIQ_FOR']
-            if metodo == 'singolo':
-                micro_blend_classi_a_benchmark = {
-                    'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 
-                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
-                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
-            elif metodo == 'doppio':
-                micro_blend_classi_a_benchmark = {
-                    'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 
-                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
-                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 'LIQ' : 'Monetari Euro'}
-            soluzioni = self.soluzioni_BPL
         elif self.intermediario =='CRV':
-            anni_detenzione = 3
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
+            IR_TEV = [
+                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB',
+                'OBB_EM', 'OBB_HY'
+            ]
             SOR_DSR = ['FLEX_PR', 'FLEX_DIN'] # Ora i flessibili sono discriminati
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ']
-            micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
-                'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-                'OBB_HY' : 'Obblig. globale high yield'}
         elif self.intermediario == 'RIPA':
-            anni_detenzione = 3
             IR_TEV = [
                 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_HY', 
                 'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'AZ_BIO', 'AZ_BDC', 'AZ_FIN', 'AZ_AMB', 'AZ_IMM', 'AZ_IND', 
-                'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR', 
+                'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR'
             ]
             SOR_DSR = ['COMM', 'FLEX_PR', 'FLEX_DIN', 'PERF_ASS']
             SHA_VOL = []
             PER_VOL = ['LIQ']
-            if metodo == 'doppio':
-                micro_blend_classi_a_benchmark = {
-                    'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
-                    'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
-                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_JAP' : 'Obblig. Yen', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-                    'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
-                    'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'AZ_BIO' : 'Az. Biotech', 
-                    'AZ_BDC' : 'Az. beni di consumo', 'AZ_FIN' : 'Az. servizi finanziari', 'AZ_AMB' : 'Az. ambiente', 
-                    'AZ_IMM' : 'Az. real estate Mondo', 'AZ_IND' : 'Az. industria', 'AZ_ECO' : 'Az. energia materie prime oro', 
-                    'AZ_SAL' : 'Az. salute - farmaceutico', 'AZ_SPU' : 'Az. Servizi di pubblica utilita', 'AZ_TEC' : 'Az. tecnologia', 
-                    'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear', 
-                }
-            soluzioni = self.soluzioni_RIPA
         elif self.intermediario =='RAI':
-            # anni_detenzione = None
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 
-                'OBB_USA', 'OBB_EM', 'OBB_HY']
+            IR_TEV = [
+                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 
+                'OBB_USA', 'OBB_EM', 'OBB_HY'
+            ]
             SOR_DSR = ['BIL_PR', 'BIL_EQ', 'BIL_AGG', 'FLEX_PR', 'FLEX_DIN'] # Ora i flessibili e i bilanciati sono discriminati
             SHA_VOL = ['OPP']
             PER_VOL = ['LIQ', 'LIQ_FOR']
-            if metodo == 'doppio':
-                micro_blend_classi_a_benchmark = {
-                    'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 
-                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_USA' : 'Obblig. Dollaro US all mat', 
-                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield', 'LIQ' : 'Monetari Euro'}
-            soluzioni = self.soluzioni_RAI
         for macro in df.loc[:, 'macro_categoria'].unique():
             # Crea un foglio per ogni macro categoria
             foglio = df.loc[df['macro_categoria'] == macro].copy()
-            if macro in IR_TEV:
-                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI': # metodo best-worst
-                    if metodo == 'singolo':
+            if macro in self.IR_TEV:
+                # Metodo best-worst
+                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
+                    if self.metodo == 'singolo':
                         # Rank IR_1Y
                         foglio['ranking_IR_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Information_Ratio_1Y'].notnull()), 'Information_Ratio_1Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile IR_1Y
@@ -557,7 +721,7 @@ class Ranking():
                         # Terzile IR_1Y
                         foglio['terzile_IR_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Information_Ratio_1Y'].notnull()), 'Information_Ratio_1Y'].apply(lambda x: 'best' if x > foglio['Information_Ratio_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                         # Creazione IR_corretto_1Y
-                        foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_1Y'] / 100)
+                        foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_1Y'] / 100)
                         # Rank IR_corretto_1Y
                         foglio['ranking_IR_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile IR_1Y corretto
@@ -575,7 +739,7 @@ class Ranking():
                         # Terzile IR_3Y
                         foglio['terzile_IR_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['Information_Ratio_3Y'].notnull()), 'Information_Ratio_3Y'].apply(lambda x: 'best' if x > foglio['Information_Ratio_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                         # Creazione IR_corretto_3Y
-                        foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_3Y'] / 100)
+                        foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_3Y'] / 100)
                         # Rank IR_corretto_3Y
                         foglio['ranking_IR_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile IR_3Y corretto
@@ -584,19 +748,19 @@ class Ranking():
                         foglio['terzile_IR_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].apply(lambda x: 'best' if x > foglio['IR_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                         
                         # Ranking finale
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['IR_corretto_3Y'].notnull()) & (foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['IR_corretto_3Y'].notnull()) & (foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
+                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['IR_corretto_3Y'].notnull()) & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['IR_corretto_3Y'].notnull()) & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
+                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
+                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
+                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
                 
-                    elif metodo == 'doppio':
+                    elif self.metodo == 'doppio':
                         # Creazione IR_corretto_3Y
                         if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                             foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['TEV_3Y'] / 100)
                             foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['TEV_1Y'] / 100)
                         else:
-                            foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_3Y'] / 100)
-                            foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_1Y'] / 100)
+                            foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_3Y'] / 100)
+                            foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_1Y'] / 100)
                         # Note
                         foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & foglio['Best_Worst_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Information_Ratio_1Y'].notnull(), 'note'] = 'Non ha 1 anno, ma possiede dati a un anno.' Nota fuorviante
@@ -605,180 +769,180 @@ class Ranking():
                         # foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Information_Ratio_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.' Nota fuorviante
                         foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Information_Ratio_3Y'].notnull(), ['Information_Ratio_3Y', 'TEV_3Y', 'IR_corretto_3Y']] = np.nan
                         # Ranking finale
-                        if soluzioni[macro] == 1:
+                        if self.soluzioni[macro] == 1:
                             # Fondi best blend - Gerarchia : semi_attivo, attivo, molto_attivo
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi best non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             # Fondi worst blend - Gerarchia : attivo, semi_attivo, molto_attivo
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi worst non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
-                        elif soluzioni[macro] == 2:
-                            # Fondi best blend - Gerarchia : semi_attivo, attivo, molto_attivo
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                        elif self.soluzioni[macro] == 2:
+                            # Fondi best blend - Gerarchia : attivo, semi_attivo, molto_attivo
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi best non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             # Fondi worst blend - Gerarchia : attivo, semi_attivo, molto_attivo
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi worst non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
-                        elif soluzioni[macro] == 3:
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                        elif self.soluzioni[macro] == 3:
                             # Fondi best blend - Gerarchia : (semi_attivo & attivo), molto_attivo
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi best non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             # Fondi worst blend - Gerarchia : (semi_attivo & attivo), molto_attivo
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi worst non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
-                        elif soluzioni[macro] == 4:
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                        elif self.soluzioni[macro] == 4:
                             # Fondi best blend - Gerarchia : semi_attivo & attivo & molto_attivo
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi best non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             # Fondi worst blend - Gerarchia : semi_attivo & attivo & molto_attivo
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi worst non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
-
-                elif self.intermediario == 'CRV': # metodo normalizzazione
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                # Metodo normalizzazione
+                elif self.intermediario == 'CRV':
                     # Creazione IR_corretto_1Y
-                    foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_1Y'] / 100)
+                    foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_1Y'] / 100)
                     # Creazione IR_corretto_3Y
-                    foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['TEV_3Y'] / 100)
+                    foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_3Y'] / 100)
                     # Note
                     foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Information_Ratio_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
                     foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & (foglio['Information_Ratio_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
@@ -794,22 +958,22 @@ class Ranking():
 
                 # Seleziona colonne utili
                 if self.intermediario == 'BPPB':
-                    if metodo == 'singolo':
+                    if self.metodo == 'singolo':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'Best_Worst', 'micro_categoria', 'ranking_finale', 'Information_Ratio_3Y', 'ranking_IR_3Y', 'quartile_IR_3Y',
                             'terzile_IR_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'ranking_IR_3Y_corretto', 'quartile_IR_corretto_3Y', 'terzile_IR_corretto_3Y', 
                             'Information_Ratio_1Y', 'ranking_IR_1Y', 'quartile_IR_1Y', 'terzile_IR_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'ranking_IR_1Y_corretto',
-                            'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
-                    elif metodo == 'doppio':
+                            'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'SFDR', 'note']]
+                    elif self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 
                             'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Information_Ratio_3Y',
-                            'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
+                            'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'SFDR', 'note']]
                 elif self.intermediario == 'BPL':
-                    if metodo == 'singolo':
+                    if self.metodo == 'singolo':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'Best_Worst', 'micro_categoria', 'ranking_finale', 'Information_Ratio_3Y', 'ranking_IR_3Y', 'quartile_IR_3Y',
                             'terzile_IR_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'ranking_IR_3Y_corretto', 'quartile_IR_corretto_3Y', 'terzile_IR_corretto_3Y', 
                             'Information_Ratio_1Y', 'ranking_IR_1Y', 'quartile_IR_1Y', 'terzile_IR_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'ranking_IR_1Y_corretto',
                             'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'note']]
-                    elif metodo == 'doppio':
+                    elif self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 
                             'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Information_Ratio_3Y',
                             'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']]
@@ -818,13 +982,13 @@ class Ranking():
                         'ranking_finale_1Y', 'Information_Ratio_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 
                         'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']]
                 elif self.intermediario == 'RIPA':
-                    if metodo == 'doppio':
+                    if self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 
                             'grado_gestione_3Y', 'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 
                             'ranking_finale', 'Information_Ratio_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 
                             'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']]
                 elif self.intermediario == 'RAI':
-                    if metodo == 'doppio':
+                    if self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 
                             'grado_gestione_3Y', 'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 
                             'ranking_finale', 'Information_Ratio_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 
@@ -846,7 +1010,7 @@ class Ranking():
                 # Crea foglio
                 foglio.to_excel(writer, sheet_name=macro)
 
-            elif macro in SOR_DSR:
+            elif macro in self.SOR_DSR:
                 if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     # Rank SO_1Y
                     foglio['ranking_SO_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sortino_1Y'].notnull()), 'Sortino_1Y'].rank(method='first', na_option='bottom', ascending=False)
@@ -858,7 +1022,7 @@ class Ranking():
                     if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                         foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['DSR_1Y'] / 100)
                     else:
-                        foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['DSR_1Y'] / 100)
+                        foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['DSR_1Y'] / 100)
                     # Rank SO_corretto_1Y
                     foglio['ranking_SO_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SO_1Y corretto
@@ -877,7 +1041,7 @@ class Ranking():
                     if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                         foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['DSR_3Y'] / 100)
                     else:    
-                        foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['DSR_3Y'] / 100)
+                        foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['DSR_3Y'] / 100)
                     # Rank SO_corretto_3Y
                     foglio['ranking_SO_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SO_3Y corretto
@@ -885,11 +1049,11 @@ class Ranking():
                     # Terzile SO_3Y corretto
                     foglio['terzile_SO_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SO_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     
-                    if metodo == 'singolo':
+                    if self.metodo == 'singolo':
                         # Note
                         foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & foglio['Sortino_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
                         foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Sortino_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
-                    elif metodo == 'doppio':
+                    elif self.metodo == 'doppio':
                         # Note
                         foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & foglio['Sortino_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Sortino_1Y'].notnull(), 'note'] = 'Non ha 1 anno, ma possiede dati a un anno.'
@@ -900,9 +1064,9 @@ class Ranking():
                 
                 elif self.intermediario == 'CRV': # metodo normalizzazione
                     # Creazione SO_corretto_1Y
-                    foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['DSR_1Y'] / 100)
+                    foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['DSR_1Y'] / 100)
                     # Creazione SO_corretto_3Y
-                    foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['DSR_3Y'] / 100)
+                    foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['DSR_3Y'] / 100)
                     # Note
                     foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sortino_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
                     foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & (foglio['Sortino_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
@@ -918,22 +1082,22 @@ class Ranking():
 
                 # Seleziona colonne utili
                 if self.intermediario == 'BPPB':
-                    if metodo == 'singolo':
+                    if self.metodo == 'singolo':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sortino_3Y', 'ranking_SO_3Y', 'quartile_SO_3Y',
                             'terzile_SO_3Y', 'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'quartile_SO_corretto_3Y', 'terzile_SO_corretto_3Y', 
                             'Sortino_1Y', 'ranking_SO_1Y', 'quartile_SO_1Y', 'terzile_SO_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'ranking_SO_1Y_corretto',
-                            'quartile_SO_corretto_1Y', 'terzile_SO_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
-                    elif metodo == 'doppio':
+                            'quartile_SO_corretto_1Y', 'terzile_SO_corretto_1Y', 'SFDR', 'note']]
+                    elif self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sortino_3Y', 'DSR_3Y', 'commissione', 
                             'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 
-                            'ranking_SO_1Y_corretto', 'SFDR', 'fondo_a_finestra', 'note']]
+                            'ranking_SO_1Y_corretto', 'SFDR', 'note']]
                 elif self.intermediario == 'BPL':
-                    if metodo == 'singolo':
+                    if self.metodo == 'singolo':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sortino_3Y', 'ranking_SO_3Y', 'quartile_SO_3Y',
                             'terzile_SO_3Y', 'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'quartile_SO_corretto_3Y', 'terzile_SO_corretto_3Y', 
                             'Sortino_1Y', 'ranking_SO_1Y', 'quartile_SO_1Y', 'terzile_SO_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'ranking_SO_1Y_corretto',
                             'quartile_SO_corretto_1Y', 'terzile_SO_corretto_1Y', 'note']]
-                    elif metodo == 'doppio':
+                    elif self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sortino_3Y', 'DSR_3Y', 'commissione', 
                             'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 
                             'ranking_SO_1Y_corretto', 'note']]
@@ -941,12 +1105,12 @@ class Ranking():
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sortino_3Y',
                         'DSR_3Y', 'commissione', 'SO_corretto_3Y', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 'note']]
                 elif self.intermediario == 'RIPA':
-                    if metodo == 'doppio':
+                    if self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sortino_3Y', 'DSR_3Y', 'commissione', 
                             'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 
                             'ranking_SO_1Y_corretto', 'note']]
                 elif self.intermediario == 'RAI':
-                    if metodo == 'doppio':
+                    if self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sortino_3Y', 'DSR_3Y', 'commissione', 
                             'SO_corretto_3Y', 'ranking_SO_3Y_corretto', 'Sortino_1Y', 'DSR_1Y', 'commissione', 'SO_corretto_1Y', 
                             'ranking_SO_1Y_corretto', 'note']]
@@ -968,7 +1132,7 @@ class Ranking():
                 # Crea foglio
                 foglio.to_excel(writer, sheet_name=macro)
             
-            elif macro in SHA_VOL:
+            elif macro in self.SHA_VOL:
                 if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     # Rank SH_1Y
                     foglio['ranking_SH_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sharpe_1Y'].notnull()), 'Sharpe_1Y'].rank(method='first', na_option='bottom', ascending=False)
@@ -980,7 +1144,7 @@ class Ranking():
                     if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                         foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['Vol_1Y'] / 100)
                     else:
-                        foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_1Y'] / 100)
+                        foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['Vol_1Y'] / 100)
                     # Rank SH_corretto_1Y
                     foglio['ranking_SH_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SH_1Y corretto
@@ -998,7 +1162,7 @@ class Ranking():
                     if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                         foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['Vol_3Y'] / 100)
                     else:
-                        foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_3Y'] / 100)
+                        foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['Vol_3Y'] / 100)
                     # Rank SH_corretto_3Y
                     foglio['ranking_SH_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SH_3Y corretto
@@ -1006,11 +1170,11 @@ class Ranking():
                     # Terzile SH_3Y corretto
                     foglio['terzile_SH_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SH_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     
-                    if metodo == 'singolo':
+                    if self.metodo == 'singolo':
                         # Note
                         foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & foglio['Sharpe_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
                         foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Sharpe_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
-                    elif metodo == 'doppio':
+                    elif self.metodo == 'doppio':
                         # Note
                         foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & foglio['Sharpe_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Sharpe_1Y'].notnull(), 'note'] = 'Non ha 1 anno, ma possiede dati a un anno.'
@@ -1021,9 +1185,9 @@ class Ranking():
 
                 elif self.intermediario == 'CRV': # metodo normalizzazione
                     # Creazione SH_corretto_1Y
-                    foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_1Y'] / 100)
+                    foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['Vol_1Y'] / 100)
                     # Creazione SH_corretto_3Y
-                    foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / anni_detenzione)) / (df['Vol_3Y'] / 100)
+                    foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['Vol_3Y'] / 100)
                     # Note
                     foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sharpe_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
                     foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & (foglio['Sharpe_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
@@ -1039,22 +1203,22 @@ class Ranking():
                 
                 # Seleziona colonne utili # TODO per LIQ_FOR sistemalo
                 if self.intermediario == 'BPPB':
-                    if metodo == 'singolo':
+                    if self.metodo == 'singolo':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'ranking_SH_3Y', 'quartile_SH_3Y',
                             'terzile_SH_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'ranking_SH_3Y_corretto', 'quartile_SH_corretto_3Y', 'terzile_SH_corretto_3Y', 
                             'Sharpe_1Y', 'ranking_SH_1Y', 'quartile_SH_1Y', 'terzile_SH_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
-                            'quartile_SH_corretto_1Y', 'terzile_SH_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
-                    elif metodo == 'doppio':
+                            'quartile_SH_corretto_1Y', 'terzile_SH_corretto_1Y', 'SFDR', 'note']]
+                    elif self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 
                             'ranking_SH_3Y_corretto', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
-                            'SFDR', 'fondo_a_finestra', 'note']]
+                            'SFDR', 'note']]
                 elif self.intermediario == 'BPL':
-                    if metodo == 'singolo':
+                    if self.metodo == 'singolo':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'ranking_SH_3Y', 'quartile_SH_3Y',
                             'terzile_SH_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'ranking_SH_3Y_corretto', 'quartile_SH_corretto_3Y', 'terzile_SH_corretto_3Y', 
                             'Sharpe_1Y', 'ranking_SH_1Y', 'quartile_SH_1Y', 'terzile_SH_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
                             'quartile_SH_corretto_1Y', 'terzile_SH_corretto_1Y', 'note']]
-                    elif metodo == 'doppio':
+                    elif self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 
                             'ranking_SH_3Y_corretto', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
                             'note']]
@@ -1062,12 +1226,12 @@ class Ranking():
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Sharpe_3Y',
                         'Vol_3Y', 'commissione', 'SH_corretto_3Y', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'note']]
                 elif self.intermediario == 'RIPA':
-                    if metodo == 'doppio':
+                    if self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 
                             'ranking_SH_3Y_corretto', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
                             'note']]
                 elif self.intermediario == 'RAI':
-                    if metodo == 'doppio':
+                    if self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Sharpe_3Y', 'Vol_3Y', 'commissione', 'SH_corretto_3Y', 
                             'ranking_SH_3Y_corretto', 'Sharpe_1Y', 'Vol_1Y', 'commissione', 'SH_corretto_1Y', 'ranking_SH_1Y_corretto',
                             'note']]
@@ -1089,9 +1253,9 @@ class Ranking():
                 # Crea foglio
                 foglio.to_excel(writer, sheet_name=macro)
 
-            elif macro in PER_VOL:
+            elif macro in self.PER_VOL:
                 if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
-                    if metodo == 'singolo' or (metodo == 'doppio' and macro == 'LIQ_FOR'):
+                    if self.metodo == 'singolo' or (self.metodo == 'doppio' and macro == 'LIQ_FOR'):
                         # Rank PERF_1Y
                         foglio['ranking_PERF_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Perf_1Y'].notnull()), 'Perf_1Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile PERF_1Y
@@ -1102,7 +1266,7 @@ class Ranking():
                         if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                             foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / df['anni_detenzione'])
                         else:
-                            foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / anni_detenzione)
+                            foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / self.anni_detenzione)
                         # Rank PERF_corretto_1Y
                         foglio['ranking_PERF_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile PERF_1Y corretto
@@ -1123,7 +1287,7 @@ class Ranking():
                         if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                             foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / df['anni_detenzione'])
                         else:
-                            foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / anni_detenzione)
+                            foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / self.anni_detenzione)
                         # Rank PERF_corretto_3Y
                         foglio['ranking_PERF_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile PERF_3Y corretto
@@ -1131,14 +1295,14 @@ class Ranking():
                         # Terzile PERF_3Y corretto
                         foglio['terzile_PERF_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].apply(lambda x: 'best' if x > foglio['PERF_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     
-                    elif metodo == 'doppio':
+                    elif self.metodo == 'doppio':
                         # Creazione PERF_corretto_3Y
                         if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                             foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / df['anni_detenzione'])
                             foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / df['anni_detenzione'])
                         else:
-                            foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / anni_detenzione)
-                            foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / anni_detenzione)
+                            foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / self.anni_detenzione)
+                            foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / self.anni_detenzione)
                         # Note
                         foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & foglio['Best_Worst_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Perf_1Y'].notnull(), 'note'] = 'Non ha 1 anno, ma possiede dati a un anno.' Nota fuorviante
@@ -1148,181 +1312,180 @@ class Ranking():
                         # foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Perf_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.' Nota fuorviante
                         foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Perf_3Y'].notnull(), ['Perf_3Y', 'Vol_3Y', 'PERF_corretto_3Y']] = np.nan
                         # Ranking finale
-                        # TODO: da testare
-                        if soluzioni[macro] == 1:
+                        if self.soluzioni[macro] == 1:
                             # Fondi best blend - Gerarchia : semi_attivo, attivo, molto_attivo
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi best non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             # Fondi worst blend - Gerarchia : attivo, semi_attivo, molto_attivo
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi worst non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
-                        elif soluzioni[macro] == 2:
-                            # Fondi best blend - Gerarchia : semi_attivo, attivo, molto_attivo
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                        elif self.soluzioni[macro] == 2:
+                            # Fondi best blend - Gerarchia : attivo, semi_attivo, molto_attivo
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi best non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             # Fondi worst blend - Gerarchia : attivo, semi_attivo, molto_attivo
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'semi_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'semi_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi worst non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
-                        elif soluzioni[macro] == 3:
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                        elif self.soluzioni[macro] == 3:
                             # Fondi best blend - Gerarchia : (semi_attivo & attivo), molto_attivo
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi best non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             # Fondi worst blend - Gerarchia : (semi_attivo & attivo), molto_attivo
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'] == 'molto_attivo'), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'] == 'molto_attivo'), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi worst non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
-                        elif soluzioni[macro] == 4:
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                        elif self.soluzioni[macro] == 4:
                             # Fondi best blend - Gerarchia : semi_attivo & attivo & molto_attivo
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True)
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi best non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') & (foglio['Best_Worst_1Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             # Fondi worst blend - Gerarchia : semi_attivo & attivo & molto_attivo
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_3Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == micro_blend_classi_a_benchmark[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) &  (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])), 'ranking_per_grado_1Y'].rank(method='first', na_option='bottom', ascending=True) + ultimo_elemento_ordinato
                             # Fondi worst non blend
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                             ultimo_elemento_ordinato = foglio['ranking_finale'].max()
                             if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
-                            foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != micro_blend_classi_a_benchmark[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
+                            foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
 
                 elif self.intermediario == 'CRV': # metodo normalizzazione
                     # Creazione PERF_corretto_1Y
-                    foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / anni_detenzione)
+                    foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / self.anni_detenzione)
                     # Creazione PERF_corretto_3Y
-                    foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / anni_detenzione)
+                    foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / self.anni_detenzione)
                     # Note
                     foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Perf_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
                     foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & (foglio['Perf_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
@@ -1338,25 +1501,25 @@ class Ranking():
                 
                 # Seleziona colonne utili
                 if self.intermediario == 'BPPB':
-                    if metodo == 'singolo':
+                    if self.metodo == 'singolo':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'ranking_PERF_3Y', 'quartile_PERF_3Y',
                             'terzile_PERF_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'ranking_PERF_3Y_corretto', 'quartile_PERF_corretto_3Y', 'terzile_PERF_corretto_3Y', 
                             'Perf_1Y', 'ranking_PERF_1Y', 'quartile_PERF_1Y', 'terzile_PERF_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'ranking_PERF_1Y_corretto',
-                            'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
-                    elif metodo == 'doppio':
+                            'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'SFDR', 'note']]
+                    elif self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 
                             'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Perf_3Y', 'Vol_3Y', 'commissione', 
-                            'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'SFDR', 'fondo_a_finestra', 'note']]
+                            'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'SFDR', 'note']]
                 elif self.intermediario == 'BPL':
-                    if metodo == 'singolo':
+                    if self.metodo == 'singolo':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'ranking_PERF_3Y', 'quartile_PERF_3Y',
                             'terzile_PERF_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'ranking_PERF_3Y_corretto', 'quartile_PERF_corretto_3Y', 'terzile_PERF_corretto_3Y', 
                             'Perf_1Y', 'ranking_PERF_1Y', 'quartile_PERF_1Y', 'terzile_PERF_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'ranking_PERF_1Y_corretto',
                             'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'note']]
-                    elif metodo == 'doppio' and macro == 'LIQ_FOR':
+                    elif self.metodo == 'doppio' and macro == 'LIQ_FOR':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 
                             'ranking_PERF_3Y_corretto', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'ranking_PERF_1Y_corretto', 'note']]
-                    elif metodo == 'doppio' and macro != 'LIQ_FOR':
+                    elif self.metodo == 'doppio' and macro != 'LIQ_FOR':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 
                             'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Perf_3Y', 'Vol_3Y', 'commissione', 
                             'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']]
@@ -1364,16 +1527,16 @@ class Ranking():
                     foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y', 'ranking_finale_1Y', 'Perf_3Y', 
                         'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']]
                 elif self.intermediario == 'RIPA':
-                    if metodo == 'doppio':
+                    if self.metodo == 'doppio':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 
                             'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 
                             'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 
                             'note']]
                 elif self.intermediario == 'RAI':
-                    if metodo == 'doppio' and macro == 'LIQ_FOR':
+                    if self.metodo == 'doppio' and macro == 'LIQ_FOR':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 
                             'ranking_PERF_3Y_corretto', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'ranking_PERF_1Y_corretto', 'note']]
-                    elif metodo == 'doppio' and macro != 'LIQ_FOR':
+                    elif self.metodo == 'doppio' and macro != 'LIQ_FOR':
                         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 
                             'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Perf_3Y', 'Vol_3Y', 'commissione', 
                             'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']]
@@ -1382,9 +1545,9 @@ class Ranking():
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
                 # Ordinamento finale
                 if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
-                    if metodo == 'singolo' or (metodo == 'doppio' and macro == 'LIQ_FOR'):
+                    if self.metodo == 'singolo' or (self.metodo == 'doppio' and macro == 'LIQ_FOR'):
                         foglio.sort_values('ranking_PERF_3Y_corretto', ascending=True, inplace=True)
-                    elif metodo == 'doppio':
+                    elif self.metodo == 'doppio':
                         foglio.sort_values('ranking_finale', ascending=True, inplace=True)
                 elif self.intermediario == 'CRV':
                     foglio.sort_values('ranking_finale', ascending=False, inplace=True)
@@ -1400,15 +1563,13 @@ class Ranking():
 
         writer.save()
             
-    def aggiunta_colonne(self, *colonne):
+    def aggiunta_colonne(self):
         """Aggiungi eventuali colonne presenti nel file_catalogo alla fine dei fogli del file di ranking
-        
-        Arguments:
-            colonne {*args} = colonne da aggiungere al file di ranking
         """
-        # TODO : con un if fissa l'argument colonne pari a fondo_a_finestra nel caso di BPPB (toglilo dal completo)
         # Per ripa controlla il nome della colonna
-        if self.intermediario == 'CRV':
+        if self.intermediario == 'BPPB':
+            colonne = ['fondo_a_finestra']
+        elif self.intermediario == 'CRV':
             colonne = ['nome']
         elif self.intermediario == 'RIPA':
             colonne = ['fondo_equivalente']
@@ -1433,66 +1594,21 @@ class Ranking():
                     df = pd.merge(left=df, right=df_input_2, how='left', left_on='ISIN', right_on='isin').drop('isin', axis=1)
                 df.to_excel(writer, sheet_name=sheet)
 
-    def rank_formatted(self, metodo):
-        """
-        Formatta il file self.ranking per mettere in evidenza le classi blend e l'ordinamento definitivo.
+    def rank_formatted(self):
+        """Formatta il file di ranking per mettere in evidenza le classi blend e l'ordinamento definitivo.
         Formatta le intestazioni del file.
         """
         wb = load_workbook(filename='ranking.xlsx') # carica il file
         # Colora le micro blend
         print('\nsto formattando il file di ranking...')
-        if self.intermediario == 'BPPB':
-            if metodo == 'singolo':
-                micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 
-                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
-                    'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
-                micro_blend_classi_non_a_benchmark = ['FLEX_BVOL', 'FLEX_MAVOL', 'OPP', 'LIQ']
-            elif metodo == 'doppio':
-                micro_blend_classi_a_benchmark = {'LIQ' : 'Monetari Euro', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
-                    'AZ_EM' : 'Az. paesi emerg. Mondo', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
-                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',  'OBB_EM' : 'Obblig. Paesi Emerg.', 
-                    'OBB_HY' : 'Obblig. globale high yield'}
-        elif self.intermediario == 'BPL':
-            if metodo == 'singolo':
-                micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale',
-                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
-                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
-                micro_blend_classi_non_a_benchmark = ['BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ', 'LIQ_FOR']
-            elif metodo == 'doppio':
-                micro_blend_classi_a_benchmark = {'LIQ' : 'Monetari Euro', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale',
-                    'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
-                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
-        elif self.intermediario == 'CRV':
-            micro_blend_classi_a_benchmark = {'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale',
-                'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
-                'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
-            micro_blend_classi_non_a_benchmark = ['FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ']
-        elif self.intermediario == 'RIPA':
-            if metodo == 'doppio':
-                micro_blend_classi_a_benchmark = {
-                    'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
-                    'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 
-                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_JAP' : 'Obblig. Yen', 'OBB_EM' : 'Obblig. Paesi Emerg.', 
-                    'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 
-                    'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'AZ_BIO' : 'Az. Biotech', 
-                    'AZ_BDC' : 'Az. beni di consumo', 'AZ_FIN' : 'Az. servizi finanziari', 'AZ_AMB' : 'Az. ambiente', 
-                    'AZ_IMM' : 'Az. real estate Mondo', 'AZ_IND' : 'Az. industria', 'AZ_ECO' : 'Az. energia materie prime oro', 
-                    'AZ_SAL' : 'Az. salute - farmaceutico', 'AZ_SPU' : 'Az. Servizi di pubblica utilita', 'AZ_TEC' : 'Az. tecnologia', 
-                    'AZ_TEL' : 'Az. telecomunicazioni', 'AZ_ORO' : 'Az. Oro', 'AZ_BEAR' : 'Az. Bear',
-                }
-        elif self.intermediario == 'RAI':
-            if metodo == 'doppio':
-                micro_blend_classi_a_benchmark = {'LIQ' : 'Monetari Euro', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 
-                    'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 
-                    'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 'OBB_EUR' : 'Obblig. Europa', 'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale',
-                    'OBB_USA' : 'Obblig. Dollaro US all mat', 'OBB_EM' : 'Obblig. Paesi Emerg.', 'OBB_HY' : 'Obblig. globale high yield'}
+
         for sheet in wb.sheetnames: 
             if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
-                if metodo == 'singolo':
-                    if sheet in micro_blend_classi_a_benchmark.keys():
+                if self.metodo == 'singolo':
+                    if sheet in self.classi_metodo_singolo.keys():
                         foglio = wb[sheet] # attiva foglio
                         for cell in foglio['G']:
-                            if cell.value == micro_blend_classi_a_benchmark[sheet]: # filtra per micro blend
+                            if cell.value == self.classi_metodo_singolo[sheet]: # filtra per micro blend
                                 cell.fill = PatternFill(fgColor="f4b084", fill_type='solid') # colora le micro blend
                         for cell in foglio['H']:
                             cell.alignment = Alignment(horizontal='center')
@@ -1517,7 +1633,8 @@ class Ranking():
                             cell.number_format = numbers.FORMAT_PERCENTAGE_00
                         for cell in foglio['X']:
                             cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                    elif sheet in micro_blend_classi_non_a_benchmark:
+                    # elif sheet in micro_blend_classi_non_a_benchmark:
+                    else:
                         foglio = wb[sheet] # attiva foglio
                         for cell in foglio['H']:
                             cell.alignment = Alignment(horizontal='center')
@@ -1539,11 +1656,11 @@ class Ranking():
                             cell.number_format = numbers.FORMAT_PERCENTAGE_00
                         for cell in foglio['V']:
                             cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                elif metodo == 'doppio':
-                    if sheet in micro_blend_classi_a_benchmark.keys():
+                elif self.metodo == 'doppio':
+                    if sheet in self.classi_metodo_doppio.keys():
                         foglio = wb[sheet] # attiva foglio
                         for cell in foglio['F']:
-                            if cell.value == micro_blend_classi_a_benchmark[sheet]: # filtra per micro blend
+                            if cell.value == self.classi_metodo_doppio[sheet]: # filtra per micro blend
                                 cell.fill = PatternFill(fgColor="f4b084", fill_type='solid') # colora le micro blend
                         for cell in foglio['G']:
                             if cell.value == 'best': # filtra per best a 3 anni
@@ -1592,7 +1709,8 @@ class Ranking():
                             cell.number_format = numbers.FORMAT_PERCENTAGE_00
                         for cell in foglio['U']:
                             cell.number_format = numbers.FORMAT_NUMBER_00
-                    elif sheet not in micro_blend_classi_a_benchmark.keys():
+                    # elif sheet not in micro_blend_classi_a_benchmark.keys():
+                    else:
                         foglio = wb[sheet] # attiva foglio
                         for cell in foglio['K']:
                             cell.alignment = Alignment(horizontal='center')
@@ -1614,67 +1732,67 @@ class Ranking():
                         for cell in foglio['O']:
                             cell.number_format = numbers.FORMAT_NUMBER_00
             elif self.intermediario == 'CRV':
-                if sheet in micro_blend_classi_a_benchmark.keys() or sheet in micro_blend_classi_non_a_benchmark:
-                    foglio = wb[sheet] # attiva foglio
-                    for cell in foglio['H']: # colora il ranking finale
-                        if cell.value == 'ND':
-                            cell.fill = PatternFill(fgColor="595959", fill_type='solid')
-                            cell.alignment = Alignment(horizontal='right')
-                        else:
-                            try:
-                                if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                    cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
-                                    cell.number_format = '0.0000'
-                                elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                    cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
-                                    cell.number_format = '0.0000'
-                                elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
-                                    cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
-                                    cell.number_format = '0.0000'
-                            except:
-                                pass
-                    for cell in foglio['I']: # colora il ranking finale 3Y
-                        if cell.value == 'ND':
-                            cell.fill = PatternFill(fgColor="595959", fill_type='solid')
-                            cell.alignment = Alignment(horizontal='right')
-                        else:
-                            try:
-                                if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                    cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
-                                    cell.number_format = '0.0000'
-                                elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                    cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
-                                    cell.number_format = '0.0000'
-                                elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
-                                    cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
-                                    cell.number_format = '0.0000'
-                            except:
-                                pass
-                    for cell in foglio['J']: # colora il ranking finale 1Y
-                        if cell.value == 'ND':
-                            cell.fill = PatternFill(fgColor="595959", fill_type='solid')
-                            cell.alignment = Alignment(horizontal='right')
-                        else:
-                            try:
-                                if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                    cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
-                                    cell.number_format = '0.0000'
-                                elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
-                                    cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
-                                    cell.number_format = '0.0000'
-                                elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
-                                    cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
-                                    cell.number_format = '0.0000'
-                            except:
-                                pass
-                    for cell in foglio['N']:
-                        cell.number_format = '0.0000'
-                    for cell in foglio['R']:
-                        cell.number_format = '0.0000'
-                    for cell in foglio['M']:
-                        cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                    for cell in foglio['Q']:
-                        cell.number_format = numbers.FORMAT_PERCENTAGE_00
+                # if sheet in micro_blend_classi_a_benchmark.keys() or sheet in micro_blend_classi_non_a_benchmark:
+                foglio = wb[sheet] # attiva foglio
+                for cell in foglio['H']: # colora il ranking finale
+                    if cell.value == 'ND':
+                        cell.fill = PatternFill(fgColor="595959", fill_type='solid')
+                        cell.alignment = Alignment(horizontal='right')
+                    else:
+                        try:
+                            if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
+                                cell.number_format = '0.0000'
+                            elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
+                                cell.number_format = '0.0000'
+                            elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
+                                cell.number_format = '0.0000'
+                        except:
+                            pass
+                for cell in foglio['I']: # colora il ranking finale 3Y
+                    if cell.value == 'ND':
+                        cell.fill = PatternFill(fgColor="595959", fill_type='solid')
+                        cell.alignment = Alignment(horizontal='right')
+                    else:
+                        try:
+                            if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
+                                cell.number_format = '0.0000'
+                            elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
+                                cell.number_format = '0.0000'
+                            elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
+                                cell.number_format = '0.0000'
+                        except:
+                            pass
+                for cell in foglio['J']: # colora il ranking finale 1Y
+                    if cell.value == 'ND':
+                        cell.fill = PatternFill(fgColor="595959", fill_type='solid')
+                        cell.alignment = Alignment(horizontal='right')
+                    else:
+                        try:
+                            if float(cell.value) <= 3.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="cd7f32", fill_type='solid')
+                                cell.number_format = '0.0000'
+                            elif float(cell.value) <= 6.0: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="c0c0c0", fill_type='solid')
+                                cell.number_format = '0.0000'
+                            elif float(cell.value) <= 9.1: # 1-3 bronzo 4-6 argento 7-9 oro
+                                cell.fill = PatternFill(fgColor="cda434", fill_type='solid')
+                                cell.number_format = '0.0000'
+                        except:
+                            pass
+                for cell in foglio['N']:
+                    cell.number_format = '0.0000'
+                for cell in foglio['R']:
+                    cell.number_format = '0.0000'
+                for cell in foglio['M']:
+                    cell.number_format = numbers.FORMAT_PERCENTAGE_00
+                for cell in foglio['Q']:
+                    cell.number_format = numbers.FORMAT_PERCENTAGE_00
 
         # Colora e cambia stile alle intestazioni
         for sheet in wb.sheetnames:
@@ -1686,18 +1804,25 @@ class Ranking():
         
         # Ordina fogli
         if self.intermediario == 'BPPB':
-            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_EM', 'OBB_GLOB', 'OBB_HY',
-                'FLEX_BVOL', 'FLEX_MAVOL', 'OPP', 'LIQ']
+            ordine = [
+                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_EM', 'OBB_GLOB',
+                'OBB_HY', 'FLEX_BVOL', 'FLEX_MAVOL', 'OPP', 'LIQ'
+            ]
             # for _ in wb._sheets:
             #     print(str(_)[12:-2])
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
         elif self.intermediario == 'BPL':
-            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 
-                'OBB_EM', 'OBB_HY', 'BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ', 'LIQ_FOR']
+            ordine = [
+                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_EUR',
+                'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY', 'BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ',
+                'LIQ_FOR'
+            ]
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
         elif self.intermediario == 'CRV':
-            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_EM', 'OBB_GLOB', 
-                'OBB_HY', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ']
+            ordine = [
+                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_EM',
+                'OBB_GLOB', 'OBB_HY', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ'
+            ]
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
         elif self.intermediario == 'RIPA':
             ordine = [
@@ -1708,14 +1833,18 @@ class Ranking():
             ]
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
         elif self.intermediario == 'RAI':
-            ordine = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_EUR', 'OBB_USA', 'OBB_GLOB', 
-                'OBB_EM', 'OBB_HY', 'BIL_PR', 'BIL_EQ', 'BIL_AGG', 'FLEX_PR', 'FLEX_DIN', 'OPP', 'LIQ', 'LIQ_FOR']
+            ordine = [
+                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_EUR',
+                'OBB_USA', 'OBB_GLOB', 'OBB_EM', 'OBB_HY', 'BIL_PR', 'BIL_EQ', 'BIL_AGG', 'FLEX_PR', 'FLEX_DIN', 'OPP',
+                'LIQ', 'LIQ_FOR'
+            ]
             wb._sheets.sort(key=lambda i: ordine.index(str(i)[12:-2]))
 
         wb.save(self.file_ranking)
 
     def aggiunta_prodotti_non_presenti(self):
-        """Aggiunta foglio con i prodotti non presenti sulla piattaforma"""
+        """Aggiunta foglio con i prodotti non presenti sulla piattaforma
+        """
         df = pd.read_csv(self.directory.joinpath('docs', 'prodotti_non_presenti.csv'), sep=';', index_col=None)
         if self.intermediario == 'CRV':
             df['ranking_finale'] = 'ND'
@@ -1723,17 +1852,7 @@ class Ranking():
             df.to_excel(writer, sheet_name='NON_IN_PIATTAFORMA')
 
     def autofit(self):
-        """
-        Imposta la miglior lunghezza per le colonne selezionate.
-        # TODO : accetta più di un foglio
-        # TODO: accetta anche lettere per selezionare le colonne.
-        # TODO: se columns è vuoto, autofit tutte le colonne.
-
-        Parameters:
-            sheet {string} = foglio excel da formattare
-            columns {list} = lista contenente il numero o le lettere delle colonne da formattare. if not columns: formatta tutte le colonne del foglio
-            min_width {list} = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe non superare (usa None se non serve su una data colonna)
-            max_width {list} = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe superare (usa None se non serve su una data colonna)
+        """Imposta la miglior lunghezza per le colonne selezionate.
         """
         if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
             columns = range(1, 32)
@@ -1754,31 +1873,7 @@ class Ranking():
         wb.Close(SaveChanges=True, Filename=self.file_ranking)
         xls_file.Quit()
 
-    def creazione_liste_best_input(self):
-        """
-        Crea file csv da importare in Quantalys.it contenenti i best di ogni macro categoria direzionale.
-        Directory in cui vengono salvati i file : './docs/import_liste_best_into_Q'
-        """
-        df_rank = pd.read_excel(self.file_ranking, index_col=None, sheet_name=1)
-        classi_a_benchmark_BPPB = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM']
-        classi_a_benchmark_BPL = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY']
-        classi_a_benchmark_CRV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
-        if self.intermediario == 'BPL':
-            classi_a_benchmark = classi_a_benchmark_BPL
-            # per ora solo per BPL
-            if not os.path.exists(self.directory_input_liste_best):
-                os.makedirs(self.directory_input_liste_best)
-            print('sto creando le liste contenenti i fondi best di ogni macro categoria...')
-            for classe in classi_a_benchmark:
-                df_rank = pd.read_excel(self.file_ranking, index_col=None, sheet_name=classe)
-                df = df_rank.loc[df_rank['Best_Worst'] == "best", ['ISIN', 'valuta']]
-                df.columns = ['codice isin', 'divisa']
-                df.to_csv(self.directory_input_liste_best.joinpath(classe + '_best' + '.csv'), sep=";", index=False)
-        else:
-            pass
-
     def zip_file(self):
-        # TODO : Metti i file dei best in class nel file zip
         """
         Crea un file zip contenente il file_ranking e le note.
         """
@@ -1790,16 +1885,17 @@ class Ranking():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Ranking(intermediario='CRV', t1='30/11/2022')
-    # _.ranking_per_grado('doppio')
+    _ = Ranking(intermediario='BPL', t1='31/01/2023')
+    # _.attività()
+    # _.indicatore_BS()
+    # _.calcolo_best_worst()
+    # _.ranking_per_grado()
     # _.merge_completo_liste()
-    # _.discriminazione_flessibili_e_bilanciati()
-    # _.rank('doppio')
-    # _.aggiunta_colonne() # TODO: testa per intermediari diversi da CRV 'fondo_a_finestra' se BPPB, 'fondo_equivalente' se RIPA.
-    # _.rank_formatted('doppio')
+    # _.rank()
+    # _.aggiunta_colonne() # TODO: testa 'fondo_equivalente' se RIPA.
+    # _.rank_formatted()
     # _.aggiunta_prodotti_non_presenti()
     # _.autofit()
-    # _.creazione_liste_best_input()
     # _.zip_file()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
