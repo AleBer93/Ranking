@@ -19,6 +19,7 @@ class Ranking():
     # TODO: siccome Raiffeisen non ha dato un numero riassuntivo di anni di detenzione,
     # devo fare un merge e incollare le date di avvio. Mi servireanno in e in ranking
     # ricavare l'anno dalla colonna che trovo nel file catalogo.xlsx, e testarlo
+    # Generalizza t0_3Y e t0_1Y
     """
     BPPB è passata da metodo singolo a metodo doppio
     BPL è passata da metodo singolo a metodo doppio
@@ -27,15 +28,22 @@ class Ranking():
     RAI usa il metodo doppio
     """
 
-    def __init__(self, intermediario, t1):
+    def __init__(self, intermediario):
         """
         Arguments:
-            intermediario {str} = intermediario a cui è destinata l'analisi
-            t1 {datetime} = data di calcolo indici alla fine del mese
-
+            intermediario {str} - intermediario a cui è destinata l'analisi
         """
         self.intermediario = intermediario
+        with open('docs/t1.txt') as f:
+            t1 = f.read()
+        t1 = datetime.datetime.strptime(t1, '%Y-%m-%d').strftime("%d/%m/%Y")
         self.t1 = t1
+        self.t0_3Y = (
+            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+3)
+        ).strftime("%d/%m/%Y") # data iniziale tre anni fa
+        self.t0_1Y = (
+            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)
+        ).strftime("%d/%m/%Y") # data iniziale un anno fa
 
         # Directories
         directory = Path().cwd()
@@ -53,7 +61,8 @@ class Ranking():
                 self.metodo = 'doppio'
                 self.soluzioni = {
                     'LIQ' : 1, 'OBB_EUR_BT' : 1, 'OBB_EUR_MLT' : 1, 'OBB_EUR_CORP' : 1, 'OBB_GLOB' : 1, 'OBB_EM' : 1,
-                    'OBB_HY' : 1, 'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3, 
+                    'OBB_HY' : 1,
+                    'AZ_EUR' : 3, 'AZ_NA' : 3, 'AZ_PAC' : 3, 'AZ_EM' : 3, 
                 }
                 self.classi_metodo_singolo = {
                     'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico', 'AZ_EM' : 'Az. paesi emerg. Mondo',
@@ -194,26 +203,22 @@ class Ranking():
 
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
-        # data iniziale tre anni fa
-        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y')
-        # data iniziale un anno fa
-        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y')
         if self.metodo == 'singolo':
             return None
         elif self.metodo == 'doppio':
             df.loc[(df['micro_categoria'].isin(list(self.classi_metodo_doppio.values()))) &
-                (df['data_di_avvio'] < t0_3Y) & (df['Alpha 3 anni") fine mese'].notnull()), 'TEV_3Y'
+                (df['data_di_avvio'] < self.t0_3Y) & (df['Alpha 3 anni") fine mese'].notnull()), 'TEV_3Y'
             ] = df['Alpha 3 anni") fine mese'] / df['Info 3 anni") fine mese']
             for macro, micro in self.classi_metodo_doppio.items():
-                df.loc[(df['micro_categoria']==micro) & (df['data_di_avvio'] < t0_3Y) &
+                df.loc[(df['micro_categoria']==micro) & (df['data_di_avvio'] < self.t0_3Y) &
                     (df['TEV_3Y'].notnull()), 'grado_gestione_3Y'
                 ] = df.loc[(df['micro_categoria']==micro), 'TEV_3Y'].apply(
                     lambda x: 'semi_attivo' if x < soglie[macro][0] else 'attivo' if x < soglie[macro][1] else 'molto_attivo')
             df.loc[(df['micro_categoria'].isin(list(self.classi_metodo_doppio.values()))) &
-                (df['data_di_avvio'] < t0_1Y) & (df['Alpha 1 anno fine mese'].notnull()), 'TEV_1Y'
+                (df['data_di_avvio'] < self.t0_1Y) & (df['Alpha 1 anno fine mese'].notnull()), 'TEV_1Y'
             ] = df['Alpha 1 anno fine mese'] / df['Info 1 anno fine mese']
             for macro, micro in self.classi_metodo_doppio.items():
-                df.loc[(df['micro_categoria']==micro) & (df['data_di_avvio'] < t0_1Y) &
+                df.loc[(df['micro_categoria']==micro) & (df['data_di_avvio'] < self.t0_1Y) &
                     (df['TEV_1Y'].notnull()), 'grado_gestione_1Y'
                 ] = df.loc[(df['micro_categoria']==micro), 'TEV_1Y'].apply(
                     lambda x: 'semi_attivo' if x < soglie[macro][0] else 'attivo' if x < soglie[macro][1] else 'molto_attivo')
@@ -237,32 +242,30 @@ class Ranking():
              detenzione per singolo fondo.
         """
 
-        # data iniziale tre anni fa
-        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%d/%m/%Y')
-        # data iniziale un anno fa
-        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime('%d/%m/%Y')
         df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
-        df_catalogo = pd.read_excel(self.file_catalogo, index_col=None)
+        df_catalogo = pd.read_excel(self.file_catalogo, index_col=None, usecols=['isin', 'anni_detenzione'])
         if self.metodo == 'singolo':
             df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
             df.loc[
-                (df['macro_categoria'].isin(list(self.classi_metodo_singolo.keys()))) & (df['data_di_avvio'] < t0_3Y), 'BS_3_anni'
+                (df['macro_categoria'].isin(list(self.classi_metodo_singolo.keys()))) & (df['data_di_avvio'] < self.t0_3Y), 'BS_3_anni'
             ] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 3 anni") fine mese'])
         elif self.metodo == 'doppio':
             df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
             if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
                 df.loc[
-                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < t0_3Y), 'BS_3_anni'
+                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_3Y), 'BS_3_anni'
                 ] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 3 anni") fine mese'])
                 df.loc[
-                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < t0_1Y), 'BS_1_anno'
+                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_1Y), 'BS_1_anno'
                 ] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 1 anno fine mese'])
             elif self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per singolo fondo
+                # Merge tra completo e catalogo per aggiungere la colonna anni_detenzione
+                df = pd.merge(left=df, right=df_catalogo, left_on='ISIN', right_on='isin')
                 df.loc[
-                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < t0_3Y), 'BS_3_anni'
+                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_3Y), 'BS_3_anni'
                 ] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (df['anni_detenzione'] * df['Alpha 3 anni") fine mese'])
                 df.loc[
-                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < t0_1Y), 'BS_1_anno'
+                    (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_1Y), 'BS_1_anno'
                 ] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (df['anni_detenzione'] * df['Alpha 1 anno fine mese'])
         df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
 
@@ -281,12 +284,7 @@ class Ranking():
         in base al primo quartile.
         3. NON PIU' VALIDO I fondi con più di un anno di vita che sono best a 3 anni o best ad 1 anno, sono best, altrimenti worst.
         """
-        t0_3Y = (
-            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)
-        ).strftime('%d/%m/%Y') # data iniziale tre anni fa
-        t0_1Y = (
-            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)
-        ).strftime('%d/%m/%Y') # data iniziale un anno fa
+
         df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
         # print(df['fund_incept_dt'].dtypes) # da oggetto
         df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
@@ -295,12 +293,12 @@ class Ranking():
             for macro in list(self.classi_metodo_singolo.keys()):
                 for micro in df.loc[df['macro_categoria'] == macro, 'micro_categoria'].unique():
                     mediana = df.loc[
-                        (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                        (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                         & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
                     df.loc[
-                        (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                        (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                         & (df['BS_3_anni'].notnull()), 'Best_Worst_3Y'
-                    ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['fund_incept_dt'] < t0_3Y) &
+                    ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['fund_incept_dt'] < self.t0_3Y) &
                         (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
         elif self.metodo == 'doppio':
             for macro in list(self.classi_metodo_doppio.keys()):
@@ -313,41 +311,41 @@ class Ranking():
                     if micro in list(self.classi_metodo_doppio.values()) and self.intermediario != 'RIPA' and self.intermediario != 'RAI':
                         for grado in df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro), 'grado_gestione_3Y'].unique():
                             mediana = df.loc[
-                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                                 & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'BS_3_anni'].median()
                             df.loc[
-                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                                 & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == grado), 'Best_Worst_3Y'
                             ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro)
-                                & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull())
+                                & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull())
                                 & (df['grado_gestione_3Y'] == grado), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
                         for grado in df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro), 'grado_gestione_1Y'].unique():
                             primo_quartile = df.loc[
-                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                                 & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == grado), 'BS_1_anno'
                             ].quantile(q=0.75, interpolation='linear')
                             df.loc[
-                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                                 & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == grado), 'Best_Worst_1Y'
                             ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro)
-                                & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull())
+                                & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull())
                                 & (df['grado_gestione_1Y'] == grado), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
                     else:
                         mediana = df.loc[
-                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                             & (df['BS_3_anni'].notnull()), 'BS_3_anni'].median()
                         df.loc[
-                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                             & (df['BS_3_anni'].notnull()), 'Best_Worst_3Y'
-                        ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                        ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                             & (df['BS_3_anni'].notnull()), 'BS_3_anni'].apply(lambda x: 'worst' if x < mediana else 'best')
                         primo_quartile = df.loc[
-                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                             & (df['BS_1_anno'].notnull()), 'BS_1_anno'].quantile(q=0.75, interpolation='linear')
                         df.loc[
-                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                            (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                             & (df['BS_1_anno'].notnull()), 'Best_Worst_1Y'
-                        ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                        ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                             & (df['BS_1_anno'].notnull()), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
             # df['Best_Worst'] = df['Best_Worst_3Y'].replace('worst', np.nan).fillna(df['Best_Worst_1Y'])
         df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
@@ -362,12 +360,7 @@ class Ranking():
         Soluzione 3: attivo, semi-attivo; molto attivo;
         Soluzione 4: attivo, semi-attivo, molto attivo;
         """
-        t0_3Y = (
-            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)
-        ).strftime('%d/%m/%Y') # data iniziale tre anni fa
-        t0_1Y = (
-            datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)
-        ).strftime('%d/%m/%Y') # data iniziale un anno fa
+
         if self.metodo == 'singolo':
             return None
         elif self.metodo == 'doppio':
@@ -380,141 +373,141 @@ class Ranking():
                         if self.soluzioni[macro] == 1:
                             # 3Y
                             for etichetta in ('best', 'worst'):
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                                     & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo')
                                     & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'
-                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                                     & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo')
                                     & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_3Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
-                                                                (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & 
+                                                                (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & 
                                                                 (df['grado_gestione_3Y'] == 'semi_attivo') & 
                                                                 (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
                                 # Quando non ci sono fondi semiattivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_3Y): ultimo_elemento_ordinato_3Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                                     & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo')
                                     & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'
-                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                                     & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo')
                                     & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_3Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro)
-                                                                & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull())
+                                                                & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull())
                                                                 & (df['grado_gestione_3Y'] == 'attivo')
                                                                 & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
                                 # Quando non ci sono fondi semiattivi e attivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_3Y): ultimo_elemento_ordinato_3Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                                     & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo')
                                     & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'
-                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y)
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
                                     & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo')
                                     & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
                             # 1Y
                             for etichetta in ('best', 'worst'):
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                                     & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo')
                                     & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'
-                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                                     & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo')
                                     & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_1Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
-                                                                    (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & 
+                                                                    (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & 
                                                                     (df['grado_gestione_1Y'] == 'semi_attivo') & 
                                                                     (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
                                 # Quando non ci sono fondi semiattivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_1Y): ultimo_elemento_ordinato_1Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                                     & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo')
                                     & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'
-                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                                     & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo')
                                     & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_1Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
-                                                                    (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & 
+                                                                    (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & 
                                                                     (df['grado_gestione_1Y'] == 'attivo') & 
                                                                     (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
                                 # Quando non ci sono fondi attivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_1Y): ultimo_elemento_ordinato_1Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                                     & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo')
                                     & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'
-                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y)
+                                ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                                     & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo')
                                     & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
                         elif self.soluzioni[macro] == 2:
                             # 3Y
                             for etichetta in ('best', 'worst'):
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_3Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
-                                                                (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & 
+                                                                (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & 
                                                                 (df['grado_gestione_3Y'] == 'attivo') & 
                                                                 (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
                                 # Quando non ci sono fondi attivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_3Y): ultimo_elemento_ordinato_3Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'semi_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_3Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
-                                                                (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & 
+                                                                (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & 
                                                                 (df['grado_gestione_3Y'] == 'semi_attivo') & 
                                                                 (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
                                 # Quando non ci sono fondi semiattivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_3Y): ultimo_elemento_ordinato_3Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
                             # 1Y
                             for etichetta in ('best', 'worst'):
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_1Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
-                                                                    (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & 
+                                                                    (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & 
                                                                     (df['grado_gestione_1Y'] == 'attivo') & 
                                                                     (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
                                 # Quando non ci sono fondi attivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_1Y): ultimo_elemento_ordinato_1Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'semi_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_1Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
-                                                                    (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & 
+                                                                    (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & 
                                                                     (df['grado_gestione_1Y'] == 'semi_attivo') & 
                                                                     (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
                                 # Quando non ci sono fondi semiattivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_1Y): ultimo_elemento_ordinato_1Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
                         elif self.soluzioni[macro] == 3:
                             # 3Y
                             for etichetta in ('best', 'worst'):
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_3Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
-                                                                (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & 
+                                                                (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & 
                                                                 (df['grado_gestione_3Y'].isin(['attivo', 'semi_attivo'])) & 
                                                                 (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'].max()
                                 # Quando non ci sono fondi attivi o semiattivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_3Y): ultimo_elemento_ordinato_3Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'] == 'molto_attivo') & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_3Y
                             # 1Y
                             for etichetta in ('best', 'worst'):
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
                                 # Ottieni l'ultimo numero ordinale nella classificazione precedente
                                 ultimo_elemento_ordinato_1Y = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & 
-                                                                    (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & 
+                                                                    (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & 
                                                                     (df['grado_gestione_1Y'].isin(['attivo', 'semi_attivo'])) & 
                                                                     (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'].max()
                                 # Quando non ci sono fondi attivi o semiattivi non c'è alcun ultimo numero ordinale.
                                 if math.isnan(ultimo_elemento_ordinato_1Y): ultimo_elemento_ordinato_1Y = 0
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'] == 'molto_attivo') & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False) + ultimo_elemento_ordinato_1Y
                         elif self.soluzioni[macro] == 4:
                             # 3Y
                             for etichetta in ('best', 'worst'):
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'ranking_per_grado_3Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y) & (df['BS_3_anni'].notnull()) & (df['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_3Y'] == etichetta), 'BS_3_anni'].rank(method='first', na_option='keep', ascending=False)
                             # 1Y
                             for etichetta in ('best', 'worst'):
-                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
+                                df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'ranking_per_grado_1Y'] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y) & (df['BS_1_anno'].notnull()) & (df['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])) & (df['Best_Worst_1Y'] == etichetta), 'BS_1_anno'].rank(method='first', na_option='keep', ascending=False)
 
             df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
 
@@ -661,52 +654,12 @@ class Ranking():
         # TODO : fallo all'interno di un wrapper come il metodo aggiunta_colonne
         """Crea il file di ranking con tanti fogli quante sono le macro asset class.
         """
-        t0_3Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+3)).strftime('%Y/%m/%d') # data iniziale tre anni fa
-        t0_1Y = (datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(years=+1)).strftime("%Y/%m/%d") # data iniziale un anno fa
         # Creazione file ranking diviso per macro
         print('\nsto facendo la rankizzazione')
         df = pd.read_excel(self.file_ranking, index_col=None)
         df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
         writer = pd.ExcelWriter(self.file_ranking,  engine='xlsxwriter') # pylint: disable=abstract-class-instantiated
-        
-        if self.intermediario == 'BPPB':
-            IR_TEV = ['AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY']
-            SOR_DSR = ['FLEX_BVOL', 'FLEX_MAVOL'] # Ora i flessibili sono discriminati
-            SHA_VOL = ['OPP']
-            PER_VOL = ['LIQ']
-        elif self.intermediario =='BPL':
-            IR_TEV = [
-                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP',
-                'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY'
-            ]
-            SOR_DSR = ['BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN'] # Ora i flessibili e i bilanciati sono discriminati
-            SHA_VOL = ['OPP']
-            PER_VOL = ['LIQ', 'LIQ_FOR']
-        elif self.intermediario =='CRV':
-            IR_TEV = [
-                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB',
-                'OBB_EM', 'OBB_HY'
-            ]
-            SOR_DSR = ['FLEX_PR', 'FLEX_DIN'] # Ora i flessibili sono discriminati
-            SHA_VOL = ['OPP']
-            PER_VOL = ['LIQ']
-        elif self.intermediario == 'RIPA':
-            IR_TEV = [
-                'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_HY', 
-                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'AZ_BIO', 'AZ_BDC', 'AZ_FIN', 'AZ_AMB', 'AZ_IMM', 'AZ_IND', 
-                'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR'
-            ]
-            SOR_DSR = ['COMM', 'FLEX_PR', 'FLEX_DIN', 'PERF_ASS']
-            SHA_VOL = []
-            PER_VOL = ['LIQ']
-        elif self.intermediario =='RAI':
-            IR_TEV = [
-                'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 
-                'OBB_USA', 'OBB_EM', 'OBB_HY'
-            ]
-            SOR_DSR = ['BIL_PR', 'BIL_EQ', 'BIL_AGG', 'FLEX_PR', 'FLEX_DIN'] # Ora i flessibili e i bilanciati sono discriminati
-            SHA_VOL = ['OPP']
-            PER_VOL = ['LIQ', 'LIQ_FOR']
+
         for macro in df.loc[:, 'macro_categoria'].unique():
             # Crea un foglio per ogni macro categoria
             foglio = df.loc[df['macro_categoria'] == macro].copy()
@@ -715,43 +668,43 @@ class Ranking():
                 if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     if self.metodo == 'singolo':
                         # Rank IR_1Y
-                        foglio['ranking_IR_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Information_Ratio_1Y'].notnull()), 'Information_Ratio_1Y'].rank(method='first', na_option='bottom', ascending=False)
+                        foglio['ranking_IR_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Information_Ratio_1Y'].notnull()), 'Information_Ratio_1Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile IR_1Y
-                        foglio['quartile_IR_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Information_Ratio_1Y'].notnull()), 'Information_Ratio_1Y'].apply(lambda x: 'best' if x > foglio['Information_Ratio_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                        foglio['quartile_IR_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Information_Ratio_1Y'].notnull()), 'Information_Ratio_1Y'].apply(lambda x: 'best' if x > foglio['Information_Ratio_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                         # Terzile IR_1Y
-                        foglio['terzile_IR_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Information_Ratio_1Y'].notnull()), 'Information_Ratio_1Y'].apply(lambda x: 'best' if x > foglio['Information_Ratio_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                        foglio['terzile_IR_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Information_Ratio_1Y'].notnull()), 'Information_Ratio_1Y'].apply(lambda x: 'best' if x > foglio['Information_Ratio_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                         # Creazione IR_corretto_1Y
                         foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_1Y'] / 100)
                         # Rank IR_corretto_1Y
-                        foglio['ranking_IR_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
+                        foglio['ranking_IR_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile IR_1Y corretto
-                        foglio['quartile_IR_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].apply(lambda x: 'best' if x > foglio['IR_corretto_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                        foglio['quartile_IR_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].apply(lambda x: 'best' if x > foglio['IR_corretto_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                         # Terzile IR_1Y corretto
-                        foglio['terzile_IR_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].apply(lambda x: 'best' if x > foglio['IR_corretto_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                        foglio['terzile_IR_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].apply(lambda x: 'best' if x > foglio['IR_corretto_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
 
                         # Rank IR_3Y
-                        foglio['ranking_IR_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['Information_Ratio_3Y'].notnull()), 'Information_Ratio_3Y'].rank(method='first', na_option='keep', ascending=False)
+                        foglio['ranking_IR_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['Information_Ratio_3Y'].notnull()), 'Information_Ratio_3Y'].rank(method='first', na_option='keep', ascending=False)
                         # Note
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & foglio['Best_Worst'].isnull(), 'note'] = 'Ha 3 anni, ma non è in classifica.'
-                        foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Information_Ratio_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & foglio['Best_Worst'].isnull(), 'note'] = 'Ha 3 anni, ma non è in classifica.'
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & foglio['Information_Ratio_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
                         # Quartile IR_3Y
-                        foglio['quartile_IR_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['Information_Ratio_3Y'].notnull()), 'Information_Ratio_3Y'].apply(lambda x: 'best' if x > foglio['Information_Ratio_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                        foglio['quartile_IR_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['Information_Ratio_3Y'].notnull()), 'Information_Ratio_3Y'].apply(lambda x: 'best' if x > foglio['Information_Ratio_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                         # Terzile IR_3Y
-                        foglio['terzile_IR_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['Information_Ratio_3Y'].notnull()), 'Information_Ratio_3Y'].apply(lambda x: 'best' if x > foglio['Information_Ratio_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                        foglio['terzile_IR_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['Information_Ratio_3Y'].notnull()), 'Information_Ratio_3Y'].apply(lambda x: 'best' if x > foglio['Information_Ratio_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                         # Creazione IR_corretto_3Y
                         foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_3Y'] / 100)
                         # Rank IR_corretto_3Y
-                        foglio['ranking_IR_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
+                        foglio['ranking_IR_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile IR_3Y corretto
-                        foglio['quartile_IR_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].apply(lambda x: 'best' if x > foglio['IR_corretto_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                        foglio['quartile_IR_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].apply(lambda x: 'best' if x > foglio['IR_corretto_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                         # Terzile IR_3Y corretto
-                        foglio['terzile_IR_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].apply(lambda x: 'best' if x > foglio['IR_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                        foglio['terzile_IR_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'].notnull()) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'].apply(lambda x: 'best' if x > foglio['IR_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                         
                         # Ranking finale
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['IR_corretto_3Y'].notnull()) & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['IR_corretto_3Y'].notnull()) & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['IR_corretto_3Y'].notnull()) & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['IR_corretto_3Y'].notnull()) & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'] == 'best') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] == self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'ranking_finale'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Best_Worst'] == 'worst') & (foglio['micro_categoria'] != self.classi_metodo_singolo[macro]), 'IR_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False) + foglio['ranking_finale'].max()
                 
                     elif self.metodo == 'doppio':
                         # Creazione IR_corretto_3Y
@@ -762,12 +715,12 @@ class Ranking():
                             foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_3Y'] / 100)
                             foglio['IR_corretto_1Y'] = ((df['Information_Ratio_1Y'] * (df['TEV_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_1Y'] / 100)
                         # Note
-                        foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & foglio['Best_Worst_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & foglio['Best_Worst_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Information_Ratio_1Y'].notnull(), 'note'] = 'Non ha 1 anno, ma possiede dati a un anno.' Nota fuorviante
-                        foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Information_Ratio_1Y'].notnull(), ['Information_Ratio_1Y', 'TEV_1Y', 'IR_corretto_1Y']] = np.nan
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & foglio['Best_Worst_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non è in classifica a tre anni.'
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_1Y) & foglio['Information_Ratio_1Y'].notnull(), ['Information_Ratio_1Y', 'TEV_1Y', 'IR_corretto_1Y']] = np.nan
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & foglio['Best_Worst_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non è in classifica a tre anni.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Information_Ratio_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.' Nota fuorviante
-                        foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Information_Ratio_3Y'].notnull(), ['Information_Ratio_3Y', 'TEV_3Y', 'IR_corretto_3Y']] = np.nan
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & foglio['Information_Ratio_3Y'].notnull(), ['Information_Ratio_3Y', 'TEV_3Y', 'IR_corretto_3Y']] = np.nan
                         # Ranking finale
                         if self.soluzioni[macro] == 1:
                             # Fondi best blend - Gerarchia : semi_attivo, attivo, molto_attivo
@@ -944,15 +897,15 @@ class Ranking():
                     # Creazione IR_corretto_3Y
                     foglio['IR_corretto_3Y'] = ((df['Information_Ratio_3Y'] * (df['TEV_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['TEV_3Y'] / 100)
                     # Note
-                    foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Information_Ratio_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
-                    foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & (foglio['Information_Ratio_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Information_Ratio_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
+                    foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & (foglio['Information_Ratio_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
                     # Ranking finale
-                    minimo_3Y = min(foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'])
-                    massimo_3Y = max(foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'])
-                    foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale_3Y'] = 1 - 8 * minimo_3Y / (massimo_3Y - minimo_3Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'] / (massimo_3Y - minimo_3Y)
-                    minimo_1Y = min(foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'])
-                    massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'])
-                    foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'] / (massimo_1Y - minimo_1Y)
+                    minimo_3Y = min(foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'])
+                    massimo_3Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'])
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['IR_corretto_3Y'].notnull()), 'ranking_finale_3Y'] = 1 - 8 * minimo_3Y / (massimo_3Y - minimo_3Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['IR_corretto_3Y'].notnull()), 'IR_corretto_3Y'] / (massimo_3Y - minimo_3Y)
+                    minimo_1Y = min(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'])
+                    massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'])
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'] / (massimo_1Y - minimo_1Y)
                     foglio['ranking_finale'] = foglio['ranking_finale_3Y'].fillna(foglio['ranking_finale_1Y'])
                     foglio['podio'] = foglio['ranking_finale'].apply(lambda ranking: 'bronzo' if ranking <= 3.0 else 'argento' if ranking <= 6.0 else 'oro' if ranking <= 9.1 else '')
 
@@ -1013,54 +966,54 @@ class Ranking():
             elif macro in self.SOR_DSR:
                 if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     # Rank SO_1Y
-                    foglio['ranking_SO_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sortino_1Y'].notnull()), 'Sortino_1Y'].rank(method='first', na_option='bottom', ascending=False)
+                    foglio['ranking_SO_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Sortino_1Y'].notnull()), 'Sortino_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SO_1Y
-                    foglio['quartile_SO_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sortino_1Y'].notnull()), 'Sortino_1Y'].apply(lambda x: 'best' if x > foglio['Sortino_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                    foglio['quartile_SO_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Sortino_1Y'].notnull()), 'Sortino_1Y'].apply(lambda x: 'best' if x > foglio['Sortino_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                     # Terzile SO_1Y
-                    foglio['terzile_SO_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sortino_1Y'].notnull()), 'Sortino_1Y'].apply(lambda x: 'best' if x > foglio['Sortino_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                    foglio['terzile_SO_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Sortino_1Y'].notnull()), 'Sortino_1Y'].apply(lambda x: 'best' if x > foglio['Sortino_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     # Creazione SO_corretto_1Y
                     if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                         foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['DSR_1Y'] / 100)
                     else:
                         foglio['SO_corretto_1Y'] = ((df['Sortino_1Y'] * (df['DSR_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['DSR_1Y'] / 100)
                     # Rank SO_corretto_1Y
-                    foglio['ranking_SO_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
+                    foglio['ranking_SO_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SO_1Y corretto
-                    foglio['quartile_SO_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'].apply(lambda x: 'best' if x > foglio['SO_corretto_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                    foglio['quartile_SO_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'].apply(lambda x: 'best' if x > foglio['SO_corretto_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                     # Terzile SO_1Y corretto
-                    foglio['terzile_SO_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'].apply(lambda x: 'best' if x > foglio['SO_corretto_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                    foglio['terzile_SO_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'].apply(lambda x: 'best' if x > foglio['SO_corretto_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
 
                     # Rank SO_3Y
-                    foglio['ranking_SO_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sortino_3Y'].notnull()), 'Sortino_3Y'].rank(method='first', na_option='keep', ascending=False)
+                    foglio['ranking_SO_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Sortino_3Y'].notnull()), 'Sortino_3Y'].rank(method='first', na_option='keep', ascending=False)
                     
                     # Quartile SO_3Y TOGLI IL BEST_WORST
-                    foglio['quartile_SO_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sortino_3Y'].notnull()), 'Sortino_3Y'].apply(lambda x: 'best' if x > foglio['Sortino_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                    foglio['quartile_SO_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Sortino_3Y'].notnull()), 'Sortino_3Y'].apply(lambda x: 'best' if x > foglio['Sortino_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                     # Terzile SO_3Y
-                    foglio['terzile_SO_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sortino_3Y'].notnull()), 'Sortino_3Y'].apply(lambda x: 'best' if x > foglio['Sortino_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                    foglio['terzile_SO_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Sortino_3Y'].notnull()), 'Sortino_3Y'].apply(lambda x: 'best' if x > foglio['Sortino_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     # Creazione SO_corretto_3Y
                     if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                         foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['DSR_3Y'] / 100)
                     else:    
                         foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['DSR_3Y'] / 100)
                     # Rank SO_corretto_3Y
-                    foglio['ranking_SO_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
+                    foglio['ranking_SO_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SO_3Y corretto
-                    foglio['quartile_SO_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SO_corretto_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                    foglio['quartile_SO_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SO_corretto_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                     # Terzile SO_3Y corretto
-                    foglio['terzile_SO_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SO_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                    foglio['terzile_SO_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SO_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     
                     if self.metodo == 'singolo':
                         # Note
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & foglio['Sortino_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
-                        foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Sortino_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & foglio['Sortino_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & foglio['Sortino_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
                     elif self.metodo == 'doppio':
                         # Note
-                        foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & foglio['Sortino_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & foglio['Sortino_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Sortino_1Y'].notnull(), 'note'] = 'Non ha 1 anno, ma possiede dati a un anno.'
-                        foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Sortino_1Y'].notnull(), ['Sortino_1Y', 'DSR_1Y', 'SO_corretto_1Y']] = np.nan
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & foglio['Sortino_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non è in classifica a tre anni.'
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_1Y) & foglio['Sortino_1Y'].notnull(), ['Sortino_1Y', 'DSR_1Y', 'SO_corretto_1Y']] = np.nan
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & foglio['Sortino_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non è in classifica a tre anni.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Sortino_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
-                        foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Sortino_3Y'].notnull(), ['Sortino_3Y', 'DSR_3Y', 'SO_corretto_3Y']] = np.nan
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & foglio['Sortino_3Y'].notnull(), ['Sortino_3Y', 'DSR_3Y', 'SO_corretto_3Y']] = np.nan
                 
                 elif self.intermediario == 'CRV': # metodo normalizzazione
                     # Creazione SO_corretto_1Y
@@ -1068,15 +1021,15 @@ class Ranking():
                     # Creazione SO_corretto_3Y
                     foglio['SO_corretto_3Y'] = ((df['Sortino_3Y'] * (df['DSR_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['DSR_3Y'] / 100)
                     # Note
-                    foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sortino_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
-                    foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & (foglio['Sortino_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Sortino_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
+                    foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & (foglio['Sortino_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
                     # Ranking finale
-                    minimo_3Y = min(foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'])
-                    massimo_3Y = max(foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'])
-                    foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'ranking_finale_3Y'] = 1 - 8 * minimo_3Y / (massimo_3Y - minimo_3Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'] / (massimo_3Y - minimo_3Y)
-                    minimo_1Y = min(foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'])
-                    massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'])
-                    foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'] / (massimo_1Y - minimo_1Y)
+                    minimo_3Y = min(foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'])
+                    massimo_3Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'])
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'ranking_finale_3Y'] = 1 - 8 * minimo_3Y / (massimo_3Y - minimo_3Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SO_corretto_3Y'].notnull()), 'SO_corretto_3Y'] / (massimo_3Y - minimo_3Y)
+                    minimo_1Y = min(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'])
+                    massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'])
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SO_corretto_1Y'].notnull()), 'SO_corretto_1Y'] / (massimo_1Y - minimo_1Y)
                     foglio['ranking_finale'] = foglio['ranking_finale_3Y'].fillna(foglio['ranking_finale_1Y'])
                     foglio['podio'] = foglio['ranking_finale'].apply(lambda ranking: 'bronzo' if ranking <= 3.0 else 'argento' if ranking <= 6.0 else 'oro' if ranking <= 9.1 else '')
 
@@ -1135,53 +1088,53 @@ class Ranking():
             elif macro in self.SHA_VOL:
                 if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     # Rank SH_1Y
-                    foglio['ranking_SH_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sharpe_1Y'].notnull()), 'Sharpe_1Y'].rank(method='first', na_option='bottom', ascending=False)
+                    foglio['ranking_SH_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Sharpe_1Y'].notnull()), 'Sharpe_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SH_1Y
-                    foglio['quartile_SH_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sharpe_1Y'].notnull()), 'Sharpe_1Y'].apply(lambda x: 'best' if x > foglio['Sharpe_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                    foglio['quartile_SH_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Sharpe_1Y'].notnull()), 'Sharpe_1Y'].apply(lambda x: 'best' if x > foglio['Sharpe_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                     # Terzile SH_1Y
-                    foglio['terzile_SH_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Sharpe_1Y'].notnull()), 'Sharpe_1Y'].apply(lambda x: 'best' if x > foglio['Sharpe_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                    foglio['terzile_SH_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Sharpe_1Y'].notnull()), 'Sharpe_1Y'].apply(lambda x: 'best' if x > foglio['Sharpe_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     # Creazione SH_corretto_1Y
                     if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                         foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['Vol_1Y'] / 100)
                     else:
                         foglio['SH_corretto_1Y'] = ((df['Sharpe_1Y'] * (df['Vol_1Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['Vol_1Y'] / 100)
                     # Rank SH_corretto_1Y
-                    foglio['ranking_SH_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
+                    foglio['ranking_SH_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SH_1Y corretto
-                    foglio['quartile_SH_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'].apply(lambda x: 'best' if x > foglio['SH_corretto_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                    foglio['quartile_SH_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'].apply(lambda x: 'best' if x > foglio['SH_corretto_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                     # Terzile SH_1Y corretto
-                    foglio['terzile_SH_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'].apply(lambda x: 'best' if x > foglio['SH_corretto_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                    foglio['terzile_SH_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'].apply(lambda x: 'best' if x > foglio['SH_corretto_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
 
                     # Rank SH_3Y
-                    foglio['ranking_SH_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sharpe_3Y'].notnull()), 'Sharpe_3Y'].rank(method='first', na_option='keep', ascending=False)
+                    foglio['ranking_SH_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Sharpe_3Y'].notnull()), 'Sharpe_3Y'].rank(method='first', na_option='keep', ascending=False)
                     # Quartile SH_3Y
-                    foglio['quartile_SH_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sharpe_3Y'].notnull()), 'Sharpe_3Y'].apply(lambda x: 'best' if x > foglio['Sharpe_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                    foglio['quartile_SH_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Sharpe_3Y'].notnull()), 'Sharpe_3Y'].apply(lambda x: 'best' if x > foglio['Sharpe_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                     # Terzile SH_3Y
-                    foglio['terzile_SH_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sharpe_3Y'].notnull()), 'Sharpe_3Y'].apply(lambda x: 'best' if x > foglio['Sharpe_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                    foglio['terzile_SH_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Sharpe_3Y'].notnull()), 'Sharpe_3Y'].apply(lambda x: 'best' if x > foglio['Sharpe_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     # Creazione SH_corretto_3Y
                     if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                         foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / df['anni_detenzione'])) / (df['Vol_3Y'] / 100)
                     else:
                         foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['Vol_3Y'] / 100)
                     # Rank SH_corretto_3Y
-                    foglio['ranking_SH_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
+                    foglio['ranking_SH_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                     # Quartile SH_3Y corretto
-                    foglio['quartile_SH_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SH_corretto_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                    foglio['quartile_SH_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SH_corretto_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                     # Terzile SH_3Y corretto
-                    foglio['terzile_SH_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SH_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                    foglio['terzile_SH_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'].apply(lambda x: 'best' if x > foglio['SH_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     
                     if self.metodo == 'singolo':
                         # Note
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & foglio['Sharpe_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
-                        foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Sharpe_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & foglio['Sharpe_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & foglio['Sharpe_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
                     elif self.metodo == 'doppio':
                         # Note
-                        foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & foglio['Sharpe_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & foglio['Sharpe_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Sharpe_1Y'].notnull(), 'note'] = 'Non ha 1 anno, ma possiede dati a un anno.'
-                        foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Sharpe_1Y'].notnull(), ['Sharpe_1Y', 'Vol_1Y', 'SH_corretto_1Y']] = np.nan
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & foglio['Sharpe_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non è in classifica a tre anni.'
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_1Y) & foglio['Sharpe_1Y'].notnull(), ['Sharpe_1Y', 'Vol_1Y', 'SH_corretto_1Y']] = np.nan
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & foglio['Sharpe_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non è in classifica a tre anni.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Sharpe_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
-                        foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Sharpe_3Y'].notnull(), ['Sharpe_3Y', 'Vol_3Y', 'SH_corretto_3Y']] = np.nan
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & foglio['Sharpe_3Y'].notnull(), ['Sharpe_3Y', 'Vol_3Y', 'SH_corretto_3Y']] = np.nan
 
                 elif self.intermediario == 'CRV': # metodo normalizzazione
                     # Creazione SH_corretto_1Y
@@ -1189,15 +1142,15 @@ class Ranking():
                     # Creazione SH_corretto_3Y
                     foglio['SH_corretto_3Y'] = ((df['Sharpe_3Y'] * (df['Vol_3Y'] / 100) ) - (df['commissione'] / self.anni_detenzione)) / (df['Vol_3Y'] / 100)
                     # Note
-                    foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Sharpe_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
-                    foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & (foglio['Sharpe_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Sharpe_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
+                    foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & (foglio['Sharpe_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
                     # Ranking finale
-                    minimo_3Y = min(foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'])
-                    massimo_3Y = max(foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'])
-                    foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'ranking_finale_3Y'] = 1 - 8 * minimo_3Y / (massimo_3Y - minimo_3Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'] / (massimo_3Y - minimo_3Y)
-                    minimo_1Y = min(foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'])
-                    massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'])
-                    foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'] / (massimo_1Y - minimo_1Y)
+                    minimo_3Y = min(foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'])
+                    massimo_3Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'])
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'ranking_finale_3Y'] = 1 - 8 * minimo_3Y / (massimo_3Y - minimo_3Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['SH_corretto_3Y'].notnull()), 'SH_corretto_3Y'] / (massimo_3Y - minimo_3Y)
+                    minimo_1Y = min(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'])
+                    massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'])
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['SH_corretto_1Y'].notnull()), 'SH_corretto_1Y'] / (massimo_1Y - minimo_1Y)
                     foglio['ranking_finale'] = foglio['ranking_finale_3Y'].fillna(foglio['ranking_finale_1Y'])
                     foglio['podio'] = foglio['ranking_finale'].apply(lambda ranking: 'bronzo' if ranking <= 3.0 else 'argento' if ranking <= 6.0 else 'oro' if ranking <= 9.1 else '')
                 
@@ -1257,43 +1210,43 @@ class Ranking():
                 if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
                     if self.metodo == 'singolo' or (self.metodo == 'doppio' and macro == 'LIQ_FOR'):
                         # Rank PERF_1Y
-                        foglio['ranking_PERF_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Perf_1Y'].notnull()), 'Perf_1Y'].rank(method='first', na_option='bottom', ascending=False)
+                        foglio['ranking_PERF_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Perf_1Y'].notnull()), 'Perf_1Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile PERF_1Y
-                        foglio['quartile_PERF_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Perf_1Y'].notnull()), 'Perf_1Y'].apply(lambda x: 'best' if x > foglio['Perf_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                        foglio['quartile_PERF_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Perf_1Y'].notnull()), 'Perf_1Y'].apply(lambda x: 'best' if x > foglio['Perf_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                         # Terzile PERF_1Y
-                        foglio['terzile_PERF_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['Perf_1Y'].notnull()), 'Perf_1Y'].apply(lambda x: 'best' if x > foglio['Perf_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                        foglio['terzile_PERF_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['Perf_1Y'].notnull()), 'Perf_1Y'].apply(lambda x: 'best' if x > foglio['Perf_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                         # Creazione PERF_corretto_1Y
                         if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                             foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / df['anni_detenzione'])
                         else:
                             foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / self.anni_detenzione)
                         # Rank PERF_corretto_1Y
-                        foglio['ranking_PERF_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
+                        foglio['ranking_PERF_1Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile PERF_1Y corretto
-                        foglio['quartile_PERF_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].apply(lambda x: 'best' if x > foglio['PERF_corretto_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                        foglio['quartile_PERF_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].apply(lambda x: 'best' if x > foglio['PERF_corretto_1Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                         # Terzile PERF_1Y corretto
-                        foglio['terzile_PERF_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].apply(lambda x: 'best' if x > foglio['PERF_corretto_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                        foglio['terzile_PERF_corretto_1Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].apply(lambda x: 'best' if x > foglio['PERF_corretto_1Y'].quantile(0.33, interpolation = 'linear') else 'worst')
 
                         # Rank PERF_3Y
-                        foglio['ranking_PERF_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Perf_3Y'].notnull()), 'Perf_3Y'].rank(method='first', na_option='keep', ascending=False)
+                        foglio['ranking_PERF_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Perf_3Y'].notnull()), 'Perf_3Y'].rank(method='first', na_option='keep', ascending=False)
                         # Note
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & foglio['Perf_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & foglio['Perf_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Perf_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
                         # Quartile PERF_3Y TOGLI IL BEST_WORST
-                        foglio['quartile_PERF_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Perf_3Y'].notnull()), 'Perf_3Y'].apply(lambda x: 'best' if x > foglio['Perf_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                        foglio['quartile_PERF_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Perf_3Y'].notnull()), 'Perf_3Y'].apply(lambda x: 'best' if x > foglio['Perf_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                         # Terzile PERF_3Y
-                        foglio['terzile_PERF_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Perf_3Y'].notnull()), 'Perf_3Y'].apply(lambda x: 'best' if x > foglio['Perf_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                        foglio['terzile_PERF_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Perf_3Y'].notnull()), 'Perf_3Y'].apply(lambda x: 'best' if x > foglio['Perf_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                         # Creazione PERF_corretto_3Y (la volatilità è già in percentuale)
                         if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per fondo, non in maniera universale.
                             foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / df['anni_detenzione'])
                         else:
                             foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / self.anni_detenzione)
                         # Rank PERF_corretto_3Y
-                        foglio['ranking_PERF_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
+                        foglio['ranking_PERF_3Y_corretto'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].rank(method='first', na_option='bottom', ascending=False)
                         # Quartile PERF_3Y corretto
-                        foglio['quartile_PERF_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].apply(lambda x: 'best' if x > foglio['PERF_corretto_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
+                        foglio['quartile_PERF_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].apply(lambda x: 'best' if x > foglio['PERF_corretto_3Y'].quantile(0.25, interpolation = 'linear') else 'worst')
                         # Terzile PERF_3Y corretto
-                        foglio['terzile_PERF_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].apply(lambda x: 'best' if x > foglio['PERF_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
+                        foglio['terzile_PERF_corretto_3Y'] = foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'].apply(lambda x: 'best' if x > foglio['PERF_corretto_3Y'].quantile(0.33, interpolation = 'linear') else 'worst')
                     
                     elif self.metodo == 'doppio':
                         # Creazione PERF_corretto_3Y
@@ -1304,13 +1257,13 @@ class Ranking():
                             foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / self.anni_detenzione)
                             foglio['PERF_corretto_1Y'] = (df['Perf_1Y'] / 100) - (df['commissione'] / self.anni_detenzione)
                         # Note
-                        foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & foglio['Best_Worst_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & foglio['Best_Worst_1Y'].isnull(), 'note'] = 'Ha 1 anno, ma non è in classifica ad un anno.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Perf_1Y'].notnull(), 'note'] = 'Non ha 1 anno, ma possiede dati a un anno.' Nota fuorviante
-                        foglio.loc[(foglio['data_di_avvio'] > t0_1Y) & foglio['Perf_1Y'].notnull(), ['Perf_1Y', 'Vol_1Y', 'PERF_corretto_1Y']] = np.nan
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_1Y) & foglio['Perf_1Y'].notnull(), ['Perf_1Y', 'Vol_1Y', 'PERF_corretto_1Y']] = np.nan
                         # Aggiunta nota per i fondi che possiedono dati a tre anni pur non avendo tre anni di vita, e ad un anno non avendo un anno di vita
-                        foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & foglio['Best_Worst_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non è in classifica a tre anni.'
+                        foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & foglio['Best_Worst_3Y'].isnull(), 'note'] = 'Ha 3 anni, ma non è in classifica a tre anni.'
                         # foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Perf_3Y'].notnull(), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.' Nota fuorviante
-                        foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & foglio['Perf_3Y'].notnull(), ['Perf_3Y', 'Vol_3Y', 'PERF_corretto_3Y']] = np.nan
+                        foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & foglio['Perf_3Y'].notnull(), ['Perf_3Y', 'Vol_3Y', 'PERF_corretto_3Y']] = np.nan
                         # Ranking finale
                         if self.soluzioni[macro] == 1:
                             # Fondi best blend - Gerarchia : semi_attivo, attivo, molto_attivo
@@ -1487,15 +1440,15 @@ class Ranking():
                     # Creazione PERF_corretto_3Y
                     foglio['PERF_corretto_3Y'] = (df['Perf_3Y'] / 100) - (df['commissione'] / self.anni_detenzione)
                     # Note
-                    foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['Perf_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
-                    foglio.loc[(foglio['data_di_avvio'] > t0_3Y) & (foglio['Perf_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['Perf_3Y'].isnull()), 'note'] = 'Ha 3 anni, ma non possiede dati a tre anni.'
+                    foglio.loc[(foglio['data_di_avvio'] > self.t0_3Y) & (foglio['Perf_3Y'].notnull()), 'note'] = 'Non ha 3 anni, ma possiede dati a tre anni.'
                     # Ranking finale
-                    minimo_3Y = min(foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'])
-                    massimo_3Y = max(foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'])
-                    foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale_3Y'] = 1 - 8 * minimo_3Y / (massimo_3Y - minimo_3Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'] / (massimo_3Y - minimo_3Y)
-                    minimo_1Y = min(foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'])
-                    massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'])
-                    foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'] / (massimo_1Y - minimo_1Y)
+                    minimo_3Y = min(foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'])
+                    massimo_3Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'])
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'ranking_finale_3Y'] = 1 - 8 * minimo_3Y / (massimo_3Y - minimo_3Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_3Y) & (foglio['PERF_corretto_3Y'].notnull()), 'PERF_corretto_3Y'] / (massimo_3Y - minimo_3Y)
+                    minimo_1Y = min(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'])
+                    massimo_1Y = max(foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'])
+                    foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale_1Y'] = 1 - 8 * minimo_1Y / (massimo_1Y - minimo_1Y) + 8 * foglio.loc[(foglio['data_di_avvio'] < self.t0_1Y) & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'] / (massimo_1Y - minimo_1Y)
                     foglio['ranking_finale'] = foglio['ranking_finale_3Y'].fillna(foglio['ranking_finale_1Y'])
                     foglio['podio'] = foglio['ranking_finale'].apply(lambda ranking: 'bronzo' if ranking <= 3.0 else 'argento' if ranking <= 6.0 else 'oro' if ranking <= 9.1 else '')
                 
@@ -1885,9 +1838,9 @@ class Ranking():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Ranking(intermediario='BPL', t1='31/01/2023')
+    _ = Ranking(intermediario='RAI')
     # _.attività()
-    # _.indicatore_BS()
+    _.indicatore_BS()
     # _.calcolo_best_worst()
     # _.ranking_per_grado()
     # _.merge_completo_liste()
