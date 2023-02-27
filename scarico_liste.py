@@ -19,33 +19,29 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 class Scarico():
 
-    def __init__(self, t1):
-        """
-        Default download folder : self.directory_output_liste
-        Default browser : chromium
-
-        Arguments:
-            username {str} = username dell'account
-            password {str} = password dell'account
-            t1 {datetime} = data di calcolo indici alla fine del mese
-            directory_output_liste {WindowsPath} = percorso in cui scaricare i dati delle liste
-            directory_input_liste {WindowsPath} = percorso in cui trovare i dati delle liste
-        """
+    def __init__(self):
+        with open('docs/t1.txt') as f:
+            t1 = f.read()
+        t1 = datetime.datetime.strptime(t1, '%Y-%m-%d').strftime("%d/%m/%Y")
         self.t1 = t1
         self.t0_3Y = (
             datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+3)
         ).strftime("%d/%m/%Y") # data iniziale tre anni fa
-        print(f"Tre anni fa : {self.t0_3Y}.")
         self.t0_1Y = (
             datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)
         ).strftime("%d/%m/%Y") # data iniziale un anno fa
-        print(f"Un anno fa : {self.t0_1Y}.")
+        print(f'Data odierna: {self.t1}')
+        print(f'Tre anni fa : {self.t0_3Y}')
+        print(f'Un anno fa : {self.t0_1Y}')
+
+        # Directories
         directory = Path().cwd()
         self.directory = directory
         self.directory_input_liste = self.directory.joinpath('docs', 'import_liste_into_Q')
         self.directory_output_liste = self.directory.joinpath('docs', 'export_liste_from_Q')
         if not os.path.exists(self.directory_output_liste):
             os.makedirs(self.directory_output_liste)
+
         chrome_options = webdriver.ChromeOptions()
         # chrome_options.add_experimental_option("detach", True) -> lascia il browser aperto dopo aver eseugito tutto il codice
         chrome_options.add_experimental_option("prefs", {
@@ -55,6 +51,7 @@ class Scarico():
         # API dove trovare il chromedriver aggiornato -> https://chromedriver.storage.googleapis.com/index.html
         service = Service(ChromeDriverManager().install())
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
+
         self.classi_a_benchmark = {
             'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
             'AZ_BIO' : '2240', 'AZ_BDC' : '2318', 'AZ_FIN' : '2716', 'AZ_AMB' : '2318', 'AZ_IMM' : '2187',
@@ -255,7 +252,7 @@ class Scarico():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Scarico(t1='30/11/2022')
+    _ = Scarico()
     _.export()
     end = time.perf_counter()
     print("Elapsed time: ", end - start, 'seconds')
