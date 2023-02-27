@@ -31,8 +31,8 @@ class Scarico():
             datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)
         ).strftime("%d/%m/%Y") # data iniziale un anno fa
         print(f'Data odierna: {self.t1}')
-        print(f'Tre anni fa : {self.t0_3Y}')
         print(f'Un anno fa : {self.t0_1Y}')
+        print(f'Tre anni fa : {self.t0_3Y}')
 
         # Directories
         directory = Path().cwd()
