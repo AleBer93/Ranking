@@ -244,7 +244,7 @@ class Scarico():
             file_rimanenti = file_totali-liste_completate
             if file_rimanenti != 0:
                 print(f"Tempo trascorso per {filename}: ", round(end - start, 2), 'secondi')
-                print(f"\nTempo medio trascorso per lista: {round(average_elapsed_time, 2)}.")
+                print(f"\nTempo medio trascorso per lista: {round(average_elapsed_time, 2)} secondi")
                 print(f"\nTempo previsto alla fine: {datetime.timedelta(seconds=(average_elapsed_time)*(file_rimanenti))}")
         
         self.driver.close()
