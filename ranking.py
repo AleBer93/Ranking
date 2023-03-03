@@ -16,10 +16,6 @@ from openpyxl.styles import (Alignment, Font,  # Per cambiare lo stile
 
 
 class Ranking():
-    # TODO: siccome Raiffeisen non ha dato un numero riassuntivo di anni di detenzione,
-    # devo fare un merge e incollare le date di avvio. Mi servireanno in e in ranking
-    # ricavare l'anno dalla colonna che trovo nel file catalogo.xlsx, e testarlo
-    # Generalizza t0_3Y e t0_1Y, testalo
     """
     BPPB è passata da metodo singolo a metodo doppio
     BPL è passata da metodo singolo a metodo doppio
@@ -114,10 +110,19 @@ class Ranking():
                 self.SHA_VOL = ['OPP']
                 self.PER_VOL = ['LIQ', 'LIQ_FOR']
             case 'CRV':
-                self.metodo = 'normalizzazione'
-                self.soluzioni = None
+                self.metodo = 'doppio'
+                # self.metodo = 'normalizzazione'
+                self.soluzioni = {
+                    'LIQ' : 4, 'OBB_EUR_BT' : 4, 'OBB_EUR_MLT' : 4, 'OBB_EUR_CORP' : 4, 'OBB_GLOB' : 4, 'OBB_EM' : 4,
+                    'OBB_HY' : 4, 'AZ_EUR' : 4, 'AZ_NA' : 4, 'AZ_PAC' : 4, 'AZ_EM' : 4, 'AZ_GLOB' : 4,
+                }
                 self.classi_metodo_singolo = None
-                self.classi_metodo_doppio = None
+                self.classi_metodo_doppio = {
+                    'LIQ' : 'Monetari Euro', 'OBB_EUR_BT' : 'Obblig. Euro breve term.', 'OBB_EUR_MLT' : 'Obblig. Euro all maturities', 
+                    'OBB_EUR_CORP' : 'Obblig. Euro corporate', 'OBB_GLOB' : 'Obblig. globale', 'OBB_EM' : 'Obblig. Paesi Emerg.',
+                    'OBB_HY' : 'Obblig. globale high yield', 'AZ_EUR' : 'Az. Europa', 'AZ_NA' : 'Az. USA', 'AZ_PAC' : 'Az. Pacifico',
+                    'AZ_EM' : 'Az. paesi emerg. Mondo', 'AZ_GLOB' : 'Az. globale', 
+                }
                 self.anni_detenzione = 3
                 self.IR_TEV = [
                     'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB',
@@ -192,18 +197,18 @@ class Ranking():
         condiviso tra tutti gli intermediari.
         """
         soglie = {
-            'LIQ' : [0.0015, 0.01], 'OBB_EUR_BT' : [0.0075, 0.02], 'OBB_EUR_MLT' : [0.0125, 0.035], 'OBB_EUR' : [0.035, 0.065], 
-            'OBB_USA' : [0.035, 0.055], 'OBB_JAP' : [0.035, 0.06], 'OBB_EUR_CORP' : [0.01, 0.0275], 'OBB_GLOB' : [0.03, 0.06], 
-            'OBB_EM' : [0.045, 0.07], 'OBB_HY' : [0.04, 0.065], 'AZ_EUR' : [0.055, 0.10], 'AZ_NA' : [0.055, 0.10], 
-            'AZ_PAC' : [0.08, 0.12], 'AZ_EM' : [0.06, 0.14], 'AZ_GLOB' : [0.055, 0.10], 'AZ_BIO' : [0.08, 0.15], 'AZ_BDC' : [0.08, 0.13], 
-            'AZ_FIN' : [0.055, 0.12], 'AZ_AMB' : [0.08, 0.12], 'AZ_IMM' : [0.06, 0.10], 'AZ_IND' : [0.055, 0.12], 'AZ_ECO' : [0.08, 0.14], 
-            'AZ_SAL' : [0.055, 0.11], 'AZ_SPU' : [0.06, 0.12], 'AZ_TEC' : [0.06, 0.14], 'AZ_TEL' : [0.05, 0.15], 'AZ_ORO' : [0.08, 0.15], 
-            'AZ_BEAR' : [0.08, 0.15], 
+            'LIQ' : [0.0015, 0.01], 'OBB_EUR_BT' : [0.0075, 0.02], 'OBB_EUR_MLT' : [0.0125, 0.035], 'OBB_EUR' : [0.035, 0.065],
+            'OBB_USA' : [0.035, 0.055], 'OBB_JAP' : [0.035, 0.06], 'OBB_EUR_CORP' : [0.01, 0.0275], 'OBB_GLOB' : [0.03, 0.06],
+            'OBB_EM' : [0.045, 0.07], 'OBB_HY' : [0.04, 0.065], 'AZ_EUR' : [0.055, 0.10], 'AZ_NA' : [0.055, 0.10],
+            'AZ_PAC' : [0.08, 0.12], 'AZ_EM' : [0.06, 0.14], 'AZ_GLOB' : [0.055, 0.10], 'AZ_BIO' : [0.08, 0.15],
+            'AZ_BDC' : [0.08, 0.13], 'AZ_FIN' : [0.055, 0.12], 'AZ_AMB' : [0.08, 0.12], 'AZ_IMM' : [0.06, 0.10],
+            'AZ_IND' : [0.055, 0.12], 'AZ_ECO' : [0.08, 0.14], 'AZ_SAL' : [0.055, 0.11], 'AZ_SPU' : [0.06, 0.12],
+            'AZ_TEC' : [0.06, 0.14], 'AZ_TEL' : [0.05, 0.15], 'AZ_ORO' : [0.08, 0.15], 'AZ_BEAR' : [0.08, 0.15],
         }
 
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
-        if self.metodo == 'singolo':
+        if self.metodo == 'singolo' or self.metodo == 'normalizzazione':
             return None
         elif self.metodo == 'doppio':
             df.loc[(df['micro_categoria'].isin(list(self.classi_metodo_doppio.values()))) &
@@ -243,15 +248,14 @@ class Ranking():
         """
 
         df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
-        df_catalogo = pd.read_excel(self.file_catalogo, index_col=None, usecols=['isin', 'anni_detenzione'])
-        if self.metodo == 'singolo':
+        if self.metodo == 'singolo' or self.metodo == 'normalizzazione':
             df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
             df.loc[
                 (df['macro_categoria'].isin(list(self.classi_metodo_singolo.keys()))) & (df['data_di_avvio'] < self.t0_3Y), 'BS_3_anni'
             ] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 3 anni") fine mese'])
         elif self.metodo == 'doppio':
             df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
-            if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA':
+            if self.intermediario != 'RAI':
                 df.loc[
                     (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_3Y), 'BS_3_anni'
                 ] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 3 anni") fine mese'])
@@ -259,6 +263,7 @@ class Ranking():
                     (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_1Y), 'BS_1_anno'
                 ] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 1 anno fine mese'])
             elif self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per singolo fondo
+                df_catalogo = pd.read_excel(self.file_catalogo, index_col=None, usecols=['isin', 'anni_detenzione'])
                 # Merge tra completo e catalogo per aggiungere la colonna anni_detenzione
                 df = pd.merge(left=df, right=df_catalogo, left_on='ISIN', right_on='isin')
                 df.loc[
@@ -302,12 +307,10 @@ class Ranking():
         elif self.metodo == 'doppio':
             for macro in list(self.classi_metodo_doppio.keys()):
                 for micro in df.loc[df['macro_categoria'] == macro, 'micro_categoria'].unique():
-                    # Ripa, un singolo consulente finanziario, pretende di mescolare i tre diversi gradi di attività in ciascuna micro categoria
-                    # Ogni altro intermediario o consulente finanziario che scelga la soluzione 4, ovvero nessun ordinamento, rendendo inutile il metodo
-                    # doppio, deve essere inserito nella condizione sotto per trattare le micro categorie direzionali alla pari delle altre, senza
-                    # discriminarle per grado di attività. Si tratta di una condizione temporanea; dopo il primo o i primi giri di ranking, le realtà
-                    # sceglieranno un ordinamento tra i tre disponibili.
-                    if micro in list(self.classi_metodo_doppio.values()) and self.intermediario != 'RIPA' and self.intermediario != 'RAI':
+                    # Chi sceglie la soluzione 4, vuole mescolare i tre diversi gradi di attività in ciascuna micro categoria
+                    # Per Ripa si tratta della scelta definitiva, per altri intermediari si tratta di una condizione temporanea; 
+                    # dopo il primo o i primi giri di ranking, queste realtà sceglieranno un ordinamento tra i tre disponibili.
+                    if micro in list(self.classi_metodo_doppio.values()) and self.soluzioni[macro] != 4:
                         for grado in df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro), 'grado_gestione_3Y'].unique():
                             mediana = df.loc[
                                 (df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_3Y)
@@ -347,6 +350,8 @@ class Ranking():
                         ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                             & (df['BS_1_anno'].notnull()), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
             # df['Best_Worst'] = df['Best_Worst_3Y'].replace('worst', np.nan).fillna(df['Best_Worst_1Y'])
+        elif self.metodo == 'normalizzazione':
+            return None
         df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
 
     def ranking_per_grado(self):
@@ -360,7 +365,7 @@ class Ranking():
         Soluzione 4: attivo, semi-attivo, molto attivo;
         """
 
-        if self.metodo == 'singolo':
+        if self.metodo == 'singolo' or self.metodo == 'normalizzazione':
             return None
         elif self.metodo == 'doppio':
             df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
@@ -1711,135 +1716,134 @@ class Ranking():
         print('sto formattando il file di ranking...\n')
 
         for sheet in wb.sheetnames: 
-            if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
-                if self.metodo == 'singolo':
-                    if sheet in self.classi_metodo_singolo.keys():
-                        foglio = wb[sheet] # attiva foglio
-                        for cell in foglio['G']:
-                            if cell.value == self.classi_metodo_singolo[sheet]: # filtra per micro blend
-                                cell.fill = PatternFill(fgColor="f4b084", fill_type='solid') # colora le micro blend
-                        for cell in foglio['H']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='215967', fill_type='solid') # colora il ranking finale
-                        for cell in foglio['J']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='92CDDC', fill_type='solid') # colora il ranking IR_3Y
-                        for cell in foglio['P']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='31869B', fill_type='solid') # colora il ranking IR_3Y corretto
-                        for cell in foglio['T']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='DAEEF3', fill_type='solid') # colora il ranking IR_1Y
-                        for cell in foglio['Z']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='B7DEE8', fill_type='solid') # colora il ranking IR_1Y corretto
-                        for cell in foglio['O']:
-                            cell.number_format = '0.0000'
-                        for cell in foglio['Y']:
-                            cell.number_format = '0.0000'
-                        for cell in foglio['N']:
-                            cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                        for cell in foglio['X']:
-                            cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                    # elif sheet in micro_blend_classi_non_a_benchmark:
-                    else:
-                        foglio = wb[sheet] # attiva foglio
-                        for cell in foglio['H']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='92CDDC', fill_type='solid') # colora il ranking PERF_3Y
-                        for cell in foglio['N']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='31869B', fill_type='solid') # colora il ranking PERF_3Y corretto
-                        for cell in foglio['R']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='DAEEF3', fill_type='solid') # colora il ranking PERF_1Y
-                        for cell in foglio['X']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='B7DEE8', fill_type='solid') # colora il ranking PERF_1Y corretto
-                        for cell in foglio['M']:
-                            cell.number_format = '0.0000'
-                        for cell in foglio['W']:
-                            cell.number_format = '0.0000'
-                        for cell in foglio['L']:
-                            cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                        for cell in foglio['V']:
-                            cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                elif self.metodo == 'doppio':
-                    if sheet in self.classi_metodo_doppio.keys():
-                        foglio = wb[sheet] # attiva foglio
-                        for cell in foglio['F']:
-                            if cell.value == self.classi_metodo_doppio[sheet]: # filtra per micro blend
-                                cell.fill = PatternFill(fgColor="f4b084", fill_type='solid') # colora le micro blend
-                        for cell in foglio['G']:
-                            if cell.value == 'best': # filtra per best a 3 anni
-                                cell.fill = PatternFill(fgColor="ffd700", fill_type='solid') # colora i best che comandano a 3 anni
-                            elif cell.value == 'worst' and cell.offset(row=0, column=2).value != 'best': # filtra per worst a 3 anni che non sono best ad 1 anno
-                                cell.fill = PatternFill(fgColor="cda434", fill_type='solid') # colora i worst che comandano a 3 anni
-                        for cell in foglio['H']:
-                            if cell.value == 'semi_attivo':
-                                cell.fill = PatternFill(fgColor="f8787b", fill_type='solid') # colora i fondi semi attivi
-                            elif cell.value == 'attivo':
-                                cell.fill = PatternFill(fgColor="e9403e", fill_type='solid') # colora i fondi attivi
-                            elif cell.value == 'molto_attivo':
-                                cell.fill = PatternFill(fgColor="880001", fill_type='solid') # colora i fondi molto attivi
-                        for cell in foglio['I']:
-                            if cell.value == 'best' and cell.offset(row=0, column=-2).value != 'best': # filtra per best ad 1 anno che non sono best a 3 anni
-                                cell.fill = PatternFill(fgColor="ffd700", fill_type='solid') # colora i best che comandano ad 1 anno
-                            elif cell.value == 'worst' and cell.offset(row=0, column=-2).value != 'best' and cell.offset(row=0, column=-2).value != 'worst': # filtra per worst ad 1 anno che non sono nè best nè worst a 3 anni
-                                cell.fill = PatternFill(fgColor="cda434", fill_type='solid') # colora i worst che comandano ad 1 anno
-                        for cell in foglio['J']:
-                            if cell.value == 'semi_attivo':
-                                cell.fill = PatternFill(fgColor="f8787b", fill_type='solid') # colora i fondi semi attivi
-                            elif cell.value == 'attivo':
-                                cell.fill = PatternFill(fgColor="e9403e", fill_type='solid') # colora i fondi attivi
-                            elif cell.value == 'molto_attivo':
-                                cell.fill = PatternFill(fgColor="880001", fill_type='solid') # colora i fondi molto attivi
-                        for cell in foglio['K']:
-                            cell.alignment = Alignment(horizontal='center')
-                        for cell in foglio['L']:
-                            cell.alignment = Alignment(horizontal='center')
-                        for cell in foglio['M']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='4F81BD', fill_type='solid') # colora il ranking finale
-                        for cell in foglio['N']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                        for cell in foglio['O']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                        for cell in foglio['P']:
-                            cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                        for cell in foglio['Q']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                        for cell in foglio['R']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                        for cell in foglio['S']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                        for cell in foglio['T']:
-                            cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                        for cell in foglio['U']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                    # elif sheet not in micro_blend_classi_a_benchmark.keys():
-                    else:
-                        foglio = wb[sheet] # attiva foglio
-                        for cell in foglio['K']:
-                            cell.alignment = Alignment(horizontal='center')
-                            cell.fill = PatternFill(fgColor='4F81BD', fill_type='solid') # colora il ranking dell'indicatore corretto a 3 anni
-                        for cell in foglio['G']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                        for cell in foglio['H']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                        for cell in foglio['I']:
-                            cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                        for cell in foglio['J']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                        for cell in foglio['L']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                        for cell in foglio['M']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-                        for cell in foglio['N']:
-                            cell.number_format = numbers.FORMAT_PERCENTAGE_00
-                        for cell in foglio['O']:
-                            cell.number_format = numbers.FORMAT_NUMBER_00
-            elif self.intermediario == 'CRV':
+            if self.metodo == 'singolo':
+                if sheet in self.classi_metodo_singolo.keys():
+                    foglio = wb[sheet] # attiva foglio
+                    for cell in foglio['G']:
+                        if cell.value == self.classi_metodo_singolo[sheet]: # filtra per micro blend
+                            cell.fill = PatternFill(fgColor="f4b084", fill_type='solid') # colora le micro blend
+                    for cell in foglio['H']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='215967', fill_type='solid') # colora il ranking finale
+                    for cell in foglio['J']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='92CDDC', fill_type='solid') # colora il ranking IR_3Y
+                    for cell in foglio['P']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='31869B', fill_type='solid') # colora il ranking IR_3Y corretto
+                    for cell in foglio['T']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='DAEEF3', fill_type='solid') # colora il ranking IR_1Y
+                    for cell in foglio['Z']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='B7DEE8', fill_type='solid') # colora il ranking IR_1Y corretto
+                    for cell in foglio['O']:
+                        cell.number_format = '0.0000'
+                    for cell in foglio['Y']:
+                        cell.number_format = '0.0000'
+                    for cell in foglio['N']:
+                        cell.number_format = numbers.FORMAT_PERCENTAGE_00
+                    for cell in foglio['X']:
+                        cell.number_format = numbers.FORMAT_PERCENTAGE_00
+                # elif sheet in micro_blend_classi_non_a_benchmark:
+                else:
+                    foglio = wb[sheet] # attiva foglio
+                    for cell in foglio['H']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='92CDDC', fill_type='solid') # colora il ranking PERF_3Y
+                    for cell in foglio['N']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='31869B', fill_type='solid') # colora il ranking PERF_3Y corretto
+                    for cell in foglio['R']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='DAEEF3', fill_type='solid') # colora il ranking PERF_1Y
+                    for cell in foglio['X']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='B7DEE8', fill_type='solid') # colora il ranking PERF_1Y corretto
+                    for cell in foglio['M']:
+                        cell.number_format = '0.0000'
+                    for cell in foglio['W']:
+                        cell.number_format = '0.0000'
+                    for cell in foglio['L']:
+                        cell.number_format = numbers.FORMAT_PERCENTAGE_00
+                    for cell in foglio['V']:
+                        cell.number_format = numbers.FORMAT_PERCENTAGE_00
+            elif self.metodo == 'doppio':
+                if sheet in self.classi_metodo_doppio.keys():
+                    foglio = wb[sheet] # attiva foglio
+                    for cell in foglio['F']:
+                        if cell.value == self.classi_metodo_doppio[sheet]: # filtra per micro blend
+                            cell.fill = PatternFill(fgColor="f4b084", fill_type='solid') # colora le micro blend
+                    for cell in foglio['G']:
+                        if cell.value == 'best': # filtra per best a 3 anni
+                            cell.fill = PatternFill(fgColor="ffd700", fill_type='solid') # colora i best che comandano a 3 anni
+                        elif cell.value == 'worst' and cell.offset(row=0, column=2).value != 'best': # filtra per worst a 3 anni che non sono best ad 1 anno
+                            cell.fill = PatternFill(fgColor="cda434", fill_type='solid') # colora i worst che comandano a 3 anni
+                    for cell in foglio['H']:
+                        if cell.value == 'semi_attivo':
+                            cell.fill = PatternFill(fgColor="f8787b", fill_type='solid') # colora i fondi semi attivi
+                        elif cell.value == 'attivo':
+                            cell.fill = PatternFill(fgColor="e9403e", fill_type='solid') # colora i fondi attivi
+                        elif cell.value == 'molto_attivo':
+                            cell.fill = PatternFill(fgColor="880001", fill_type='solid') # colora i fondi molto attivi
+                    for cell in foglio['I']:
+                        if cell.value == 'best' and cell.offset(row=0, column=-2).value != 'best': # filtra per best ad 1 anno che non sono best a 3 anni
+                            cell.fill = PatternFill(fgColor="ffd700", fill_type='solid') # colora i best che comandano ad 1 anno
+                        elif cell.value == 'worst' and cell.offset(row=0, column=-2).value != 'best' and cell.offset(row=0, column=-2).value != 'worst': # filtra per worst ad 1 anno che non sono nè best nè worst a 3 anni
+                            cell.fill = PatternFill(fgColor="cda434", fill_type='solid') # colora i worst che comandano ad 1 anno
+                    for cell in foglio['J']:
+                        if cell.value == 'semi_attivo':
+                            cell.fill = PatternFill(fgColor="f8787b", fill_type='solid') # colora i fondi semi attivi
+                        elif cell.value == 'attivo':
+                            cell.fill = PatternFill(fgColor="e9403e", fill_type='solid') # colora i fondi attivi
+                        elif cell.value == 'molto_attivo':
+                            cell.fill = PatternFill(fgColor="880001", fill_type='solid') # colora i fondi molto attivi
+                    for cell in foglio['K']:
+                        cell.alignment = Alignment(horizontal='center')
+                    for cell in foglio['L']:
+                        cell.alignment = Alignment(horizontal='center')
+                    for cell in foglio['M']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='4F81BD', fill_type='solid') # colora il ranking finale
+                    for cell in foglio['N']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                    for cell in foglio['O']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                    for cell in foglio['P']:
+                        cell.number_format = numbers.FORMAT_PERCENTAGE_00
+                    for cell in foglio['Q']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                    for cell in foglio['R']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                    for cell in foglio['S']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                    for cell in foglio['T']:
+                        cell.number_format = numbers.FORMAT_PERCENTAGE_00
+                    for cell in foglio['U']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                # elif sheet not in micro_blend_classi_a_benchmark.keys():
+                else:
+                    foglio = wb[sheet] # attiva foglio
+                    for cell in foglio['K']:
+                        cell.alignment = Alignment(horizontal='center')
+                        cell.fill = PatternFill(fgColor='4F81BD', fill_type='solid') # colora il ranking dell'indicatore corretto a 3 anni
+                    for cell in foglio['G']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                    for cell in foglio['H']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                    for cell in foglio['I']:
+                        cell.number_format = numbers.FORMAT_PERCENTAGE_00
+                    for cell in foglio['J']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                    for cell in foglio['L']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                    for cell in foglio['M']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+                    for cell in foglio['N']:
+                        cell.number_format = numbers.FORMAT_PERCENTAGE_00
+                    for cell in foglio['O']:
+                        cell.number_format = numbers.FORMAT_NUMBER_00
+            elif self.metodo == 'normalizzazione':
                 # if sheet in micro_blend_classi_a_benchmark.keys() or sheet in micro_blend_classi_non_a_benchmark:
                 foglio = wb[sheet] # attiva foglio
                 for cell in foglio['H']: # colora il ranking finale
@@ -1962,16 +1966,13 @@ class Ranking():
     def autofit(self):
         """Imposta la miglior lunghezza per le colonne selezionate.
         """
-        if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
-            columns = range(1, 32)
-        elif self.intermediario == 'CRV':
-            columns = range(1, 21)
+        columns = range(1, 30)
         xls_file = win32com.client.Dispatch("Excel.Application")
         xls_file.visible = False
         wb = xls_file.Workbooks.Open(Filename=self.directory.joinpath('ranking.xlsx').__str__())
         # openpyxl_wb = load_workbook(filename='ranking.xlsx') # carica il file
         for ws in wb.Sheets:
-            for num, value in enumerate(columns):
+            for _, value in enumerate(columns):
                 if value > 0: # la colonna 0 e le negative non esistono
                     ws.Columns(value).AutoFit()
                 else:
@@ -1993,17 +1994,17 @@ class Ranking():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Ranking(intermediario='RAI')
-    # _.attività()
-    # _.indicatore_BS()
-    # _.calcolo_best_worst()
+    _ = Ranking(intermediario='CRV')
+    _.attività()
+    _.indicatore_BS()
+    _.calcolo_best_worst()
     # _.ranking_per_grado()
-    _.merge_completo_liste()
-    _.rank()
-    _.aggiunta_colonne() # TODO: testa 'fondo_equivalente' se RIPA.
-    _.rank_formatted()
-    _.aggiunta_prodotti_non_presenti()
-    _.autofit()
+    # _.merge_completo_liste()
+    # _.rank()
+    # _.aggiunta_colonne() # TODO: testa 'fondo_equivalente' se RIPA.
+    # _.rank_formatted()
+    # _.aggiunta_prodotti_non_presenti()
+    # _.autofit()
     # _.zip_file()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
