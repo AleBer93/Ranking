@@ -1,9 +1,9 @@
 import datetime
 import glob
+import math
 import os
 import time
 from pathlib import Path
-import math
 
 import dateutil.relativedelta
 import pandas as pd
@@ -23,28 +23,13 @@ from xbbg import blp
 
 
 class Completo():
-    # TODO: Per quanto riguarda la data t1, la posso salvare creando un metodo in completo.py
-    # che derivi dal file ottenuto con l'uso di concatenazione_liste_complete
-    # la 'Data di calcolo fine mese'. Questa deve essere o nulla o uguale per tutte
-    # le volte in cui non lo è. Quel dato lo salvo in un file di testo in docs, da cui
-    # le altre classi possono accedere.
-    # In questo modo scarico_liste.py è indipendente dall'intermediario e da t1.
-    # Da t1 sarà indipendente anche ranking.py
 
     def __init__(self, intermediario):
         """
         Arguments:
-            intermediario {str} = intermediario a cui è destinata l'analisi
-            t1 {datetime} = data di calcolo indici alla fine del mese
+            intermediario {str} - intermediario a cui è destinata l'analisi
         """
         self.intermediario = intermediario
-        # self.t1 = t1
-        # self.t0_3Y = (
-        #     datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+3)
-        # ).strftime("%d/%m/%Y") # data iniziale tre anni fa
-        # self.t0_1Y = (
-        #     datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)
-        # ).strftime("%d/%m/%Y") # data iniziale un anno fa
 
         # Directories
         directory = Path().cwd()
@@ -121,7 +106,8 @@ class Completo():
     def seleziona_colonne(self):
         """Seleziona le colonne desiderate dal file completo.csv
         """
-        colonne = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'SRI', 'Rischio 1 anno fine mese',
+        colonne = [
+            'Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'SRI', 'Rischio 1 anno fine mese',
             'Rischio 3 anni") fine mese', 'Alpha 1 anno fine mese', 'Info 1 anno fine mese', 'Alpha 3 anni") fine mese',
             'Info 3 anni") fine mese',
         ]
@@ -152,11 +138,6 @@ class Completo():
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def correzione_alfa_IR_nulli(self):
-        # TODO : fai uno scarico da quantalys con benchmark di default per tutti quei fondi che hanno alpha o IR pari a 0. 
-        # L'alfa scaricato da quantalys è in percentuale...
-        # quantalys assegna un valore pari a 0 all'information ratio se l'alpha è un numero del tipo 0.00*
-        # Purtroppo quantalys potrebbe scaricare di nuovo un IR pari a 0. E' conveniente scaricare anche la TEV e nel caso l'IR fosse 0
-        # anche nel nuovo scarico, ricavarlo come alpha / TEV.
         """
         Quantalys calcola l'alfa fino alla quarta cifra dopo la virgola,
         se le prime quatto cifre sono 0, l'alfa sarà 0, e così anche l'IR.
@@ -182,11 +163,13 @@ class Completo():
 
         # Individua i fondi che hanno un alfa a 3Y e un IR a 3Y pari a 0.
         alfa_nulli_3Y = df.loc[(df['Alpha 3 anni") fine mese']==0) | (df['Info 3 anni") fine mese']==0)]
-        print(alfa_nulli_3Y['Codice ISIN'].to_list())
+        if len(alfa_nulli_3Y['Codice ISIN'].to_list()) != 0:
+            print(alfa_nulli_3Y['Codice ISIN'].to_list())
         
         # Individua i fondi che hanno un alfa a 1Y e un IR a 1Y pari a 0.
         alfa_nulli_1Y = df.loc[(df['Alpha 1 anno fine mese']==0) & (df['Info 1 anno fine mese']==0)]
-        print(alfa_nulli_1Y['Codice ISIN'].to_list())
+        if len(alfa_nulli_1Y['Codice ISIN'].to_list()) != 0:
+            print(alfa_nulli_1Y['Codice ISIN'].to_list())
         
         if not alfa_nulli_3Y.empty or not alfa_nulli_1Y.empty:
             chrome_options = webdriver.ChromeOptions()
@@ -384,15 +367,17 @@ class Completo():
     def merge_completo_catalogo(self):
         """Concatena orizzontalmente i file completo.csv e catalogo_fondi.xlsx
         """
-        df_1 = pd.read_csv(self.file_completo, sep=";", decimal=',',index_col=None)
-        df_2 = pd.read_excel('catalogo_fondi.xlsx')
-        df_merged = pd.merge(df_1, df_2, left_on='Codice ISIN', right_on='isin', how='left')
-        print(f"Il primo file contiene {len(df_1)} fondi, mentre il secondo ne contiene {len(df_2)}.\
+        df_completo = pd.read_csv(self.file_completo, sep=";", decimal=',',index_col=None)
+        df_catalogo = pd.read_excel('catalogo_fondi.xlsx')
+        df_catalogo = df_catalogo[['isin', 'commissione']]
+        df_merged = pd.merge(df_completo, df_catalogo, left_on='Codice ISIN', right_on='isin', how='left')
+        print(f"Il primo file contiene {len(df_completo)} fondi, mentre il secondo ne contiene {len(df_catalogo)}.\
         \nL'unione dei due file contiene {len(df_merged)} fondi.\n")
         df_merged.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
     def assegna_macro(self):
-        """Assegna una macrocategoria ad ogni microcategoria."""
+        """Assegna una macrocategoria ad ogni microcategoria.
+        """
         BPPB_dict = {
             'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 'Monet. altre valute europee' : 'LIQ', 
             'Monetari altre valute europ' : 'LIQ', 
@@ -864,8 +849,7 @@ class Completo():
             return None
 
     def scarico_datadiavvio(self):
-        """
-        Scarica la data di avvio dei fondi nel file_bloomberg utilizzando la libreria di Bloomberg.
+        """Scarica la data di avvio dei fondi nel file_bloomberg utilizzando la libreria di Bloomberg.
         Aggiungi la data di avvio al file completo.
         """
         print("\nSto scaricando le dati di avvio dei fondi da Bloomberg...")
@@ -904,60 +888,6 @@ class Completo():
         df.columns = colonne_rinominate
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
 
-    def seleziona_e_rinomina_colonne_v1(self):
-        """
-        Seleziona solo le colonne utili del file completo.
-        Rinomina le colonne del file_excel.
-        """
-        if self.intermediario == 'BPPB':
-            if self.metodo == 'singolo':
-                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                    'commissione', 'Best_Worst_3Y', 'SFDR']
-                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 
-                    'commissione', 'Best_Worst', 'SFDR']
-            elif self.metodo == 'doppio':
-                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                    'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y', 
-                    'SFDR']
-                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
-                    'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y', 
-                    'SFDR']
-        elif self.intermediario == 'BPL':
-            if self.metodo == 'singolo':
-                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                    'commissione', 'Best_Worst_3Y']
-                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
-                    'commissione', 'Best_Worst']
-            elif self.metodo == 'doppio':
-                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                    'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
-                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
-                    'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
-        elif self.intermediario == 'CRV':
-            col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-            'commissione']
-            col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione']
-        elif self.intermediario == 'RIPA':
-            if self.metodo == 'doppio':
-                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                    'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
-                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
-                    'commissione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y', 'grado_gestione_1Y']
-        elif self.intermediario == 'RAI':
-            # Rispetto agli altri intermediari che utilizzano il metodo doppio, Raiffeisen si trascina la colonna
-            # 'anni_detenzione' in cui viene specificato l'anno di detenzione di ogni singolo fondo.
-            if self.metodo == 'doppio':
-                col_sel = ['Codice ISIN', 'Valuta', 'Nome del fondo', 'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt',
-                    'commissione', 'anni_detenzione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y',
-                    'grado_gestione_1Y']
-                col_ren = ['ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio',
-                    'commissione', 'anni_detenzione', 'BS_3_anni', 'Best_Worst_3Y', 'grado_gestione_3Y', 'BS_1_anno', 'Best_Worst_1Y',
-                    'grado_gestione_1Y']
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        df = df[col_sel]
-        df.columns = col_ren
-        df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
-
     def creazione_liste_input(self):
         """
         Crea file csv, con dimensioni massime pari a 1999 elementi, da importare in Quantalys.it.
@@ -977,7 +907,7 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='RAI')
+    _ = Completo(intermediario='CRV')
     # _.concatenazione_liste_complete()
     # _.individua_t1()
     # _.seleziona_colonne()
@@ -985,15 +915,12 @@ if __name__ == '__main__':
     # _.merge_completo_sfdr()
     # _.fondi_non_presenti()
     # _.correzione_micro_russe()
-    _.correzione_alfa_IR_nulli()
+    # _.correzione_alfa_IR_nulli()
     # _.merge_completo_catalogo()
-    # _.assegna_macro()
+    _.assegna_macro()
     # _.discriminazione_flessibili_e_bilanciati()
     # _.sconta_commissioni()
-        # _.scarico_datadiavvio()
-        # _.attività()
-        # _.indicatore_BS()
-        # _.calcolo_best_worst()
+    # _.scarico_datadiavvio()
     # _.seleziona_e_rinomina_colonne()
     # _.creazione_liste_input()
     end = time.perf_counter()
