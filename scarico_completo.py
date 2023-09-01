@@ -43,7 +43,8 @@ class ScaricoCompleto():
             "download.default_directory" : self.directory_output_liste_complete.__str__(),
             "download.directory_upgrade" : True}
         )
-        service = Service(ChromeDriverManager().install())
+        # service = Service(ChromeDriverManager().install()
+        service = Service()
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
     
     def export(self):
