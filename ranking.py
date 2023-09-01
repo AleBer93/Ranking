@@ -4,6 +4,7 @@ import os
 import time
 import zipfile
 from pathlib import Path
+import numpy as np
 
 import dateutil.relativedelta
 import numpy as np
@@ -34,12 +35,19 @@ class Ranking():
             t1 = f.read()
         t1 = datetime.datetime.strptime(t1, '%Y-%m-%d').strftime("%d/%m/%Y")
         self.t1 = t1
-        self.t0_3Y = (
+        # self.t0_3Y = (
+        #     datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+3)
+        # ).strftime("%d/%m/%Y") # data iniziale tre anni fa
+        self.t0_3Y = np.datetime64(
             datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+3)
-        ).strftime("%d/%m/%Y") # data iniziale tre anni fa
-        self.t0_1Y = (
+        ) # data iniziale tre anni fa
+
+        # self.t0_1Y = (
+        #     datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)
+        # ).strftime("%d/%m/%Y") # data iniziale un anno fa
+        self.t0_1Y = np.datetime64(
             datetime.datetime.strptime(self.t1, '%d/%m/%Y') - dateutil.relativedelta.relativedelta(days=-1, years=+1)
-        ).strftime("%d/%m/%Y") # data iniziale un anno fa
+        ) # data iniziale un anno fa
 
         # Directories
         directory = Path().cwd()
@@ -53,6 +61,10 @@ class Ranking():
         self.file_zip = 'rank.zip'
 
         match intermediario:
+            # TODO: crea un dizionario chiamato self.metodi in cui per ogni macro viene indicato il metodo di ranking
+            # da utilizzare. Andrà a sostituire self.metodo. Questo permette di generalizzare ulteriormente questo file
+            # e CRV avrà il metodo doppio alla loro maniera per le classi a benchmark inclusa la liqudità, e il metodo
+            # normalizzazione per le altre.
             case 'BPPB':
                 self.metodo = 'doppio'
                 self.soluzioni = {
@@ -77,7 +89,7 @@ class Ranking():
                     'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB',
                     'OBB_EM', 'OBB_HY'
                 ]
-                self.SOR_DSR = ['FLEX_BVOL, FLEX_MAVOL']
+                self.SOR_DSR = ['FLEX_BVOL', 'FLEX_MAVOL']
                 self.SHA_VOL = ['OPP']
                 self.PER_VOL = ['LIQ']
             case 'BPL':
@@ -110,7 +122,7 @@ class Ranking():
                 self.SHA_VOL = ['OPP']
                 self.PER_VOL = ['LIQ', 'LIQ_FOR']
             case 'CRV':
-                self.metodo = 'doppio'
+                self.metodo = 'normalizzazione'
                 # self.metodo = 'normalizzazione'
                 self.soluzioni = {
                     'LIQ' : 4, 'OBB_EUR_BT' : 4, 'OBB_EUR_MLT' : 4, 'OBB_EUR_CORP' : 4, 'OBB_GLOB' : 4, 'OBB_EM' : 4,
@@ -126,7 +138,7 @@ class Ranking():
                 self.anni_detenzione = 3
                 self.IR_TEV = [
                     'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB',
-                    'OBB_EM', 'OBB_HY'
+                    'OBB_EM', 'OBB_HY',
                 ]
                 self.SOR_DSR = ['FLEX_PR', 'FLEX_DIN']
                 self.SHA_VOL = ['OPP']
@@ -206,11 +218,11 @@ class Ranking():
             'AZ_TEC' : [0.06, 0.14], 'AZ_TEL' : [0.05, 0.15], 'AZ_ORO' : [0.08, 0.15], 'AZ_BEAR' : [0.08, 0.15],
         }
 
-        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
-        df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
         if self.metodo == 'singolo' or self.metodo == 'normalizzazione':
             return None
-        elif self.metodo == 'doppio':
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
+        if self.metodo == 'doppio':
             df.loc[(df['micro_categoria'].isin(list(self.classi_metodo_doppio.values()))) &
                 (df['data_di_avvio'] < self.t0_3Y) & (df['Alpha 3 anni") fine mese'].notnull()), 'TEV_3Y'
             ] = df['Alpha 3 anni") fine mese'] / df['Info 3 anni") fine mese']
@@ -246,15 +258,15 @@ class Ranking():
              Nel loro caso sono costretto a portarmi dietro la colonna 'anni_detenzione' che indica gli anni di
              detenzione per singolo fondo.
         """
-
+        if self.metodo == 'normalizzazione':
+            return None
         df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
-        if self.metodo == 'singolo' or self.metodo == 'normalizzazione':
-            df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
+        df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
+        if self.metodo == 'singolo':
             df.loc[
                 (df['macro_categoria'].isin(list(self.classi_metodo_singolo.keys()))) & (df['data_di_avvio'] < self.t0_3Y), 'BS_3_anni'
             ] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 3 anni") fine mese'])
         elif self.metodo == 'doppio':
-            df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
             if self.intermediario != 'RAI':
                 df.loc[
                     (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_3Y), 'BS_3_anni'
@@ -263,15 +275,21 @@ class Ranking():
                     (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_1Y), 'BS_1_anno'
                 ] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (int(self.anni_detenzione) * df['Alpha 1 anno fine mese'])
             elif self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per singolo fondo
-                df_catalogo = pd.read_excel(self.file_catalogo, index_col=None, usecols=['isin', 'anni_detenzione'])
-                # Merge tra completo e catalogo per aggiungere la colonna anni_detenzione
-                df = pd.merge(left=df, right=df_catalogo, left_on='ISIN', right_on='isin')
+                if 'anni_detenzione' not in df.columns:
+                    print('aggiungo la colonna "anni_detenzione"')
+                    # Merge tra completo e catalogo per aggiungere la colonna anni_detenzione
+                    df_catalogo = pd.read_excel(self.file_catalogo, index_col=None, usecols=['isin', 'anni_detenzione'])
+                    df = pd.merge(left=df, right=df_catalogo, left_on='ISIN', right_on='isin')
+                else:
+                    print('la colonna "anni detenzione" esiste già')
                 df.loc[
                     (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_3Y), 'BS_3_anni'
                 ] = df['Info 3 anni") fine mese'] - (df['Info 3 anni") fine mese'] * df['commissione']) / (df['anni_detenzione'] * df['Alpha 3 anni") fine mese'])
                 df.loc[
                     (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_1Y), 'BS_1_anno'
                 ] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (df['anni_detenzione'] * df['Alpha 1 anno fine mese'])
+        elif self.metodo == 'normalizzazione':
+            return None
         df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
 
     def calcolo_best_worst(self):
@@ -289,6 +307,9 @@ class Ranking():
         in base al primo quartile.
         3. NON PIU' VALIDO I fondi con più di un anno di vita che sono best a 3 anni o best ad 1 anno, sono best, altrimenti worst.
         """
+        
+        if self.metodo == 'normalizzazione':
+            return None
 
         df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
         df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
@@ -350,8 +371,6 @@ class Ranking():
                         ] = df.loc[(df['macro_categoria'] == macro) & (df['micro_categoria'] == micro) & (df['data_di_avvio'] < self.t0_1Y)
                             & (df['BS_1_anno'].notnull()), 'BS_1_anno'].apply(lambda x: 'worst' if x < primo_quartile else 'best')
             # df['Best_Worst'] = df['Best_Worst_3Y'].replace('worst', np.nan).fillna(df['Best_Worst_1Y'])
-        elif self.metodo == 'normalizzazione':
-            return None
         df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
 
     def ranking_per_grado(self):
@@ -522,12 +541,19 @@ class Ranking():
         # TODO: Devo verificare se i fondi che non sono stati scaricati da Quantalys, non siano stati classificati come best nel processo
         precedente altrimenti sorgerebbe un problema.
         """
-        df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
-        colonne = [
-            'ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione',
-            'SFDR', 'grado_gestione_3Y', 'grado_gestione_1Y', 'Best_Worst_3Y', 'Best_Worst_1Y', 'ranking_per_grado_3Y',
-            'ranking_per_grado_1Y', 
-        ]
+        if self.metodo == 'normalizzazione':
+            df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+            colonne = [
+                'ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione',
+                'SFDR',
+            ]
+        elif self.metodo == 'doppio':
+            df = pd.read_csv(self.file_ranking_bw, sep=";", decimal=',', index_col=None)
+            colonne = [
+                'ISIN', 'valuta', 'nome', 'micro_categoria', 'macro_categoria', 'data_di_avvio', 'commissione',
+                'SFDR', 'grado_gestione_3Y', 'grado_gestione_1Y', 'Best_Worst_3Y', 'Best_Worst_1Y', 'ranking_per_grado_3Y',
+                'ranking_per_grado_1Y', 
+            ]
         df = df[colonne]
         print('sto aggiungendo gli indici delle liste al file completo...\n')
 
@@ -662,8 +688,8 @@ class Ranking():
         print("sto facendo l'ordinamento dei fondi\n")
         df = pd.read_excel(self.file_ranking, index_col=None)
         df['data_di_avvio'] = pd.to_datetime(df['data_di_avvio'], dayfirst=True)
-        df_catalogo = pd.read_excel(self.file_catalogo, index_col=None, usecols=['isin', 'anni_detenzione'])
         if self.intermediario == 'RAI': # Raiffeisen specifica gli anni di detenzione per singolo fondo
+            df_catalogo = pd.read_excel(self.file_catalogo, index_col=None, usecols=['isin', 'anni_detenzione'])
             # Merge tra completo e catalogo per aggiungere la colonna anni_detenzione
             df = pd.merge(left=df, right=df_catalogo, left_on='ISIN', right_on='isin')
         writer = pd.ExcelWriter(self.file_ranking,  engine='xlsxwriter') # pylint: disable=abstract-class-instantiated
@@ -955,6 +981,49 @@ class Ranking():
                         if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
                         foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'IR_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                 
+                    ### TEST ###
+                    if self.intermediario == 'CRV':
+                        # Da 9 a 0
+                        foglio.loc[
+                            (foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') &
+                            (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'punteggio_finale'
+                        ] = 9
+                        foglio.loc[
+                            (foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') &
+                            (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])),
+                            'punteggio_finale'
+                        ] = 8
+                        foglio.loc[
+                            (foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') &
+                            (foglio['IR_corretto_3Y'].notnull()), 'punteggio_finale'
+                        ] = 7
+                        foglio.loc[
+                            (foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') &
+                            (foglio['Best_Worst_1Y'] == 'best') & (foglio['IR_corretto_1Y'].notnull()), 'punteggio_finale'
+                        ] = 6
+                        foglio.loc[
+                            (foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') &
+                            (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])),
+                            'punteggio_finale'
+                        ] = 5
+                        foglio.loc[
+                            (foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) &
+                            (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])),
+                            'punteggio_finale'
+                        ] = 4
+                        foglio.loc[
+                            (foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') &
+                            (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_3Y'].notnull()), 'punteggio_finale'
+                        ] = 3
+                        foglio.loc[
+                            (foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) &
+                            (foglio['Best_Worst_1Y'] == 'worst') & (foglio['IR_corretto_1Y'].notnull()), 'punteggio_finale'
+                        ] = 2
+                        foglio.loc[
+                            (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'].isnull()), 'punteggio_finale'
+                        ] = 1
+                    ########
+                
                 # Metodo normalizzazione
                 elif self.metodo == 'normalizzazione':
                     # Creazione IR_corretto_1Y
@@ -982,29 +1051,7 @@ class Ranking():
                     foglio['ranking_finale'] = foglio['ranking_finale_3Y'].fillna(foglio['ranking_finale_1Y'])
                     foglio['podio'] = foglio['ranking_finale'].apply(lambda ranking: 'bronzo' if ranking <= 3.0 else 'argento' if ranking <= 6.0 else 'oro' if ranking <= 9.1 else '')
 
-                # Seleziona colonne utili
-                if self.metodo == 'singolo':
-                    foglio = foglio[
-                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'Best_Worst', 'micro_categoria', 'ranking_finale',
-                        'Information_Ratio_3Y', 'ranking_IR_3Y', 'quartile_IR_3Y', 'terzile_IR_3Y', 'TEV_3Y', 'commissione',
-                        'IR_corretto_3Y', 'ranking_IR_3Y_corretto', 'quartile_IR_corretto_3Y', 'terzile_IR_corretto_3Y',
-                        'Information_Ratio_1Y', 'ranking_IR_1Y', 'quartile_IR_1Y', 'terzile_IR_1Y', 'TEV_1Y', 'commissione',
-                        'IR_corretto_1Y', 'ranking_IR_1Y_corretto', 'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'SFDR', 'note']
-                    ]
-                elif self.metodo == 'doppio':
-                    foglio = foglio[
-                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 
-                        'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale',
-                        'Information_Ratio_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y',
-                        'commissione', 'IR_corretto_1Y', 'SFDR', 'note']
-                    ]
-                elif self.metodo == 'normalizzazione':
-                    foglio = foglio[
-                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y',
-                        'ranking_finale_1Y', 'Information_Ratio_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 
-                        'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']
-                    ]
-
+                
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
                 # Ordinamento finale
@@ -1018,7 +1065,40 @@ class Ranking():
                     foglio['ranking_finale'] = foglio['ranking_finale'].fillna('ND')
                 # Reindex
                 foglio.reset_index(drop=True, inplace=True)
-                
+
+                # Seleziona colonne utili
+                if self.metodo == 'singolo':
+                    foglio = foglio[
+                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'Best_Worst', 'micro_categoria', 'ranking_finale',
+                        'Information_Ratio_3Y', 'ranking_IR_3Y', 'quartile_IR_3Y', 'terzile_IR_3Y', 'TEV_3Y', 'commissione',
+                        'IR_corretto_3Y', 'ranking_IR_3Y_corretto', 'quartile_IR_corretto_3Y', 'terzile_IR_corretto_3Y',
+                        'Information_Ratio_1Y', 'ranking_IR_1Y', 'quartile_IR_1Y', 'terzile_IR_1Y', 'TEV_1Y', 'commissione',
+                        'IR_corretto_1Y', 'ranking_IR_1Y_corretto', 'quartile_IR_corretto_1Y', 'terzile_IR_corretto_1Y', 'SFDR', 'note']
+                    ]
+                elif self.metodo == 'doppio':
+                    ### TEST ###
+                    if self.intermediario == 'CRV':
+                        foglio = foglio[
+                            ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 
+                            'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'punteggio_finale',
+                            'Information_Ratio_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y',
+                            'commissione', 'IR_corretto_1Y', 'SFDR', 'note']
+                        ]
+                    #######
+                    else:
+                        foglio = foglio[
+                            ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 
+                            'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale',
+                            'Information_Ratio_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 'TEV_1Y',
+                            'commissione', 'IR_corretto_1Y', 'SFDR', 'note']
+                        ]
+                elif self.metodo == 'normalizzazione':
+                    foglio = foglio[
+                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale', 'ranking_finale_3Y',
+                        'ranking_finale_1Y', 'Information_Ratio_3Y', 'TEV_3Y', 'commissione', 'IR_corretto_3Y', 'Information_Ratio_1Y', 
+                        'TEV_1Y', 'commissione', 'IR_corretto_1Y', 'note']
+                    ]
+
                 # Crea foglio
                 foglio.to_excel(writer, sheet_name=macro)
 
@@ -1336,9 +1416,9 @@ class Ranking():
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
                 # Ordinamento finale
-                if self.intermediario == 'BPPB' or self.intermediario == 'BPL' or self.intermediario == 'RIPA' or self.intermediario == 'RAI':
+                if self.metodo == 'singolo' or self.metodo == 'doppio':
                     foglio.sort_values('ranking_SH_3Y_corretto', ascending=True, inplace=True)
-                elif self.intermediario == 'CRV':
+                elif self.metodo == 'normalizzazione':
                     foglio.sort_values('ranking_finale', ascending=False, inplace=True)
                     # Etichetta ND per i fondi senza dati
                     foglio['ranking_finale_1Y'] = foglio['ranking_finale_1Y'].fillna('ND')
@@ -1581,6 +1661,49 @@ class Ranking():
                         if math.isnan(ultimo_elemento_ordinato): ultimo_elemento_ordinato = 0
                         foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'ranking_finale'] = foglio.loc[(foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'PERF_corretto_1Y'].rank(method='first', na_option='bottom', ascending=False) + ultimo_elemento_ordinato
                 
+                    ### TEST ###
+                    if self.intermediario == 'CRV':
+                        # Da 9 a 0
+                        foglio.loc[
+                            (foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') &
+                            (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])), 'punteggio_finale'
+                        ] = 9
+                        foglio.loc[
+                            (foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') &
+                            (foglio['Best_Worst_1Y'] == 'best') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])),
+                            'punteggio_finale'
+                        ] = 8
+                        foglio.loc[
+                            (foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'best') &
+                            (foglio['PERF_corretto_3Y'].notnull()), 'punteggio_finale'
+                        ] = 7
+                        foglio.loc[
+                            (foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] != 'best') &
+                            (foglio['Best_Worst_3Y'] == 'best') & (foglio['PERF_corretto_1Y'].notnull()), 'punteggio_finale'
+                        ] = 6
+                        foglio.loc[
+                            (foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') &
+                            (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_3Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])),
+                            'punteggio_finale'
+                        ] = 5
+                        foglio.loc[
+                            (foglio['micro_categoria'] == self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) &
+                            (foglio['Best_Worst_1Y'] == 'worst') & (foglio['grado_gestione_1Y'].isin(['molto_attivo', 'attivo', 'semi_attivo'])),
+                            'punteggio_finale'
+                        ] = 4
+                        foglio.loc[
+                            (foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'] == 'worst') &
+                            (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_3Y'].notnull()), 'punteggio_finale'
+                        ] = 3
+                        foglio.loc[
+                            (foglio['micro_categoria'] != self.classi_metodo_doppio[macro]) & (foglio['Best_Worst_3Y'].isnull()) &
+                            (foglio['Best_Worst_1Y'] == 'worst') & (foglio['PERF_corretto_1Y'].notnull()), 'punteggio_finale'
+                        ] = 2
+                        foglio.loc[
+                            (foglio['Best_Worst_3Y'].isnull()) & (foglio['Best_Worst_1Y'].isnull()), 'punteggio_finale'
+                        ] = 1
+                    ########
+
                 # Metodo normalizzazione
                 elif self.metodo == 'normalizzazione':
                     # Creazione PERF_corretto_1Y
@@ -1600,60 +1723,6 @@ class Ranking():
                     foglio['ranking_finale'] = foglio['ranking_finale_3Y'].fillna(foglio['ranking_finale_1Y'])
                     foglio['podio'] = foglio['ranking_finale'].apply(lambda ranking: 'bronzo' if ranking <= 3.0 else 'argento' if ranking <= 6.0 else 'oro' if ranking <= 9.1 else '')
                 
-                # Seleziona colonne utili
-                if self.metodo == 'singolo':
-                    foglio = foglio[
-                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'ranking_PERF_3Y',
-                        'quartile_PERF_3Y', 'terzile_PERF_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y',
-                        'ranking_PERF_3Y_corretto', 'quartile_PERF_corretto_3Y', 'terzile_PERF_corretto_3Y', 'Perf_1Y',
-                        'ranking_PERF_1Y', 'quartile_PERF_1Y', 'terzile_PERF_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y',
-                        'ranking_PERF_1Y_corretto', 'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'SFDR', 'note']
-                    ]
-                elif self.metodo == 'doppio' and macro == 'LIQ_FOR':
-                    foglio = foglio[
-                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'Vol_3Y', 'commissione',
-                        'PERF_corretto_3Y', 'ranking_PERF_3Y_corretto', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y',
-                        'ranking_PERF_1Y_corretto', 'note']
-                    ]
-                elif self.metodo == 'doppio' and macro != 'LIQ_FOR':
-                    foglio = foglio[
-                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y',
-                        'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale',
-                        'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione',
-                        'PERF_corretto_1Y', 'note']
-                    ]
-                elif self.metodo == 'normalizzazione':
-                    foglio = foglio[
-                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale',
-                        'ranking_finale_3Y', 'ranking_finale_1Y', 'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y',
-                        'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']
-                    ]
-                # if self.intermediario == 'BPPB':
-                #     if self.metodo == 'doppio':
-                #         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 
-                #             'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Perf_3Y', 'Vol_3Y', 'commissione', 
-                #             'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'SFDR', 'note']]
-                # elif self.intermediario == 'BPL':
-                #     if self.metodo == 'doppio' and macro == 'LIQ_FOR':
-                #         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 
-                #             'ranking_PERF_3Y_corretto', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'ranking_PERF_1Y_corretto', 'note']]
-                #     elif self.metodo == 'doppio' and macro != 'LIQ_FOR':
-                #         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 
-                #             'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Perf_3Y', 'Vol_3Y', 'commissione', 
-                #             'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']]
-                # elif self.intermediario == 'RIPA':
-                #     if self.metodo == 'doppio':
-                #         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y',
-                #             'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Perf_3Y', 'Vol_3Y', 'commissione',
-                #             'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']]
-                # elif self.intermediario == 'RAI':
-                #     if self.metodo == 'doppio' and macro == 'LIQ_FOR':
-                #         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 
-                #             'ranking_PERF_3Y_corretto', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'ranking_PERF_1Y_corretto', 'note']]
-                #     elif self.metodo == 'doppio' and macro != 'LIQ_FOR':
-                #         foglio = foglio[['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 'Best_Worst_1Y', 
-                #             'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale', 'Perf_3Y', 'Vol_3Y', 'commissione', 
-                #             'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']]
 
                 # Cambio formato data
                 foglio['data_di_avvio'] = foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
@@ -1671,6 +1740,45 @@ class Ranking():
                 # Reindex
                 foglio.reset_index(drop=True, inplace=True)
 
+                # Seleziona colonne utili
+                if self.metodo == 'singolo':
+                    foglio = foglio[
+                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'ranking_PERF_3Y',
+                        'quartile_PERF_3Y', 'terzile_PERF_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y',
+                        'ranking_PERF_3Y_corretto', 'quartile_PERF_corretto_3Y', 'terzile_PERF_corretto_3Y', 'Perf_1Y',
+                        'ranking_PERF_1Y', 'quartile_PERF_1Y', 'terzile_PERF_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y',
+                        'ranking_PERF_1Y_corretto', 'quartile_PERF_corretto_1Y', 'terzile_PERF_corretto_1Y', 'SFDR', 'note']
+                    ]
+                elif self.metodo == 'doppio' and macro == 'LIQ_FOR':
+                    foglio = foglio[
+                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Perf_3Y', 'Vol_3Y', 'commissione',
+                        'PERF_corretto_3Y', 'ranking_PERF_3Y_corretto', 'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y',
+                        'ranking_PERF_1Y_corretto', 'note']
+                    ]
+                elif self.metodo == 'doppio' and macro != 'LIQ_FOR':
+                    ### TEST ###
+                    if self.intermediario == 'CRV':
+                        foglio = foglio[
+                            ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y',
+                            'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'punteggio_finale',
+                            'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione',
+                            'PERF_corretto_1Y', 'note']
+                        ]
+                    #######
+                    else:
+                        foglio = foglio[
+                            ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y',
+                            'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'ranking_finale',
+                            'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y', 'Perf_1Y', 'Vol_1Y', 'commissione',
+                            'PERF_corretto_1Y', 'note']
+                        ]
+                elif self.metodo == 'normalizzazione':
+                    foglio = foglio[
+                        ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'podio', 'ranking_finale',
+                        'ranking_finale_3Y', 'ranking_finale_1Y', 'Perf_3Y', 'Vol_3Y', 'commissione', 'PERF_corretto_3Y',
+                        'Perf_1Y', 'Vol_1Y', 'commissione', 'PERF_corretto_1Y', 'note']
+                    ]
+
                 # Crea foglio
                 foglio.to_excel(writer, sheet_name=macro)
 
@@ -1684,8 +1792,8 @@ class Ranking():
             colonne = ['fondo_a_finestra']
         elif self.intermediario == 'CRV':
             colonne = ['nome']
-        elif self.intermediario == 'RIPA':
-            colonne = ['fondo_equivalente']
+        # elif self.intermediario == 'RIPA':
+        #     colonne = ['fondo_equivalente']
         else:
             return None
         # Carica file_catalogo
@@ -1715,7 +1823,7 @@ class Ranking():
         # Colora le micro blend
         print('sto formattando il file di ranking...\n')
 
-        for sheet in wb.sheetnames: 
+        for sheet in wb.sheetnames:
             if self.metodo == 'singolo':
                 if sheet in self.classi_metodo_singolo.keys():
                     foglio = wb[sheet] # attiva foglio
@@ -1994,10 +2102,10 @@ class Ranking():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Ranking(intermediario='CRV')
-    _.attività()
+    _ = Ranking(intermediario='RAI')
+    # _.attività()
     _.indicatore_BS()
-    _.calcolo_best_worst()
+    # _.calcolo_best_worst()
     # _.ranking_per_grado()
     # _.merge_completo_liste()
     # _.rank()
