@@ -49,7 +49,8 @@ class Scarico():
             "download.directory_upgrade": True}
             )
         # API dove trovare il chromedriver aggiornato -> https://chromedriver.storage.googleapis.com/index.html
-        service = Service(ChromeDriverManager().install())
+        # service = Service(ChromeDriverManager().install())
+        service = Service()
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
         self.classi_a_benchmark = {
