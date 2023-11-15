@@ -19,7 +19,12 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 class Scarico():
 
-    def __init__(self):
+    def __init__(self, intermediario):
+        """
+        Arguments:
+            intermediario {str} - intermediario a cui è destinata l'analisi
+        """
+        self.intermediario = intermediario
         with open('docs/t1.txt') as f:
             t1 = f.read()
         t1 = datetime.datetime.strptime(t1, '%Y-%m-%d').strftime("%d/%m/%Y")
@@ -53,13 +58,60 @@ class Scarico():
         service = Service()
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
-        self.classi_a_benchmark = {
+        match intermediario:
+            case 'BPPB':
+                self.IR_TEV = [
+                    'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB',
+                    'OBB_EM', 'OBB_HY'
+                ]
+                self.SOR_DSR = ['FLEX_BVOL', 'FLEX_MAVOL']
+                self.SHA_VOL = ['OPP']
+                self.PER_VOL = ['LIQ']
+            case 'BPL':
+                self.IR_TEV = [
+                    'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP',
+                    'OBB_GLOB', 'OBB_USA', 'OBB_EM', 'OBB_HY'
+                ]
+                self.SOR_DSR = ['BIL_MBVOL', 'BIL_AVOL', 'FLEX_PR', 'FLEX_DIN']
+                self.SHA_VOL = ['OPP']
+                self.PER_VOL = ['LIQ', 'LIQ_FOR']
+            case 'CRV':
+                self.IR_TEV = [
+                    'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR_CORP', 'OBB_GLOB',
+                    'OBB_EM', 'OBB_HY',
+                ]
+                self.SOR_DSR = ['FLEX_PR', 'FLEX_DIN']
+                self.SHA_VOL = ['OPP']
+                self.PER_VOL = ['LIQ']
+            case 'RIPA':                
+                self.IR_TEV = [
+                    'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_HY', 
+                    'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'AZ_BIO', 'AZ_BDC', 'AZ_FIN', 'AZ_AMB', 'AZ_IMM', 'AZ_IND', 
+                    'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR', 'FLEX_PR', 'FLEX_DIN', 
+                ]
+                self.SOR_DSR = ['COMM', 'PERF_ASS']
+                self.SHA_VOL = []
+                self.PER_VOL = ['LIQ']
+            case 'RAI':
+                self.IR_TEV = [
+                    'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_USA', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_EM', 'OBB_HY', 
+                    'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 
+                ]
+                self.SOR_DSR = ['BIL_PR', 'BIL_EQ', 'BIL_AGG', 'FLEX_PR', 'FLEX_DIN']
+                self.SHA_VOL = ['OPP']
+                self.PER_VOL = ['LIQ', 'LIQ_FOR']
+            case _:
+                print('specifica un intermediario')
+                quit()
+
+        self.benchmarks = {
             'AZ_EUR': '2320', 'AZ_NA': '2453', 'AZ_PAC': '2325', 'AZ_EM': '2598', 'AZ_GLOB': '2318',
             'AZ_BIO' : '2240', 'AZ_BDC' : '2318', 'AZ_FIN' : '2716', 'AZ_AMB' : '2318', 'AZ_IMM' : '2187',
             'AZ_IND' : '2175', 'AZ_ECO' : '2174', 'AZ_SAL' : '2178', 'AZ_SPU' : '2181', 'AZ_TEC' : '2179',
             'AZ_TEL' : '2180', 'AZ_ORO' : '2318', 'AZ_BEAR' : '2318',
             'OBB_EUR_BT': '2265', 'OBB_EUR_MLT': '2264', 'OBB_EUR': '2255', 'OBB_EUR_CORP': '2272', 'OBB_GLOB': '2309',
-            'OBB_USA': '2490', 'OBB_JAP' : '2309', 'OBB_EM': '2476', 'OBB_HY': '2293',
+            'OBB_USA': '2490', 'OBB_JAP' : '2309', 'OBB_EM': '2476', 'OBB_HY': '2293', 
+            'FLEX_PR': '2706', 'FLEX_DIN': '2707', 
         }
 
     def export(self):
@@ -115,28 +167,45 @@ class Scarico():
             )
             self.driver.find_element(by=By.TAG_NAME, value='body').send_keys(Keys.PAGE_DOWN)
             time.sleep(0.5) # altrimenti non centra il doppio click su 'aggiorna'
-            if filename.startswith('AZ') or filename.startswith('OBB'):
+            if filename[:-6] in self.IR_TEV:
                 q.aggiungi_indicatori_v2(
                     self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Information ratio da data a data', 'TEV da data a data'
                 )
-            elif filename.startswith('FLEX') or filename.startswith('BIL') or filename.startswith('COMM') or filename.startswith('PERF'):
+            elif filename[:-6] in self.SOR_DSR:
                 q.aggiungi_indicatori_v2(
                     self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Sortino ratio da data a data', 'DSR da data a data'
                 )
-            elif filename.startswith('OPP'):
+            elif filename[:-6] in self.SHA_VOL:
                 q.aggiungi_indicatori_v2(
                     self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Sharpe ratio da data a data', 'Volatilità da data a data'
                 )
-            elif filename.startswith('LIQ'):
+            elif filename[:-6] in self.PER_VOL:
                 q.aggiungi_indicatori_v2(
                     self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Perf Ann. da data a data', 'Volatilità da data a data'
                 )
 
+            # if filename.startswith('AZ') or filename.startswith('OBB'):
+            #     q.aggiungi_indicatori_v2(
+            #         self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Information ratio da data a data', 'TEV da data a data'
+            #     )
+            # elif filename.startswith('FLEX') or filename.startswith('BIL') or filename.startswith('COMM') or filename.startswith('PERF'):
+            #     q.aggiungi_indicatori_v2(
+            #         self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Sortino ratio da data a data', 'DSR da data a data'
+            #     )
+            # elif filename.startswith('OPP'):
+            #     q.aggiungi_indicatori_v2(
+            #         self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Sharpe ratio da data a data', 'Volatilità da data a data'
+            #     )
+            # elif filename.startswith('LIQ'):
+            #     q.aggiungi_indicatori_v2(
+            #         self.driver, 'Codice ISIN', 'Nome', 'Valuta', 'Perf Ann. da data a data', 'Volatilità da data a data'
+            #     )
+
             # Aggiungi benchmark
-            if filename[:-6] in self.classi_a_benchmark.keys():
+            if filename[:-6] in self.benchmarks.keys():
                 self.driver.find_element(by=By.ID, value='Contenu_Contenu_rdIndiceRefTousFonds').click()
                 select = Select(self.driver.find_element(by=By.ID, value='Contenu_Contenu_cmbIndiceRef_Comp'))
-                select.select_by_value(self.classi_a_benchmark[filename[:-6]])
+                select.select_by_value(self.benchmarks[filename[:-6]])
                 # time.sleep(1.5) # troppo veloce
             
             # Aggiorna indicatori / benchmark lista personalizzato
@@ -253,7 +322,7 @@ class Scarico():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Scarico()
+    _ = Scarico('RIPA')
     _.export()
     end = time.perf_counter()
     print("Elapsed time: ", end - start, 'seconds')
