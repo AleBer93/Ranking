@@ -62,7 +62,7 @@ class Ranking():
         self.file_zip = 'rank.zip'
 
         match intermediario:
-            # TODO: estendi il metodo classifica con linearizzazione anche a IR  e PERF
+            # TODO: estendi il metodo classifica con linearizzazione anche a IR e PERF
             # più in generale gli indicatori che possono usare il metodo classifica con linearizzazione sono quelli
             # che possono usare la funzione sottostnte chiamata classifica. Stesso discorso per doppio con linearizzazione.
             # da utilizzare. Andrà a sostituire self.metodo. Questo permette di generalizzare ulteriormente questo file
@@ -140,11 +140,11 @@ class Ranking():
                 self.PER_VOL = ['LIQ', 'LIQ_FOR']
             case 'CRV':
                 self.metodo = 'doppio'
-                self.metodi = {'AZ_EUR': 'doppio', 'AZ_NA': 'doppio_con_linearizzazione', 'AZ_PAC': 'classifica', 
-                    'AZ_EM': 'classifica_con_linearizzazione', 'AZ_GLOB': 'linearizzazione',
-                    'OBB_EUR_BT': 'doppio_con_linearizzazione', 'OBB_EUR_MLT': 'doppio_con_linearizzazione', 'OBB_EUR_CORP': 'doppio_con_linearizzazione', 
-                    'OBB_GLOB': 'doppio_con_linearizzazione', 'OBB_EM': 'doppio_con_linearizzazione', 'OBB_HY': 'doppio_con_linearizzazione', 
-                    'FLEX_PR': 'classifica', 'FLEX_DIN': 'classifica', 'OPP': 'classifica', 'LIQ': 'doppio_con_linearizzazione',
+                self.metodi = {'AZ_EUR': 'doppio_con_linearizzazione', 'AZ_NA': 'doppio_con_linearizzazione', 'AZ_PAC': 'doppio_con_linearizzazione', 
+                    'AZ_EM': 'doppio_con_linearizzazione', 'AZ_GLOB': 'doppio_con_linearizzazione', 'OBB_EUR_BT': 'doppio_con_linearizzazione', 
+                    'OBB_EUR_MLT': 'doppio_con_linearizzazione', 'OBB_EUR_CORP': 'doppio_con_linearizzazione', 'OBB_GLOB': 'doppio_con_linearizzazione', 
+                    'OBB_EM': 'doppio_con_linearizzazione', 'OBB_HY': 'doppio_con_linearizzazione', 'FLEX_PR': 'classifica_con_linearizzazione', 
+                    'FLEX_DIN': 'classifica_con_linearizzazione', 'OPP': 'classifica_con_linearizzazione', 'LIQ': 'doppio_con_linearizzazione', 
                 }
                 self.soluzioni = {
                     'LIQ' : 4, 'OBB_EUR_BT' : 4, 'OBB_EUR_MLT' : 4, 'OBB_EUR_CORP' : 4, 'OBB_GLOB' : 4, 'OBB_EM' : 4,
@@ -175,7 +175,8 @@ class Ranking():
                     'AZ_ORO' : 'doppio', 'AZ_BEAR' : 'doppio', 
                     'OBB_EUR_BT' : 'doppio', 'OBB_EUR_MLT' : 'doppio', 'OBB_EUR' : 'doppio', 'OBB_EUR_CORP' : 'doppio', 
                     'OBB_GLOB' : 'doppio', 'OBB_USA' : 'doppio', 'OBB_JAP' : 'doppio', 'OBB_EM' : 'doppio', 'OBB_HY' : 'doppio', 
-                    'COMM': 'classifica', 'FLEX_PR': 'classifica', 'FLEX_DIN': 'classifica', 'PERF_ASS': 'classifica', 
+                    'FLEX_PR': 'classifica', 'FLEX_DIN': 'classifica', 
+                    'COMM': 'classifica', 'PERF_ASS': 'classifica', 
                     'LIQ': 'doppio', 
                 }
                 self.soluzioni = {
@@ -201,9 +202,10 @@ class Ranking():
                 self.IR_TEV = [
                     'OBB_EUR_BT', 'OBB_EUR_MLT', 'OBB_EUR', 'OBB_EUR_CORP', 'OBB_GLOB', 'OBB_USA', 'OBB_JAP', 'OBB_EM', 'OBB_HY', 
                     'AZ_EUR', 'AZ_NA', 'AZ_PAC', 'AZ_EM', 'AZ_GLOB', 'AZ_BIO', 'AZ_BDC', 'AZ_FIN', 'AZ_AMB', 'AZ_IMM', 'AZ_IND', 
-                    'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR',
+                    'AZ_ECO', 'AZ_SAL', 'AZ_SPU', 'AZ_TEC', 'AZ_TEL', 'AZ_ORO', 'AZ_BEAR', 'FLEX_PR', 'FLEX_DIN', 
                 ]
-                self.SOR_DSR = ['COMM', 'FLEX_PR', 'FLEX_DIN', 'PERF_ASS']
+                # self.SOR_DSR = ['COMM', 'FLEX_PR', 'FLEX_DIN', 'PERF_ASS'] #SBAGLIATO
+                self.SOR_DSR = ['COMM', 'PERF_ASS']
                 self.SHA_VOL = []
                 self.PER_VOL = ['LIQ']
             case 'RAI':
@@ -328,8 +330,6 @@ class Ranking():
                 df.loc[
                     (df['macro_categoria'].isin(list(self.classi_metodo_doppio.keys()))) & (df['data_di_avvio'] < self.t0_1Y), 'BS_1_anno'
                 ] = df['Info 1 anno fine mese'] - (df['Info 1 anno fine mese'] * df['commissione']) / (df['anni_detenzione'] * df['Alpha 1 anno fine mese'])
-        elif self.metodo == 'linearizzazione':
-            return None
         df.to_csv(self.file_ranking_bw, sep=";", decimal=',', index=False)
 
     def calcolo_best_worst(self):
@@ -1094,8 +1094,6 @@ class Ranking():
 
         for sheet in wb.sheetnames:
             metodo = self.metodi[sheet]
-            print(sheet)
-            print(metodo)
             if metodo == 'singolo':
                 if sheet in self.classi_metodo_singolo.keys():
                     foglio = wb[sheet] # attiva foglio
@@ -1375,6 +1373,19 @@ class Ranking():
                 if column.value != '':
                     column.font = Font(name='Palatino Linotype', bold=True, italic=True) 
                     column.fill = PatternFill(fgColor="bfbfbf", fill_type='solid')
+
+        # Ripa: gli ISIN, la valuta e i nomi dei fondi sottostanti alle polizze vengono sottolineati di verde
+        catalogo = pd.read_excel('catalogo_fondi.xlsx')
+        if self.intermediario == 'RIPA':
+            for sheet in wb.sheetnames:
+                foglio = wb[sheet] # attiva foglio
+                for cell in foglio['B']:
+                    if cell.value == 'ISIN':
+                        continue
+                    if catalogo.loc[catalogo['isin'].isin([cell.value]), 'sottostante'].to_list()[0] == 'si':
+                        cell.fill = PatternFill(fgColor="92D032", fill_type='solid') # colora l'ISIN
+                        cell.offset(row=0, column=1).fill = PatternFill(fgColor="92D032", fill_type='solid') # colora la valuta
+                        cell.offset(row=0, column=2).fill = PatternFill(fgColor="92D032", fill_type='solid') # colora il nome
         
         # Ordina fogli
         if self.intermediario == 'BPPB':
@@ -1456,7 +1467,7 @@ class Ranking():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Ranking(intermediario='CRV')
+    _ = Ranking(intermediario='RIPA')
     # _.attività()
     # _.indicatore_BS()
     # _.calcolo_best_worst()
