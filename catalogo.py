@@ -22,6 +22,7 @@ class Catalogo():
             file_catalogo {str} = file formattato
         """
         directory = Path().cwd()
+        print(directory)
         self.directory = directory
         self.directory_catalogo = directory.joinpath('docs', 'input')
         self.directory_input_liste_complete = directory.joinpath('docs', 'import_liste_complete_into_Q')
@@ -200,7 +201,7 @@ if __name__ == '__main__':
     _.tronca_valore(3, 'valuta')
     _.letter_case('upper', 'valuta')
     _.string_percentage_to_float('commissione')
-    _.fix_fee(fee_column='commissione', commissione_massima=0.0575)
+    _.fix_fee(fee_column='commissione', commissione_massima=0.09)
     _.creazione_liste_complete_input()
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
