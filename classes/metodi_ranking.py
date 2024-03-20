@@ -3,7 +3,6 @@ import math
 import numpy as np
 
 class Metodi_ranking():
-    # TODO: sistema il singolo
 
     def __init__(self, foglio) -> None:
         self.foglio = foglio
@@ -831,13 +830,13 @@ class Metodi_ranking():
                 self.foglio[indicatore_corretto_tre_anni] = (self.foglio[primo_indicatore_tre_anni] / 100) - (self.foglio['commissione'] / anni_detenzione)
                 self.foglio[indicatore_corretto_un_anno] = (self.foglio[primo_indicatore_un_anno] / 100) - (self.foglio['commissione'] / anni_detenzione)
                 
-        # Rank finale 1Y
-        self.foglio['ranking_finale_1Y'] = self.foglio.loc[
+        # Classifica 1Y
+        self.foglio['classifica_1Y'] = self.foglio.loc[
             (self.foglio['data_di_avvio'] < t0_1Y) & (self.foglio[indicatore_corretto_un_anno].notnull()), indicatore_corretto_un_anno
         ].rank(method='first', na_option='bottom', ascending=False)
 
-        # Rank finale 3Y
-        self.foglio['ranking_finale_3Y'] = self.foglio.loc[
+        # Classifica 3Y
+        self.foglio['classifica_3Y'] = self.foglio.loc[
             (self.foglio['data_di_avvio'] < t0_3Y) & (self.foglio[indicatore_corretto_tre_anni].notnull()), indicatore_corretto_tre_anni
         ].rank(method='first', na_option='bottom', ascending=False)
         
@@ -860,16 +859,15 @@ class Metodi_ranking():
         # Cambio formato data
         self.foglio['data_di_avvio'] = self.foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
         # Ordinamento finale
-        self.foglio.sort_values('ranking_finale_1Y', ascending=True, inplace=True)
-        self.foglio.sort_values('ranking_finale_3Y', ascending=True, inplace=True)
+        self.foglio.sort_values('classifica_1Y', ascending=True, inplace=True)
+        self.foglio.sort_values('classifica_3Y', ascending=True, inplace=True)
         # Reindex
         self.foglio.reset_index(drop=True, inplace=True)
         # Seleziona colonne utili
-
         self.foglio = self.foglio[
             ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', primo_indicatore_tre_anni, secondo_indicatore_tre_anni,
-            'commissione', indicatore_corretto_tre_anni, 'ranking_finale_3Y', primo_indicatore_un_anno, secondo_indicatore_un_anno,
-            'commissione', indicatore_corretto_un_anno, 'ranking_finale_1Y', 'SFDR', 'note']
+            'commissione', indicatore_corretto_tre_anni, 'classifica_3Y', primo_indicatore_un_anno, secondo_indicatore_un_anno,
+            'commissione', indicatore_corretto_un_anno, 'classifica_1Y', 'SFDR', 'note']
         ]
 
         return self.foglio
@@ -884,7 +882,7 @@ class Metodi_ranking():
             indicatore_corretto_tre_anni = 'IR_corretto_3Y'
             indicatore_corretto_un_anno  = 'IR_corretto_1Y'
             # Rinomina la colonna
-            self.foglio.rename(columns = {'ranking_finale_3Y': 'classifica_finale'}, inplace = True)
+            # self.foglio.rename(columns = {'ranking_finale_3Y': 'classifica_finale'}, inplace = True)
         elif indicatore == 'SO':
             primo_indicatore_tre_anni = 'Sortino_3Y'
             secondo_indicatore_tre_anni = 'DSR_3Y'
@@ -893,7 +891,7 @@ class Metodi_ranking():
             indicatore_corretto_tre_anni = 'SO_corretto_3Y'
             indicatore_corretto_un_anno  = 'SO_corretto_1Y'
             # Rinomina la colonna
-            self.foglio.rename(columns = {'ranking_finale_3Y': 'classifica_finale'}, inplace = True)
+            # self.foglio.rename(columns = {'ranking_finale_3Y': 'classifica_finale'}, inplace = True)
         elif indicatore == 'SH':
             primo_indicatore_tre_anni = 'Sharpe_3Y'
             secondo_indicatore_tre_anni = 'Vol_3Y'
@@ -902,7 +900,7 @@ class Metodi_ranking():
             indicatore_corretto_tre_anni = 'SH_corretto_3Y'
             indicatore_corretto_un_anno  = 'SH_corretto_1Y'
             # Rinomina la colonna
-            self.foglio.rename(columns = {'ranking_finale_3Y': 'classifica_finale'}, inplace = True)
+            # self.foglio.rename(columns = {'ranking_finale_3Y': 'classifica_finale'}, inplace = True)
         elif indicatore == 'PERF':
             primo_indicatore_tre_anni = 'Perf_3Y'
             secondo_indicatore_tre_anni = 'Vol_3Y'
@@ -911,29 +909,40 @@ class Metodi_ranking():
             indicatore_corretto_tre_anni = 'PERF_corretto_3Y'
             indicatore_corretto_un_anno  = 'PERF_corretto_1Y'
             # Rinomina la colonna
-            self.foglio.rename(columns = {'ranking_finale_3Y': 'classifica_finale'}, inplace = True)
+            # self.foglio.rename(columns = {'ranking_finale_3Y': 'classifica_finale'}, inplace = True)
         # Cambio formato data
         self.foglio['data_di_avvio'] = pd.to_datetime(self.foglio['data_di_avvio'], dayfirst=True)
-        # Ranking finale
-        print(self.foglio)
-        minimo_3Y = min(self.foglio.loc[self.foglio['classifica_finale'].notnull(), 'classifica_finale'])
-        massimo_3Y = max(self.foglio.loc[self.foglio['classifica_finale'].notnull(), 'classifica_finale'])
+        # Punteggio 3Y
+        minimo_3Y = min(self.foglio.loc[self.foglio['classifica_3Y'].notnull(), 'classifica_3Y'])
+        massimo_3Y = max(self.foglio.loc[self.foglio['classifica_3Y'].notnull(), 'classifica_3Y'])
         self.foglio.loc[
-            self.foglio['classifica_finale'].notnull(), 'ranking_finale'
+            self.foglio['classifica_3Y'].notnull(), 'punteggio_3Y'
         ] = 1 - (8 / (massimo_3Y - minimo_3Y)) + (8 * (massimo_3Y + minimo_3Y - self.foglio.loc[
-            self.foglio['classifica_finale'].notnull(), 'classifica_finale'
+            self.foglio['classifica_3Y'].notnull(), 'classifica_3Y'
             ]) / (massimo_3Y - minimo_3Y))
+        # Punteggio 1Y
+        minimo_1Y = min(self.foglio.loc[self.foglio['classifica_1Y'].notnull(), 'classifica_1Y'])
+        massimo_1Y = max(self.foglio.loc[self.foglio['classifica_1Y'].notnull(), 'classifica_1Y'])
+        self.foglio.loc[
+            self.foglio['classifica_1Y'].notnull(), 'punteggio_1Y'
+        ] = 1 - (8 / (massimo_1Y - minimo_1Y)) + (8 * (massimo_1Y + minimo_1Y - self.foglio.loc[
+            self.foglio['classifica_1Y'].notnull(), 'classifica_1Y'
+            ]) / (massimo_1Y - minimo_1Y))
         # Cambio formato data
         self.foglio['data_di_avvio'] = self.foglio['data_di_avvio'].dt.strftime('%d/%m/%Y')
         # Rimuovi il duplicato della colonna commissione altrimenti le due colonne nel foglio finale 
         # saranno due duplicati
         self.foglio = self.foglio.loc[:,~self.foglio.columns.duplicated()]
-        # l'ordinamento è già stato fatto nel metodo chiamato precedentemente
+        # Punteggio finale
+        self.foglio['punteggio_finale'] = self.foglio['punteggio_3Y'].fillna(self.foglio['punteggio_1Y'])
+        # Ordinamento
+        self.foglio.sort_values('punteggio_finale', ascending=False, inplace=True)
         # Seleziona colonne utili
         self.foglio = self.foglio[
-            ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', primo_indicatore_tre_anni, secondo_indicatore_tre_anni,
-            'commissione', indicatore_corretto_tre_anni, 'classifica_finale', 'ranking_finale', 
-            primo_indicatore_un_anno, secondo_indicatore_un_anno, 'commissione', indicatore_corretto_un_anno, 'ranking_finale_1Y', 'note']
+            ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'punteggio_finale', primo_indicatore_tre_anni, 
+            secondo_indicatore_tre_anni, 'commissione', indicatore_corretto_tre_anni, 'classifica_3Y', 'punteggio_3Y', 
+            primo_indicatore_un_anno, secondo_indicatore_un_anno, 'commissione', indicatore_corretto_un_anno, 'classifica_1Y', 
+            'punteggio_1Y', 'note']
         ]
         return self.foglio
 
@@ -1242,7 +1251,7 @@ class Metodi_ranking():
         minimo_3Y = min(self.foglio.loc[self.foglio['classifica_finale'].notnull(), 'classifica_finale'])
         massimo_3Y = max(self.foglio.loc[self.foglio['classifica_finale'].notnull(), 'classifica_finale'])
         self.foglio.loc[
-            self.foglio['classifica_finale'].notnull(), 'ranking_finale'
+            self.foglio['classifica_finale'].notnull(), 'punteggio_finale'
         ] = 1 - 8 / (massimo_3Y - minimo_3Y) + 8 * (
             massimo_3Y - 
             self.foglio.loc[
@@ -1260,7 +1269,7 @@ class Metodi_ranking():
         self.foglio = self.foglio[
             ['ISIN', 'valuta', 'nome', 'data_di_avvio', 'micro_categoria', 'Best_Worst_3Y', 'grado_gestione_3Y', 
             'Best_Worst_1Y', 'grado_gestione_1Y', 'ranking_per_grado_3Y', 'ranking_per_grado_1Y', 'classifica_finale',
-            'ranking_finale', primo_indicatore_tre_anni, secondo_indicatore_tre_anni, 'commissione', indicatore_corretto_tre_anni,
+            'punteggio_finale', primo_indicatore_tre_anni, secondo_indicatore_tre_anni, 'commissione', indicatore_corretto_tre_anni,
             primo_indicatore_un_anno, secondo_indicatore_un_anno, 'commissione', indicatore_corretto_un_anno, 'SFDR', 'note']
         ]
         return self.foglio
