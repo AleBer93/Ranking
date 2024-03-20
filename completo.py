@@ -2,6 +2,7 @@ import datetime
 import glob
 import math
 import os
+import numpy as np
 import time
 from pathlib import Path
 
@@ -16,9 +17,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
-# with os.add_dll_directory('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\_blpapi'):
-#     import blpapi
 from xbbg import blp
 
 
@@ -767,7 +765,6 @@ class Completo():
             Metodo usato solo da RIPA.
             """
             DELETE_KEYWORD = delete_keyword
-            # df = pd.read_csv(file, sep=";", decimal=',', index_col=None)
             df = dataframe
             df_to_delete = df[df['macro_categoria'] == DELETE_KEYWORD]
             if df_to_delete.empty:
@@ -981,6 +978,26 @@ class Completo():
             _ = input(f'apri il file {self.file_completo}, aggiungi le date, poi premi enter\n')
             df_merged = pd.read_csv('completo.csv', sep=";", decimal=',', index_col=None)
 
+    def elimina_ETF_recenti(self):
+        """Elimina tutti gli ETF con meno di un anno di vita
+        Metodo usato solo da CRV
+        """
+        if self.intermediario == 'CRV':
+            df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+            df['fund_incept_dt'] = pd.to_datetime(df['fund_incept_dt'], dayfirst=True, format="%d/%m/%Y", exact=True)
+            with open('docs/t1.txt') as f:
+                t1 = f.read()
+            t1 = datetime.datetime.strptime(t1, '%Y-%m-%d')
+            t0_1Y = t1 - dateutil.relativedelta.relativedelta(days=-1, years=+1) # data iniziale un anno fa
+            etf_recenti = df.loc[(df['strumento'] == 'etf') & (df['fund_incept_dt'] > t0_1Y), 
+                                ['Codice ISIN', 'Valuta', 'Nome del fondo', 'strumento', 
+                                'Categoria Quantalys', 'macro_categoria', 'fund_incept_dt']]
+            etf_recenti.to_csv(self.directory.joinpath('docs', 'etf_recenti.csv'), sep=';', decimal=',', index=False)
+            df = df.loc[~df['Codice ISIN'].isin(etf_recenti['Codice ISIN']), :]
+            df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+        else:
+            return None
+
     def seleziona_e_rinomina_colonne(self):
         """Seleziona e rinomina solo le colonne utili del file completo.
         """
@@ -1018,7 +1035,7 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='RAI')
+    _ = Completo(intermediario='CRV')
     # _.concatenazione_liste_complete()
     # _.individua_t1()
     # _.seleziona_colonne()
@@ -1030,8 +1047,9 @@ if __name__ == '__main__':
     # _.merge_completo_catalogo()
     # _.assegna_macro()
     # _.discriminazione_flessibili_e_bilanciati()
-    # _.sconta_commissioni()
+    # _.sconta_commissioni() # CRV
     # _.scarico_datadiavvio()
+    # _.elimina_ETF_recenti() # CRV
     # _.seleziona_e_rinomina_colonne()
     # _.creazione_liste_input()
     end = time.perf_counter()
