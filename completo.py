@@ -29,8 +29,8 @@ class Completo():
         Arguments:
             intermediario {str} - intermediario a cui è destinata l'analisi
         """
+        # Input
         self.intermediario = intermediario
-
         # Directories
         directory = Path().cwd()
         self.directory = directory
@@ -41,7 +41,7 @@ class Completo():
         self.directory_alfa_nulli = self.directory.joinpath('docs', 'alfa_nulli')
         if not os.path.exists(self.directory_alfa_nulli):
             os.makedirs(self.directory_alfa_nulli)
-
+        # Files
         self.file_completo = 'completo.csv'
 
     def concatenazione_liste_complete(self):
@@ -176,11 +176,13 @@ class Completo():
             chrome_options.add_experimental_option(
                 "prefs", {"download.default_directory" : self.directory_alfa_nulli.__str__(),"download.directory_upgrade" : True}
             )
-            service = Service(ChromeDriverManager().install())
+            service = Service()
             driver = webdriver.Chrome(service=service, options=chrome_options)
             q = Quantalys()
             # Accesso a Quantalys
             q.connessione(driver)
+            # Cookies
+            q.cookies(driver)
             # Log in
             q.login(driver, 'Avicario', 'AVicario123')
             
@@ -258,11 +260,20 @@ class Completo():
                     WebDriverWait(driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
 
                 # Rinomina file a 3 anni
+                """La chiavetta USB ha una velocità di scrittura inferiore a quella del computer, 
+                il cambio di nome del file non può essere eseguito all'istante.
+                Aspetto che l'estensione dell'ultimo file aggiunto alla cartella di download cambi
+                da .crdownload a .csv; a quel punto modifico il nome del file."""
                 while len(os.listdir(self.directory_alfa_nulli)) == file_scaricati:
                     time.sleep(1)
-                time.sleep(1.5)
+                # time.sleep(1.5)
                 list_of_files = glob.glob(self.directory_alfa_nulli.__str__() + '/*')
                 latest_file = max(list_of_files, key=os.path.getctime)
+                while Path(latest_file).suffix != '.csv':
+                    list_of_files = glob.glob(self.directory_alfa_nulli.__str__() + '/*')
+                    latest_file = max(list_of_files, key=os.path.getctime)
+                    time.sleep(1)
+                    # print(Path(latest_file).suffix)
                 os.rename(latest_file, self.directory_alfa_nulli.joinpath('alfa_nulli_3Y.csv'))
 
             if not alfa_nulli_1Y.empty:
@@ -341,9 +352,14 @@ class Completo():
                 # Rinomina file ad 1 anno
                 while len(os.listdir(self.directory_alfa_nulli)) == file_scaricati:
                     time.sleep(1)
-                time.sleep(1.5)
+                # time.sleep(1.5)
                 list_of_files = glob.glob(self.directory_alfa_nulli.__str__() + '/*')
                 latest_file = max(list_of_files, key=os.path.getctime)
+                while Path(latest_file).suffix != '.csv':
+                    list_of_files = glob.glob(self.directory_alfa_nulli.__str__() + '/*')
+                    latest_file = max(list_of_files, key=os.path.getctime)
+                    time.sleep(1)
+                    # print(Path(latest_file).suffix)
                 os.rename(latest_file, self.directory_alfa_nulli.joinpath('alfa_nulli_1Y.csv'))
 
             driver.close()
@@ -514,7 +530,7 @@ class Completo():
             'Obblig. paesi emerg. Asia' : 'OBB_EM', 'Obblig. paesi emerg. Europa' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 
             'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 
-            'Obblig. Paesi Emerg. Asia Local Ccy' : 'OBB_EM', 
+            'Obblig. Paesi Emerg. Asia Local Ccy' : 'OBB_EM', 'Obblig. Paesi Emerg. Asia Hard Ccy' : 'OBB_EM',
             'Obblig. Dollaro US breve term.' : 'OBB_GLOB', 'Obblig. USD medio-lungo term.' : 'OBB_GLOB', 
             'Obblig. Dollaro US medio-lungo term.' : 'OBB_GLOB', 'Obblig. USD corporate' : 'OBB_GLOB', 
             'Obblig. Dollaro US corporate' : 'OBB_GLOB', 'Obblig. Doll. US all maturities' : 'OBB_GLOB', 
@@ -564,7 +580,7 @@ class Completo():
             'Fondi a scadenza pred. altre valute' : 'OPP', 'Obblig. Euro a scadenza' : 'OPP', 'F.a garanz. o a formul. altr valu.' : 'OPP', 
         }
         RIPA_dict = {
-            'Monetari Euro' : 'LIQ', 
+            'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 
             'Obblig. euro gov. breve termine' : 'OBB_EUR_BT', 'Obblig. Euro breve term.' : 'OBB_EUR_BT', 
             'Obblig. Euro gov. medio termine' : 'OBB_EUR_MLT', 'Obblig. Euro lungo termine' : 'OBB_EUR_MLT', 
             'Obblig. Euro medio term.' : 'OBB_EUR_MLT', 'Obblig. Euro gov. lungo termine' : 'OBB_EUR_MLT', 
@@ -576,7 +592,8 @@ class Completo():
             'Obblig. Asia' : 'OBB_GLOB', 'Obblig. globale' : 'OBB_GLOB', 'Obblig. globale corporate' : 'OBB_GLOB', 
             'Obblig. altre valute' : 'OBB_GLOB', 'Obblig. Global Inflation Linked' : 'OBB_GLOB', 'Obblig. Convertib. Glob.' : 'OBB_GLOB', 
             'Obblig. Paesi Emerg.' : 'OBB_EM', 'Obblig. Paesi Emerg. Europa' : 'OBB_EM', 'Obblig. paesi emerg. a scadenza' : 'OBB_EM', 
-            'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Asia Local Ccy' : 'OBB_EM', 
+            'Obblig. Paesi Emerg. Local Currency' : 'OBB_EM', 'Obblig. Paesi Emerg. Asia Local Ccy' : 'OBB_EM',     
+            'Obblig. Paesi Emerg. Hard Currency' : 'OBB_EM', 
             'Obblig. Dollaro US breve term.' : 'OBB_USA', 'Obblig. USD medio-lungo term.' : 'OBB_USA', 
             'Obblig. Dollaro US corporate' : 'OBB_USA', 'Obblig. Dollaro US all mat' : 'OBB_USA', 
             "Obblig. Indicizz. all'inflaz. USD" : 'OBB_USA', 
@@ -595,7 +612,7 @@ class Completo():
             'Az. Brasile' : 'AZ_EM', 'Az. Cina' : 'AZ_EM', 'Az. India' : 'AZ_EM', 'Az. Altri paesi emerg.' : 'AZ_EM', 
             'Az. Paesi Emerg. Europa e Russia' : 'AZ_EM', 'Az. Paesi Emerg. Europa ex Russia' : 'AZ_EM', 'Az. paesi emerg. Asia' :'AZ_EM', 
             'Az. BRIC' : 'AZ_EM', 'Az. Grande Cina' : 'AZ_EM', 'Az. paesi emerg. America Latina' : 'AZ_EM', 
-            'Az. paesi emerg. altre zone' : 'AZ_EM', 'Az. paesi emerg. Mondo' : 'AZ_EM',
+            'Az. paesi emerg. altre zone' : 'AZ_EM', 'Az. paesi emerg. Mondo' : 'AZ_EM', 'Az. Russia' : 'AZ_EM',
             'Az. globale' : 'AZ_GLOB', 'Az. globale small cap' : 'AZ_GLOB', 'Az. globale Growth' : 'AZ_GLOB', 
             'Az. globale Value' : 'AZ_GLOB', 
             'Az. Biotech' : 'AZ_BIO', 'Az. beni di consumo' : 'AZ_BDC', 'Az. servizi finanziari' : 'AZ_FIN', 'Az. ambiente' : 'AZ_AMB', 
@@ -613,12 +630,13 @@ class Completo():
             'Monetari altre valute europ' : 'ND', 'Monetari Dollaro USA' : 'ND', 'Monetari ex Europa altre valute' : 'ND', 
             'Bilanc. Prud. Europa' : 'ND', 'Bilanc. Prud. Dollaro US' : 'ND', 'Bilanc. Prud. altre valute' : 'ND', 
             'Bilanc. Prud. Global' : 'ND', 'Bilanc. Equilib. Europa' : 'ND', 'Bilanc. Equil. Dollaro US' : 'ND', 
-            'Bilanc. Equil. Global' : 'ND', 'Bilanc. Equil. altre valute' : 'ND', 'Bilanc. aggress. Dollaro US' : 'ND', 
-            'Bilanc. Aggress. altre valute' : 'ND', 'Bilanc. Aggress. Global' : 'ND', 'Fondi a scadenza pred. Euro' : 'ND', 
-            'Obblig. paesi emerg. Asia' : 'ND', 'Altri' : 'ND', 
+            'Bilanc. Equil. Global' : 'ND', 'Bilanc. Equil. altre valute' : 'ND', 'Bilanc. Aggress. Europa' : 'ND', 
+            'Bilanc. aggress. Dollaro US' : 'ND', 'Bilanc. Aggress. altre valute' : 'ND', 'Bilanc. Aggress. Global' : 'ND',
+            'Fondi a scadenza pred. Euro' : 'ND', 'Obblig. paesi emerg. Asia' : 'ND', 'Altri' : 'ND',
+            'Fondi  a garanzia o a formula Euro' : 'ND', 
         }
         RAI_dict = {
-            'Monetari Euro' : 'LIQ',
+            'Monetari Euro' : 'LIQ', 'Monetari Euro dinamici' : 'LIQ', 
             'Monetari Dollaro USA' : 'LIQ_FOR', 'Monetari altre valute europ' : 'LIQ_FOR', 
             'Obblig. Euro breve term.' : 'OBB_EUR_BT', 'Obblig. euro gov. breve termine' : 'OBB_EUR_BT', 
             'Obblig. Euro all maturities' : 'OBB_EUR_MLT', 
@@ -643,8 +661,9 @@ class Completo():
             'Az. Pacifico' : 'AZ_PAC', 'Az. Asia Pacifico ex Giapp.' : 'AZ_PAC', 'Az. Giappone' : 'AZ_PAC', 
             'Az. Giappone small cap' : 'AZ_PAC', 
             'Az. paesi emerg. Mondo' : 'AZ_EM', 'Az. paesi emerg. America Latina' : 'AZ_EM', 'Az. paesi emerg. Asia' : 'AZ_EM', 
-            'Az. Altri paesi emerg.' : 'AZ_EM', 'Az. Paesi Emerg. Europa e Russia' : 'AZ_EM', 'Az. paesi emerg. altre zone' : 'AZ_EM', 
-            'Az. Brasile' : 'AZ_EM', 'Az. Grande Cina' : 'AZ_EM', 'Az. India' : 'AZ_EM', 'Az. Russia' : 'AZ_EM', 'Az. Cina' : 'AZ_EM', 
+            'Az. Altri paesi emerg.' : 'AZ_EM', 'Az. Paesi Emerg. Europa e Russia' : 'AZ_EM', 'Az. Paesi Emerg. Europa ex Russia' : 'AZ_EM', 
+            'Az. paesi emerg. altre zone' : 'AZ_EM', 'Az. Brasile' : 'AZ_EM', 'Az. Grande Cina' : 'AZ_EM', 'Az. India' : 'AZ_EM', 
+            'Az. Russia' : 'AZ_EM', 'Az. Cina' : 'AZ_EM', 
             'Az. globale' : 'AZ_GLOB', 'Az. globale Value' : 'AZ_GLOB', 'Az. globale Growth' : 'AZ_GLOB', 
             'Az. globale small cap' : 'AZ_GLOB', 
             'Bilanc. Prud. Europa' : 'BIL', 'Bilanc. Prud. Dollaro US' : 'BIL', 'Bilanc. Prud. Global' : 'BIL', 
@@ -660,7 +679,88 @@ class Completo():
             'Perf. assoluta strategia valute' : 'OPP', 'Perf. assoluta volatilita' : 'OPP', 'Perf. ass. USD' : 'OPP', 
             'Perf. ass. Long/Short eq.' : 'OPP', 'Altri' : 'OPP', 'Fondi a scadenza pred. Euro' : 'OPP', 
         }
-        
+        QUANT_dict = {
+            'Monetari Euro': 'Liquidità', 'Monetari Euro dinamici': 'Liquidità', 'Monetari altre valute europee': 'Liquidità', 
+            'Monetari Dollaro USA': 'Liquidità', 'Monetari ex Europa altre valute': 'Liquidità', 
+            'Obblig. Euro breve term.': 'Obblig. euro breve term.', 'Obblig. euro gov. breve termine': 'Obblig. euro breve term.', 
+            'Obblig. Euro medio term.': 'Obblig. Euro all maturit.', 'Obblig. Euro gov. medio termine': 'Obblig. Euro all maturit.', 
+            'Obblig. Euro lungo termine': 'Obblig. Euro all maturit.', 'Obblig. Euro gov. lungo termine': 'Obblig. Euro all maturit.', 
+            'Obblig. Euro all maturities': 'Obblig. Euro all maturit.', 'Obblig. Euro gov.': 'Obblig. Euro all maturit.', 
+            'Obblig. Indicizz. Inflation Linked': 'Obblig. Euro all maturit.', 'Obblig. Euro a scadenza': 'Obblig. Euro all maturit.', 
+            'Obblig. convertibili Euro': 'Obblig. Euro all maturit.', 
+            'Obblig. Euro corporate': 'Obblig. euro corporate', 
+            'Obblig. Convertib. Europa': 'Obblig. Europa', 'Obblig. Europa': 'Obblig. Europa', 'Obblig. Franco svizzero': 'Obblig. Europa', 
+            'Obblig. Sterlina inglese': 'Obblig. Europa', 
+            'Obblig. Asia': 'Obblig. Globale', 'Obblig. altre valute': 'Obblig. Globale', 'Obblig. Convertib. Glob.': 'Obblig. Globale', 
+            'Obblig. Global Inflation Linked': 'Obblig. Globale', 'Obblig. globale': 'Obblig. Globale', 
+            'Obblig. globale corporate': 'Obblig. Globale', 
+            'Obblig. paesi Emergenti a scadenza': 'Obblig. Paesi emergenti', 'Obblig. Paesi Emerg. Europa': 'Obblig. Paesi emergenti', 
+            'Obblig. Paesi Emerg.': 'Obblig. Paesi emergenti', 'Obblig. paesi emerg. Asia': 'Obblig. Paesi emergenti', 
+            'Obblig. Paesi Emerg. Hard Currency': 'Obblig. Paesi emergenti', 'Obblig. Paesi Emergenti Asia Hard Currency': 'Obblig. Paesi emergenti', 
+            'Obblig. Paesi Emerg. Local Currency': 'Obblig. Paesi emergenti', 'Obblig. Paesi Emergenti Asia Local Currency': 'Obblig. Paesi emergenti', 
+            'Obblig. Dollaro US Inflation Linked': 'Obblig. USA', 'Obblig. Dollaro US breve term.': 'Obblig. USA', 
+            'Obblig. Dollaro US all mat': 'Obblig. USA', 'Obblig. Dollaro US medio-lungo termine': 'Obblig. USA', 
+            'Obblig. Dollaro US corporate': 'Obblig. USA', 
+            'Obblig. Yen': 'Obblig. Giappone', 
+            'Obblig. Euro high yield': 'Obblig. High Yield', 'Obblig. Europa High Yield': 'Obblig. High Yield', 
+            'Obblig. globale high yield': 'Obblig. High Yield', 'Obblig. Dollaro US high yield': 'Obblig. High Yield', 
+            'Az. Area Euro': 'Az. Europa', 'Az. Area Euro Growth': 'Az. Europa', 
+            'Az. Area Euro small cap': 'Az. Europa', 'Az. Area Euro Value': 'Az. Europa', 'Az. Europa': 'Az. Europa', 
+            'Az. Europa Growth': 'Az. Europa', 'Az. Europa small cap': 'Az. Europa', 'Az. Europa Value': 'Az. Europa', 
+            'Az. Belgio': 'Az. Europa', 'Az. Francia': 'Az. Europa', 'Az. Francia Small Cap': 'Az. Europa', 'Az. Germania': 'Az. Europa', 
+            'Az. Germania Small Cap': 'Az. Europa', 'Az. Spagna': 'Az. Europa', 'Az. Paesi Bassi': 'Az. Europa', 'Az. Italia': 'Az. Europa', 
+            'Az. UK': 'Az. Europa', 'Az. Regno Unito Small Cap': 'Az. Europa', 'Az. Svizzera': 'Az. Europa', 
+            'Az.Svizzera small cap': 'Az. Europa', 'Az. paesi nordici': 'Az. Europa', 'Az. Europa altri paesi': 'Az. Europa', 
+            'Az. USA': 'Az. USA', 'Az. USA Growth': 'Az. USA', 'Az. USA small cap': 'Az. USA', 'Az. USA Value': 'Az. USA', 
+            'Az. Canada': 'Az. USA', 
+            'Az. Asia Pacifico ex Giapp.': 'Az. Pacifico', 'Az. Giappone': 'Az. Pacifico', 'Az. Giappone small cap': 'Az. Pacifico', 
+            'Az. Pacifico': 'Az. Pacifico', 
+            'Az. Brasile': 'Az. Paesi Emergenti', 'Az. Cina': 'Az. Paesi Emergenti', 'Az. Grande Cina': 'Az. Paesi Emergenti', 
+            'Az. India': 'Az. Paesi Emergenti', 'Az. Russia': 'Az. Paesi Emergenti', 'Az. Altri paesi emerg.': 'Az. Paesi Emergenti', 
+            'Az. BRIC': 'Az. Paesi Emergenti', 'Az. Paesi Emerg. Europa e Russia': 'Az. Paesi Emergenti', 
+            'Azioni Paesi Emergenti Europa ex Russia': 'Az. Paesi Emergenti', 'Az. paesi emerg. Asia': 'Az. Paesi Emergenti', 
+            'Az. paesi emerg. America Latina': 'Az. Paesi Emergenti', 'Az. paesi emerg. altre zone': 'Az. Paesi Emergenti', 
+            'Az. paesi emerg. Mondo': 'Az. Paesi Emergenti', 
+            'Az. globale': 'Az. Globale', 'Az. globale Growth': 'Az. Globale', 'Az. globale small cap': 'Az. Globale', 
+            'Az. globale Value': 'Az. Globale', 
+            'Az. Biotech': 'Opportunities', 'Az. beni di consumo': 'Opportunities', 'Az. servizi finanziari': 'Opportunities', 'Az. ambiente': 'Opportunities', 
+            'Az. real estate Europa': 'Opportunities', 'Az. real estate Mondo': 'Opportunities', 'Az. industria': 'Opportunities', 
+            'Az. energia materie prime oro': 'Opportunities', 'Az. salute - farmaceutico': 'Opportunities', 'Az. Servizi di pubblica utilita': 'Opportunities', 
+            'Az. tecnologia': 'Opportunities', 'Az. telecomunicazioni': 'Opportunities', 'Az. Oro': 'Opportunities', 
+            'Perf. Ass. Arbitr.Fus.-acquis. Euro': 'Performance assoluta', 'Perf. assoluta strategia valute': 'Performance assoluta', 
+            'Performance assoluta euro Dividendi': 'Performance assoluta', 'Perf. ass. Long/Short eq.': 'Performance assoluta', 
+            'Perf. assoluta Market Neutral Euro': 'Performance assoluta', 'Perf. assoluta multi-strategia': 'Performance assoluta', 
+            'Perf. assoluta tassi': 'Performance assoluta', 'Perf. assoluta volatilita': 'Performance assoluta', 
+            'Performance assoluta (GBP)': 'Performance assoluta', 'Perf. ass. USD': 'Performance assoluta', 
+            'Flessibili prudenti Europa': 'Flessibili prudenti', 'Flessibili prudenti globale': 'Flessibili prudenti', 
+            'Flessibili Europa': 'Flessibili dinamici', 'Fless. Global': 'Flessibili dinamici', 'Flessibili Dollaro US': 'Flessibili dinamici', 
+            'Commodities': 'Commodities', 'Commodities a leva': 'Commodities', 'Commodities Bear': 'Commodities', 
+            'Az. Bear': 'Opportunities', 
+            'Garanzia totale': 'Protezione del capitale', 'Garanzia parziale': 'Protezione del capitale', 
+            'Autocallable barriera difensiva breve termine': 'Opportunities', 
+            'Autocallable barriera difensiva lungo termine': 'Opportunities', 
+            'Autocallable barriera moderata breve termine': 'Opportunities', 
+            'Autocallable barriera moderata lungo termine': 'Opportunities', 
+            'Phoenix barriera difensiva breve termine': 'Opportunities', 
+            'Phoenix barriera difensiva lungo termine': 'Opportunities', 'Phoenix barriera moderata breve termine': 'Opportunities',  
+            'Phoenix barriera moderata lungo termine': 'Opportunities', 'Airbag barriera difensiva breve termine': 'Opportunities', 
+            'Airbag barriera difensiva lungo termine': 'Opportunities', 'Airbag barriera moderata breve termine': 'Opportunities', 
+            'Airbag barriera moderata lungo termine': 'Opportunities', 'CLN': 'Opportunities', 
+            'Altri prodotti strutturati': 'Opportunities', 'EMTN': 'Opportunities', 
+            'NEU CP/MTN': 'Opportunities', 'A partecipazione': 'Opportunities', 'A leva': 'Opportunities', 
+            'Obblig. convertibili Dollaro US': 'Opportunities', 'Obbligazioni Bear': 'Opportunities', 'Azionario a leva': 'Opportunities', 
+            'Fondi  a garanzia o a formula Euro': 'Opportunities', 'Fondi a garanzia o a formula altre valute': 'Opportunities', 'Side-pocket': 'Opportunities', 
+            'Valuta Long/Short': 'Opportunities', 'Altri': 'Opportunities', 
+            'Bilanc. Prud. Europa': 'Bilanciati Prudenti', 'Bilanc. Prud. Global': 'Bilanciati Prudenti', 'Bilanc. Prud. Dollaro US': 'Bilanciati Prudenti', 
+            'Bilanc. Prud. altre valute': 'Bilanciati Prudenti', 
+            'Bilanc. Equilib. Europa': 'Bilanciati Equilibrati', 'Bilanc. Equil. Global': 'Bilanciati Equilibrati', 
+            'Bilanc. Equil. Dollaro US': 'Bilanciati Equilibrati', 'Bilanc. Equil. altre valute': 'Bilanciati Equilibrati', 
+            'Bilanc. Aggress. Europa': 'Bilanciati Dinamici', 'Bilanc. Aggress. Global': 'Bilanciati Dinamici', 
+            'Bilanc. aggress. Dollaro US': 'Bilanciati Dinamici', 'Bilanc. Aggress. altre valute': 'Bilanciati Dinamici', 
+            'Fondi a scadenza predefinita altre valute': 'Opportunities', 
+            'Fondi a scadenza pred. Euro': 'Opportunities', 
+        }
+
         def cancella_macro(dataframe, delete_keyword, path):
             """
             Cancella le micro categorie appartenenti alle macrocategorie mappate come delete_keyword.
@@ -687,7 +787,7 @@ class Completo():
             df['macro_categoria'] = df['Categoria Quantalys'].map(CRV_dict)
         elif self.intermediario == 'RIPA':
             """
-            Nel caso di Ripa, solo le micro categorie appartenenti ad una macro nella sezione asset allocationdi Quantalys
+            Nel caso di Ripa, solo le micro categorie appartenenti ad una macro nella sezione asset allocation di Quantalys
             vengono analizzate, mentre le altre vengono scartate. Assegno dunque tutte le micro categorie senza macro 
             ad una macro fittizzia 'ND', che mi tornerà utile per scartare interamente questa macro dall'analisi.
             """
@@ -695,8 +795,19 @@ class Completo():
             df = cancella_macro(dataframe=df, delete_keyword='ND', path=self.directory)
         elif self.intermediario == 'RAI':
             df['macro_categoria'] = df['Categoria Quantalys'].map(RAI_dict)
+        elif self.intermediario == 'QUANT':
+            df['macro_categoria'] = df['Categoria Quantalys'].map(QUANT_dict)
         print(f"Ci sono {df['macro_categoria'].isnull().sum()} fondi a cui non è stata assegnata una macro categoria.\n")
         df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
+
+    def conta_micro(self):
+        df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
+        micro = df['Categoria Quantalys'].value_counts()
+        micro.to_excel('count_micro.xlsx')
+        macro = df.macro_categoria.value_counts()
+        macro.to_excel('count_macro.xlsx')
+        gruppo = df.groupby(['Categoria Quantalys', 'macro_categoria']).macro_categoria.count()
+        gruppo.to_excel('count_micro_macro.xlsx')
 
     def discriminazione_flessibili_e_bilanciati(self):
         """
@@ -841,7 +952,7 @@ class Completo():
             df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
             sconti = {'LIQ' : 0.85, 'OBB_EUR_BT' : 0.35, 'OBB_EUR_MLT' : 0.35, 'OBB_EUR_CORP' : 0.35, 'OBB_EM' : 0.35,
                 'OBB_GLOB' : 0.35, 'OBB_HY' : 0.35, 'AZ_EUR' : 0.30, 'AZ_NA' : 0.30, 'AZ_PAC' : 0.30, 'AZ_EM' : 0.30,
-                'AZ_GLOB' : 0.30, 'FLEX_PR' : 0.60, 'FLEX_DIN' : 0.60, 'OPP' : 0.50
+                'AZ_GLOB' : 0.30, 'FLEX_PR' : 0.60, 'FLEX_DIN' : 0.60, 'OPP' : 0.50,
             }
             df['commissione'] = df['commissione']*df['macro_categoria'].apply(lambda x : sconti[x])
             df.to_csv(self.file_completo, sep=";", decimal=',', index=False)
@@ -852,7 +963,7 @@ class Completo():
         """Scarica la data di avvio dei fondi nel file_bloomberg utilizzando la libreria di Bloomberg.
         Aggiungi la data di avvio al file completo.
         """
-        print("\nSto scaricando le dati di avvio dei fondi da Bloomberg...")
+        print("\nSto scaricando le date di avvio dei fondi da Bloomberg...")
         df = pd.read_csv(self.file_completo, sep=";", decimal=',', index_col=None)
         df_bl = blp.bdp('/isin/' + df['Codice ISIN'], flds="fund_incept_dt") #/isin/IT0001029823
         df_bl.reset_index(inplace=True)
@@ -907,7 +1018,7 @@ class Completo():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Completo(intermediario='CRV')
+    _ = Completo(intermediario='RAI')
     # _.concatenazione_liste_complete()
     # _.individua_t1()
     # _.seleziona_colonne()
@@ -917,7 +1028,7 @@ if __name__ == '__main__':
     # _.correzione_micro_russe()
     # _.correzione_alfa_IR_nulli()
     # _.merge_completo_catalogo()
-    _.assegna_macro()
+    # _.assegna_macro()
     # _.discriminazione_flessibili_e_bilanciati()
     # _.sconta_commissioni()
     # _.scarico_datadiavvio()

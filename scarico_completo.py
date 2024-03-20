@@ -9,12 +9,11 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 
 
 class ScaricoCompleto():
 
-    def __repr__(self):
+    def __str__(self):
         return "Importa le liste complete e scarica i dati da Quantalys.it"
 
     def __init__(self):
@@ -52,7 +51,6 @@ class ScaricoCompleto():
         Carica le liste in quantalys.it ed esporta un file csv completo.
         Rinomina il file con nomi in successione.
         """
-
         # Il processo parte se la cartella di download è vuota
         while len(os.listdir(self.directory_output_liste_complete)) != 0:
             print(f"Ci sono dei file presenti nella cartella di download: {glob.glob(self.directory_output_liste_complete.__str__()+'/*')}\n")
@@ -66,6 +64,9 @@ class ScaricoCompleto():
 
         # Accesso a Quantalys
         q.connessione(self.driver)
+
+        # Cookies
+        q.cookies(self.driver)
         
         # Log in
         q.login(self.driver, 'Avicario', 'AVicario123')
@@ -95,11 +96,20 @@ class ScaricoCompleto():
                 ).click()
 
                 # Rinomina file
+                """La chiavetta USB ha una velocità di scrittura inferiore a quella del computer, 
+                il cambio di nome del file non può essere eseguito all'istante.
+                Aspetto che l'estensione dell'ultimo file aggiunto alla cartella di download cambi
+                da .crdownload a .csv; a quel punto modifico il nome del file."""
                 while len(os.listdir(self.directory_output_liste_complete)) == file_totali:
                     time.sleep(1)
                 time.sleep(1.5)
                 list_of_files = glob.glob(self.directory_output_liste_complete.__str__() + '/*')
                 latest_file = max(list_of_files, key=os.path.getctime)
+                while Path(latest_file).suffix != '.csv':
+                    list_of_files = glob.glob(self.directory_output_liste_complete.__str__() + '/*')
+                    latest_file = max(list_of_files, key=os.path.getctime)
+                    time.sleep(1)
+                    # print(Path(latest_file).suffix)
                 os.rename(latest_file, self.directory_output_liste_complete.joinpath(filename[:-4]+'.csv'))
 
                 # Scarico articolo SFDR

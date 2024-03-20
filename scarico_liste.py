@@ -14,7 +14,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
-from webdriver_manager.chrome import ChromeDriverManager
 
 
 class Scarico():
@@ -24,7 +23,9 @@ class Scarico():
         Arguments:
             intermediario {str} - intermediario a cui è destinata l'analisi
         """
+        # Input
         self.intermediario = intermediario
+        # Dates
         with open('docs/t1.txt') as f:
             t1 = f.read()
         t1 = datetime.datetime.strptime(t1, '%Y-%m-%d').strftime("%d/%m/%Y")
@@ -38,7 +39,6 @@ class Scarico():
         print(f'Data odierna: {self.t1}')
         print(f'Un anno fa : {self.t0_1Y}')
         print(f'Tre anni fa : {self.t0_3Y}')
-
         # Directories
         directory = Path().cwd()
         self.directory = directory
@@ -46,7 +46,7 @@ class Scarico():
         self.directory_output_liste = self.directory.joinpath('docs', 'export_liste_from_Q')
         if not os.path.exists(self.directory_output_liste):
             os.makedirs(self.directory_output_liste)
-
+        # Browser options
         chrome_options = webdriver.ChromeOptions()
         # chrome_options.add_experimental_option("detach", True) -> lascia il browser aperto dopo aver eseugito tutto il codice
         chrome_options.add_experimental_option("prefs", {
@@ -54,10 +54,10 @@ class Scarico():
             "download.directory_upgrade": True}
             )
         # API dove trovare il chromedriver aggiornato -> https://chromedriver.storage.googleapis.com/index.html
-        # service = Service(ChromeDriverManager().install())
         service = Service()
         self.driver = webdriver.Chrome(service=service, options=chrome_options)
 
+        # Intermediario
         match intermediario:
             case 'BPPB':
                 self.IR_TEV = [
@@ -110,7 +110,7 @@ class Scarico():
             'AZ_IND' : '2175', 'AZ_ECO' : '2174', 'AZ_SAL' : '2178', 'AZ_SPU' : '2181', 'AZ_TEC' : '2179',
             'AZ_TEL' : '2180', 'AZ_ORO' : '2318', 'AZ_BEAR' : '2318',
             'OBB_EUR_BT': '2265', 'OBB_EUR_MLT': '2264', 'OBB_EUR': '2255', 'OBB_EUR_CORP': '2272', 'OBB_GLOB': '2309',
-            'OBB_USA': '2490', 'OBB_JAP' : '2309', 'OBB_EM': '2476', 'OBB_HY': '2293', 
+            'OBB_USA': '2490', 'OBB_JAP' : '2309', 'OBB_EM': '2476', 'OBB_HY': '2293',
             'FLEX_PR': '2706', 'FLEX_DIN': '2707', 
         }
 
@@ -129,6 +129,9 @@ class Scarico():
 
         # Accesso a Quantalys
         q.connessione(self.driver)
+
+        # Cookies
+        q.cookies(self.driver)
         
         # Log in
         q.login(self.driver, 'Avicario', 'AVicario123')
@@ -202,7 +205,8 @@ class Scarico():
             #     )
 
             # Aggiungi benchmark
-            if filename[:-6] in self.benchmarks.keys():
+            # if filename[:-6] in self.benchmarks.keys():
+            if filename[:-6] in self.IR_TEV:
                 self.driver.find_element(by=By.ID, value='Contenu_Contenu_rdIndiceRefTousFonds').click()
                 select = Select(self.driver.find_element(by=By.ID, value='Contenu_Contenu_cmbIndiceRef_Comp'))
                 select.select_by_value(self.benchmarks[filename[:-6]])
@@ -260,11 +264,20 @@ class Scarico():
                 WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
 
             # Rinomina file a 3 anni
+            """La chiavetta USB ha una velocità di scrittura inferiore a quella del computer, 
+            il cambio di nome del file non può essere eseguito all'istante.
+            Aspetto che l'estensione dell'ultimo file aggiunto alla cartella di download cambi
+            da .crdownload a .csv; a quel punto modifico il nome del file."""
             while len(os.listdir(self.directory_output_liste)) == file_scaricati:
                 time.sleep(1)
             time.sleep(1.5)
             list_of_files = glob.glob(self.directory_output_liste.__str__() + '/*')
             latest_file = max(list_of_files, key=os.path.getctime)
+            while Path(latest_file).suffix != '.csv':
+                list_of_files = glob.glob(self.directory_output_liste.__str__() + '/*')
+                latest_file = max(list_of_files, key=os.path.getctime)
+                time.sleep(1)
+                # print(Path(latest_file).suffix)
             os.rename(latest_file, self.directory_output_liste.joinpath(filename[:-4]+'_3Y.csv'))
 
             # Cambia date a 1 anno
@@ -299,11 +312,20 @@ class Scarico():
                 WebDriverWait(self.driver, 600).until(EC.invisibility_of_element_located((By.ID, 'Contenu_Contenu_loader_imgLoad')))
             
             # Rinomina file ad 1 anno
+            """La chiavetta USB ha una velocità di scrittura inferiore a quella del computer, 
+            il cambio di nome del file non può essere eseguito all'istante.
+            Aspetto che l'estensione dell'ultimo file aggiunto alla cartella di download cambi
+            da .crdownload a .csv; a quel punto modifico il nome del file."""
             while len(os.listdir(self.directory_output_liste)) == file_scaricati:
                 time.sleep(1)
             time.sleep(1.5)
             list_of_files = glob.glob(self.directory_output_liste.__str__() + '/*')
             latest_file = max(list_of_files, key=os.path.getctime)
+            while Path(latest_file).suffix != '.csv':
+                list_of_files = glob.glob(self.directory_output_liste.__str__() + '/*')
+                latest_file = max(list_of_files, key=os.path.getctime)
+                time.sleep(1)
+                # print(Path(latest_file).suffix)
             os.rename(latest_file, self.directory_output_liste.joinpath(filename[:-4]+'_1Y.csv'))
 
             # Contatori tempo trascorso
@@ -322,7 +344,7 @@ class Scarico():
 
 if __name__ == '__main__':
     start = time.perf_counter()
-    _ = Scarico('RIPA')
+    _ = Scarico(intermediario='RAI')
     _.export()
     end = time.perf_counter()
     print("Elapsed time: ", end - start, 'seconds')

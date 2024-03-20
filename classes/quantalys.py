@@ -1,12 +1,15 @@
+from io import StringIO
 import re
 import time
 
 import pandas as pd
-from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import NoSuchElementException, StaleElementReferenceException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
 
 
 class Quantalys():
@@ -22,24 +25,25 @@ class Quantalys():
         Accede a quantalys.it con chromium. Imposta come cartella di download il percorso in self.directory_output_liste
         e massimizza la finestra.
         """
-        print('\n...connessione a Quantalys...')
+        print('...connessione a Quantalys...\n')
         driver.get("https://www.quantalys.it")
         driver.maximize_window()
+        time.sleep(1)
+
+    def cookies(self, driver):
+        """
+        Accetta i cookies
+        """
+        WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, 'tarteaucitronRoot')))
+        WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, 'tarteaucitronPersonalize2')))
+        driver.find_element(by=By.ID, value='tarteaucitronPersonalize2').click() # Cookies
 
     def login(self, driver, username='AVicario', password='AVicario123'):
         """
-        Chiude l'alert dei cookies.
         Accede all'account con username=self.username e password=self.password.
         Main account username='AVicario', password='AVicario123'
         Alt account username='Pomante', password='Pomante22'
         """
-        # Chiudi i cookies
-        time.sleep(1)
-        try:
-            WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, 'tarteaucitronPersonalize2')))
-            driver.find_element(by=By.ID, value='tarteaucitronPersonalize2').click() # Cookies
-        except NoSuchElementException:
-            pass
         # Login form
         WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, 'btnConnexion')))
         driver.find_element(by=By.ID, value='btnConnexion').click()
@@ -48,6 +52,9 @@ class Quantalys():
         driver.find_element(by=By.ID, value='inputLogin').send_keys(username)
         driver.find_element(by=By.ID, value='inputPassword').send_keys(password)
         driver.find_element(by=By.ID, value='btnConnecter').click()
+        # Attendi fino a quando compare del testo nel posto del nome riservato al login
+        WebDriverWait(driver, 20).until_not(EC.text_to_be_present_in_element((By.ID, 'Contenu_ctlHautPage_lblCurrentLogin'), ''))
+        time.sleep(2) # la pagina sembra pronta ma sta ancora caricando degli elementi
 
     def rimuovi_indicatori(self, driver, numero_iniziale, numero_finale=10):
         """
@@ -192,6 +199,7 @@ class Quantalys():
             'Sortino ratio da data a data' : 'nSortino',
             'DSR da data a data' : 'nDSR',
             'Perf Ann. da data a data' : 'nReta',
+            'Alfa da data a data' : 'nAlpha',
         }
         input_value = {"listModules":[]}
         INPUT_ID = 'Contenu_Contenu_cColonnesSelector_fieldJson'
@@ -221,9 +229,10 @@ class Quantalys():
         """Tenta di cliccare subito su liste. Non funziona la prima volta ma tutte le rimanenti."""
         try:
             driver.find_element(by=By.PARTIAL_LINK_TEXT, value='Liste').click()
-        except NoSuchElementException:
+        except (NoSuchElementException, StaleElementReferenceException):
             WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Tools'))).click()
             WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Liste'))).click()
+        WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.NAME, 'new')))
 
         # Crea nuova lista
         time.sleep(0.5)
@@ -240,7 +249,7 @@ class Quantalys():
         _ = WebDriverWait(driver, 20).until(
             EC.element_to_be_clickable((By.XPATH, '//*[@id="quantasearch"]/div[2]/div[3]/div/button[2]'))
         )
-        time.sleep(0.5) # Necessario, preme il bottone troppo veloce e il sito non risponde
+        time.sleep(1) # Necessario, preme il bottone troppo veloce e il sito non risponde
         _.click()
         # prendi la chiave unica della lista
         id_lista = driver.find_element(
@@ -284,7 +293,7 @@ class Quantalys():
         Ricava i dati da una tabella html contenuta in pagine multiple
 
         Arguments:
-            driver {str} = driver che inietta il codice nel browser
+            driver {Webdriver} = driver che inietta il codice nel browser
             table {url} = indirizzo url che porta alla tabella (full x-path)
             num_pages {int} =  numero di pagine in cui è divisa la tabella
 
@@ -292,7 +301,7 @@ class Quantalys():
             df {dataframe} = Dataframe contenente i dati estratti
         """
         element = driver.find_element(By.XPATH, table).get_attribute('outerHTML')
-        df = pd.read_html(element)[0]
+        df = pd.read_html(StringIO(element))[0]
         for page in range(2, num_pages+1):
             # Individua il nome del primo elemento
             nome_primo_fondo = driver.find_element(
@@ -313,18 +322,19 @@ class Quantalys():
             )
             # Scarica il nuovo dataframe
             element2 = driver.find_element(By.XPATH, table).get_attribute('outerHTML')
-            df2 = pd.read_html(element2)[0]
+            df2 = pd.read_html(StringIO(element2))[0]
             # Allegalo in coda al primo (df)
             df = pd.concat([df, df2], ignore_index=True)
         return df
 
-    def to_confronto(self, driver, id_lista):
+    def confronta_lista(self, driver, id_lista):
         """
         Raggiungi https://www.quantalys.it/compare/selection_fonds.aspx?univers=Fonds&menu=f da ovunque,
-        carica la lista 'list_name' e arriva in confronto 
+        scegli come bacino di ricerca tutti i fondi nella lista 'list_name' e arriva in confronto 
         https://www.quantalys.it/compare/comparaison_fonds.aspx?ID_Comparaison={ID}.
 
         Arguments:
+            driver {Webdriver} = driver
             list_name {str} = nome della lista da caricare
         """
 
@@ -332,7 +342,7 @@ class Quantalys():
         """Tenta di cliccare subito su confronto. Quantalys preme il tasto fondi dopo il login."""
         try:
             driver.find_element(by=By.PARTIAL_LINK_TEXT, value='Confronto').click()
-        except NoSuchElementException:
+        except (NoSuchElementException, StaleElementReferenceException):
             WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Fondi'))).click()
             WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Confronto'))).click()
             
@@ -360,4 +370,42 @@ class Quantalys():
         # seleziona tutti
         WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, 'Contenu_Contenu_selectFonds_listeFonds_HeaderButton'))).click()
         # confronta
-        WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="Contenu_Contenu_btnComparer1"]'))).click()
+        WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, 'Contenu_Contenu_btnComparer1'))).click()
+
+    def confronta_isin(self, driver, *isin):
+        """
+        Raggiungi https://www.quantalys.it/compare/selection_fonds.aspx?univers=Fonds&menu=f da ovunque,
+        aggiungi i fondi corrispondenti agli ISIN presenti nella lista 'isin' e arriva in confronto 
+        https://www.quantalys.it/compare/comparaison_fonds.aspx?ID_Comparaison={ID}.
+
+        Arguments:
+            driver {Webdriver} = driver
+            isin {list} = lista degli ISIN da caricare
+        """
+        
+        # Confronto / Fondi -> Confronto
+        """Tenta di cliccare subito su confronto. Quantalys preme il tasto fondi dopo il login."""
+        try:
+            driver.find_element(by=By.PARTIAL_LINK_TEXT, value='Confronto').click()
+        except (NoSuchElementException, StaleElementReferenceException):
+            WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Fondi'))).click()
+            WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.PARTIAL_LINK_TEXT, 'Confronto'))).click()
+
+        # Apri la text area
+        WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable((By.ID, 'Contenu_Contenu_selectFonds_btnISINDeploie'))
+        ).click()
+        time.sleep(0.5)
+
+        # Aggiungi gli ISIN nell'area di testo
+        for fund in isin:
+            WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.ID, 'Contenu_Contenu_selectFonds_ISINorNomTextBox'))
+            ).send_keys(fund, Keys.ENTER)
+
+        # Cerca
+        WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, 'Contenu_Contenu_selectFonds_searchButton'))).click()
+        # seleziona tutti
+        WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, 'Contenu_Contenu_selectFonds_listeFonds_HeaderButton'))).click()
+        # Confronta
+        WebDriverWait(driver, 20).until(EC.element_to_be_clickable((By.ID, 'Contenu_Contenu_btnComparer1'))).click()
